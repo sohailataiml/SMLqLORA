@@ -1,0 +1,35 @@
+# Training stack for a Colab/Kaggle T4 session.
+#
+# torch is NOT listed: Colab ships a CUDA build already, and reinstalling it is a
+# multi-GB download that frequently lands on a wheel mismatched to the runtime's
+# driver. Use whatever torch the runtime provides; the notebook asserts it sees
+# the GPU before going further.
+#
+#   pip install -q -r requirements-colab.txt
+#
+# The lower bounds are API requirements, not preferences. `training/train.py`
+# calls SFTConfig(max_length=...) and SFTTrainer(processing_class=...), both of
+# which are TRL >= 0.20 spellings; on TRL 0.9-0.19 the run fails with an opaque
+# TypeError. The notebook checks the API surface directly rather than trusting a
+# version string, because these names have moved more than once.
+
+transformers>=4.51
+trl>=0.20
+peft>=0.12
+accelerate>=0.33
+datasets>=2.20
+bitsandbytes>=0.43
+huggingface-hub>=0.24
+
+# Repository runtime dependencies (Colab has some of these, not all).
+pydantic>=2.7
+pyyaml>=6.0
+python-dotenv>=1.0
+tqdm>=4.66
+
+# Needed only by the evaluation cells at the end — the LLM judge.
+anthropic>=0.40
+
+# Needed only for the base-vs-tuned comparison plot.
+matplotlib>=3.8
+pandas>=2.2

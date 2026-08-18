@@ -590,6 +590,22 @@ hashes to the frozen value, so an adapter can always be traced back to its data.
 Preflight and the frozen recipe:
 [`results/training/socratic-v1-n600/`](results/training/socratic-v1-n600/).
 
+**To run it on a free Colab T4**, open
+[`notebooks/train_colab.ipynb`](notebooks/train_colab.ipynb). It clones this
+repository, verifies the frozen dataset, checks that training and inference
+agree on Qwen3's chat template, trains N=600, sanity-checks the checkpoint and
+runs the base-vs-tuned comparison in the same session. Two prerequisites:
+
+1. Push the branch holding the frozen recipe, and set `BRANCH` in the clone cell.
+2. Add `ANTHROPIC_API_KEY` to Colab **Secrets** — needed only by the evaluation
+   cells; training itself uses no credentials.
+
+The notebook uses
+[`training/configs/qlora_qwen3_1_7b_t4.yaml`](training/configs/qlora_qwen3_1_7b_t4.yaml),
+which differs from the main config only where Turing forces it (fp16 instead of
+bfloat16, eager attention). A test asserts the two configs cannot diverge on
+anything else, and that both produce byte-identical training text.
+
 ---
 
 ## Results

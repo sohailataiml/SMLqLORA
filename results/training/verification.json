@@ -1,5 +1,5 @@
 {
-  "config": "training\\configs\\qlora_qwen3_1_7b.yaml",
+  "config": "training/configs/qlora_qwen3_1_7b.yaml",
   "source_path": "data/versions/v1/selected.jsonl",
   "source_dataset_hash": "9121c24e47c7253818040aa40356a67d3a359ddcec057bc5bfc533d6a77e2656",
   "expected_dataset_hash": "9121c24e47c7253818040aa40356a67d3a359ddcec057bc5bfc533d6a77e2656",

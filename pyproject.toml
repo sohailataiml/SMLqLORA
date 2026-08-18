@@ -34,12 +34,17 @@ analysis = [
 # QLoRA training stack. Requires a CUDA GPU (compute capability >= 7.5 for
 # bitsandbytes NF4). Deliberately NOT part of the default install so that the
 # repository stays testable on CPU-only machines.
+#
+# The trl and transformers floors are API requirements, not preferences:
+# `training/train.py` calls SFTConfig(max_length=...) and
+# SFTTrainer(processing_class=...), which are TRL >= 0.20 spellings. On TRL
+# 0.9-0.19 the run fails with an opaque TypeError several minutes in.
 train = [
     "torch>=2.3",
-    "transformers>=4.44",
+    "transformers>=4.51",
     "datasets>=2.20",
     "peft>=0.12",
-    "trl>=0.9",
+    "trl>=0.20",
     "bitsandbytes>=0.43; platform_system != 'Darwin'",
     "accelerate>=0.33",
     "huggingface-hub>=0.24",

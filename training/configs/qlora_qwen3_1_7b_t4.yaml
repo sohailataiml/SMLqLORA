@@ -1,0 +1,83 @@
+# QLoRA configuration for a free Colab/Kaggle T4.
+#
+# Identical to `qlora_qwen3_1_7b.yaml` in every way that affects the experiment.
+# The only differences are forced by the hardware: a T4 is Turing (cc 7.5) and
+# has no bfloat16 unit, so the 4-bit compute dtype and mixed precision both move
+# to fp16. Nothing here is a hyperparameter choice.
+#
+# Kept as a separate file rather than patched in at runtime so the notebook does
+# not rewrite a config whose hash is recorded in the run manifest.
+#
+#   python -m training.train --config training/configs/qlora_qwen3_1_7b_t4.yaml
+#
+# On an Ampere or newer GPU (A100, L4, RTX 30xx+) use the base config instead —
+# bfloat16 is more numerically forgiving at this learning rate.
+
+run_name: socratic-v1-n600
+
+model:
+  base_model: Qwen/Qwen3-1.7B
+  # Pinned so the run is reproducible against an exact snapshot of the weights.
+  # This is the chat/instruct variant; Qwen/Qwen3-1.7B-Base is the raw LM and is
+  # deliberately NOT used here.
+  revision: 70d244cc86ccca08cf5af4e1e306ecf908b1ad5e
+  trust_remote_code: false
+  max_seq_length: 2048
+  # T4 predates FlashAttention-2 (needs Ampere). eager is correct here.
+  attn_implementation: eager
+
+quantization:
+  load_in_4bit: true
+  bnb_4bit_quant_type: nf4
+  bnb_4bit_use_double_quant: true
+  bnb_4bit_compute_dtype: float16   # T4 CHANGE: no bfloat16 on Turing
+
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  bias: none
+  task_type: CAUSAL_LM
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj
+
+training:
+  num_train_epochs: 3
+  per_device_train_batch_size: 2
+  gradient_accumulation_steps: 8      # effective batch size 16
+  learning_rate: 2.0e-4
+  lr_scheduler_type: cosine
+  warmup_ratio: 0.03
+  weight_decay: 0.0
+  max_grad_norm: 0.3
+  optim: paged_adamw_8bit
+  logging_steps: 5
+  eval_strategy: epoch
+  save_strategy: epoch
+  save_total_limit: 1
+  bf16: false        # T4 CHANGE: Turing has no bf16
+  fp16: true
+  gradient_checkpointing: true
+  seed: 42
+  report_to: none
+
+data:
+  # The FROZEN Dataset V1 selection (600 examples), not the 1055-example accepted
+  # pool it was drawn from.
+  accepted_path: data/versions/v1/selected.jsonl
+  dataset_version: v1
+  # Refuse to train if the file on disk no longer hashes to the frozen value.
+  expected_dataset_hash: 9121c24e47c7253818040aa40356a67d3a359ddcec057bc5bfc533d6a77e2656
+  validation_fraction: 0.1
+  limit: null
+
+output:
+  output_dir: outputs
+  hub_repo_id: null
+  push_to_hub: false

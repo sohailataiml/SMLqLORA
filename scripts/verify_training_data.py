@@ -84,6 +84,17 @@ class VerificationFailure(RuntimeError):
     """Raised when a check that must hold before training does not."""
 
 
+def _repo_relative(path: str | Path) -> str:
+    """Repo-relative POSIX path, whether the caller passed relative or absolute."""
+    resolved = Path(path)
+    if not resolved.is_absolute():
+        resolved = (REPO_ROOT / resolved).resolve()
+    try:
+        return resolved.relative_to(REPO_ROOT).as_posix()
+    except ValueError:
+        return resolved.as_posix()
+
+
 def _fail(checks: list[dict[str, Any]], name: str, detail: str) -> None:
     checks.append({"check": name, "passed": False, "detail": detail})
 
@@ -280,7 +291,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     check_contamination(rows, checks)
 
     report = {
-        "config": str(Path(args.config).relative_to(REPO_ROOT)),
+        "config": _repo_relative(args.config),
         "source_path": data_cfg["accepted_path"],
         "source_dataset_hash": actual_hash,
         "expected_dataset_hash": expected_hash,

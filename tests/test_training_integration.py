@@ -31,7 +31,18 @@ from training.train import (
 )
 
 CONFIG_PATH = REPO_ROOT / "training" / "configs" / "qlora_qwen3_1_7b.yaml"
+T4_CONFIG_PATH = REPO_ROOT / "training" / "configs" / "qlora_qwen3_1_7b_t4.yaml"
 FREEZE_PATH = REPO_ROOT / "data" / "versions" / "v1" / "freeze.json"
+
+#: The only fields a T4 is allowed to change. A T4 is Turing: no bfloat16 unit,
+#: no FlashAttention-2. Everything else is the experiment and must match.
+T4_PERMITTED_DIFFERENCES = {
+    ("quantization", "bnb_4bit_compute_dtype"),
+    ("training", "bf16"),
+    ("training", "fp16"),
+    ("model", "attn_implementation"),
+    ("model", "max_seq_length"),
+}
 
 
 @pytest.fixture(scope="module")
@@ -133,6 +144,65 @@ def test_training_uses_the_weak_prompt(config):
     assert TRAINING_SYSTEM_PROMPT == ZeroShotStrategy().system_prompt()
     assert TRAINING_SYSTEM_PROMPT != StructuredStrategy().system_prompt()
     assert len(TRAINING_SYSTEM_PROMPT) < 400
+
+
+# ------------------------------------ the T4 config must stay the same experiment
+
+
+@pytest.fixture(scope="module")
+def t4_config() -> TrainingConfig:
+    return TrainingConfig.load(T4_CONFIG_PATH)
+
+
+def test_t4_config_differs_only_where_the_hardware_forces_it(config, t4_config):
+    """Two configs, one experiment. Anything else diverging is a silent confound."""
+    differences = set()
+    sections = set(config.raw) | set(t4_config.raw)
+    for section in sections:
+        base_section = config.raw.get(section)
+        t4_section = t4_config.raw.get(section)
+        if not isinstance(base_section, dict) or not isinstance(t4_section, dict):
+            continue
+        for key in set(base_section) | set(t4_section):
+            if base_section.get(key) != t4_section.get(key):
+                differences.add((section, key))
+
+    unexpected = differences - T4_PERMITTED_DIFFERENCES
+    assert not unexpected, (
+        f"T4 config diverges from the base config on {sorted(unexpected)}, which "
+        f"changes the experiment rather than accommodating the hardware."
+    )
+
+
+def test_t4_config_is_actually_t4_safe(t4_config):
+    """Turing has no bfloat16. Getting this wrong fails minutes into training."""
+    assert t4_config.section("quantization")["bnb_4bit_compute_dtype"] == "float16"
+    assert t4_config.section("training")["bf16"] is False
+    assert t4_config.section("training")["fp16"] is True
+    # FlashAttention-2 needs Ampere; asking for it on a T4 raises at load time.
+    assert t4_config.section("model")["attn_implementation"] == "eager"
+
+
+def test_t4_config_trains_on_the_same_frozen_data(config, t4_config):
+    base_data = config.section("data")
+    t4_data = t4_config.section("data")
+    assert t4_data["accepted_path"] == base_data["accepted_path"]
+    assert t4_data["expected_dataset_hash"] == base_data["expected_dataset_hash"]
+
+
+def test_both_configs_produce_identical_training_text(config, t4_config):
+    """Precision is a runtime concern; the tokens must be byte-identical."""
+    from training.dataset import build_dataset, dataset_fingerprint
+
+    def fingerprint(cfg: TrainingConfig) -> str:
+        examples = load_accepted(REPO_ROOT / cfg.section("data")["accepted_path"])
+        split = build_dataset(
+            examples,
+            validation_fraction=float(cfg.section("data")["validation_fraction"]),
+        )
+        return dataset_fingerprint(split.train + split.validation)
+
+    assert fingerprint(config) == fingerprint(t4_config)
 
 
 # --------------------------------------- the spec hash must not drift on checkout
