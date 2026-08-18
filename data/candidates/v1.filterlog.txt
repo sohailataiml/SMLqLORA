@@ -1,0 +1,36 @@
+Candidates      : 1190
+Judge           : anthropic:claude-opus-5
+Eval scenarios  : 56 (contamination reference)
+
+  schema           1190 ->  1190  (-0)
+  static_checks    1190 ->  1044  (-146)
+  llm_judge        1044 ->   578  (-466)
+  dedupe            578 ->   578  (-0)
+  contamination     578 ->   578  (-0)
+  balance           578 ->   578  (-0)
+
+accepted        : 578
+rejected        : 612
+acceptance rate : 48.6%
+dataset hash    : b73937bab27f61ec
+contamination   : No training example matches or closely resembles an evaluation scenario.
+
+top rejection reasons:
+  LOW_QUALITY                  581
+  IRRELEVANT_HINT              410
+  SOLUTION_LEAK                17
+  MULTIPLE_HINTS               10
+  EXPLICIT_FINAL_DIAGNOSIS     3
+  PREMATURE_CONFIRMATION       1
+
+judge tokens    : 1,806,790 in / 375,011 out over 1865 request(s)
+
+top-up          : 100 more candidate(s)
+                  need 22 more accepted at an observed rate of 0.486 -> 46 candidates, +10% margin, rounded to 50
+
+  accepted           data\accepted\v1.jsonl
+  rejected           data\rejected\v1.jsonl
+  version_accepted   data\versions\v1\accepted.jsonl
+  version_rejected   data\versions\v1\rejected.jsonl
+  report_json        data\versions\v1\report.json
+  report_md          data\versions\v1\report.md

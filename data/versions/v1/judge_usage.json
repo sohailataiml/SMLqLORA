@@ -1,0 +1,27 @@
+{
+  "by_model": [
+    {
+      "model": "anthropic:claude-opus-5",
+      "family": "anthropic",
+      "requests": 1865,
+      "failed_requests": 1230,
+      "input_tokens": 1806790,
+      "output_tokens": 375011,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "total_tokens": 2181801,
+      "token_counts_incomplete": false
+    }
+  ],
+  "totals": {
+    "requests": 1865,
+    "failed_requests": 1230,
+    "input_tokens": 1806790,
+    "output_tokens": 375011,
+    "cache_read_tokens": 0,
+    "cache_write_tokens": 0,
+    "total_tokens": 2181801,
+    "token_counts_incomplete": false
+  },
+  "estimated_cost_usd": "NOT COMPUTED \u2014 no price table is configured"
+}

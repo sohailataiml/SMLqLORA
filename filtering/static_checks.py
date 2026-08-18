@@ -32,7 +32,37 @@ from generation.schemas import GeneratedExample
 MIN_CODE_CHARS = 25
 MAX_CODE_CHARS = 1600
 MIN_RESPONSE_CHARS = 15
+
+#: Maximum tutor-response length, **by learner state**, because the spec asks
+#: for two different shapes of response and a single bound silently enforces
+#: only one of them.
+#:
+#: Unresolved: exactly one Socratic question, deliberately tight. Measured over
+#: tranche 1, real unresolved responses ran a median of 347 characters and a
+#: maximum of 626, so 1200 is already generous headroom.
+#:
+#: Solved: the spec requires the opposite behavior — confirm the fix and explain
+#: why it works. The generation prompt says so explicitly ("explain the
+#: underlying cause as fully as is useful"). Real solved responses ran a median
+#: of 1314 characters, so the old flat 1200-character cap rejected 98.8% of them
+#: at the static stage, before the judge ever saw them. That is not a quality
+#: standard, it is a rule that contradicts the behavior it is meant to enforce:
+#: applied as-is it would starve the dataset of `solved` examples and teach
+#: "never confirm an answer", which is the exact failure the spec calls
+#: WITHHELD_AFTER_SOLVED.
+#:
+#: The bound stays a blunt sanity check on either side. Whether an explanation
+#: is *too long for its purpose* is a semantic question, and it remains the
+#: judge's to answer via OVER_EXPLANATION.
 MAX_RESPONSE_CHARS = 1200
+MAX_RESPONSE_CHARS_SOLVED = 2400
+
+
+def max_response_chars(example: GeneratedExample) -> int:
+    """Response-length ceiling appropriate to the learner's state."""
+    if example.scenario.student_has_solved:
+        return MAX_RESPONSE_CHARS_SOLVED
+    return MAX_RESPONSE_CHARS
 
 
 @dataclass(frozen=True)
@@ -78,9 +108,14 @@ def check_integrity(example: GeneratedExample) -> IntegrityResult:
         codes.append("INVALID_SCHEMA")
         notes.append("snippet does not look like javascript")
 
-    if not (MIN_RESPONSE_CHARS <= len(example.tutor_response) <= MAX_RESPONSE_CHARS):
+    ceiling = max_response_chars(example)
+    if not (MIN_RESPONSE_CHARS <= len(example.tutor_response) <= ceiling):
         codes.append("LOW_QUALITY")
-        notes.append(f"tutor_response length {len(example.tutor_response)} out of bounds")
+        notes.append(
+            f"tutor_response length {len(example.tutor_response)} out of bounds "
+            f"(limit {ceiling} for "
+            f"{'solved' if example.scenario.student_has_solved else 'unresolved'})"
+        )
 
     # A "fix" identical to the code teaches nothing.
     if normalize_code(scenario.expected_fix) == normalize_code(code):

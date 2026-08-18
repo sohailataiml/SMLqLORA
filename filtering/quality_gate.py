@@ -37,7 +37,7 @@ from filtering.balance import (
     distribution,
 )
 from filtering.dedupe import check_contamination, deduplicate, drop_contaminated
-from filtering.judge import judge_candidates
+from filtering.judge import UNJUDGED, judge_candidates
 from filtering.static_checks import static_screen
 from generation.schemas import GeneratedExample
 
@@ -60,6 +60,12 @@ class GateReport:
     accepted_count: int = 0
     rejected_count: int = 0
     acceptance_rate: float = 0.0
+    #: Candidates the judge could not be reached for. Excluded from both
+    #: `accepted` and `rejected`, and from the acceptance-rate denominator,
+    #: because an outage describes the account and not the data.
+    unjudged_count: int = 0
+    judged_count: int = 0
+    complete: bool = True
 
     rejections_by_reason: dict[str, int] = field(default_factory=dict)
     rejections_by_stage: dict[str, int] = field(default_factory=dict)
@@ -88,6 +94,9 @@ class GateReport:
 class GateOutcome:
     accepted: list[GeneratedExample] = field(default_factory=list)
     rejected: list[GeneratedExample] = field(default_factory=list)
+    #: Never judged because the judge was unreachable. Retry these; do not
+    #: count them as rejections and do not freeze a dataset while any remain.
+    unjudged: list[GeneratedExample] = field(default_factory=list)
     report: GateReport | None = None
 
 
@@ -153,9 +162,13 @@ def run_quality_gate(
 
     # ---- Stage 3: LLM judge ------------------------------------------------
     after_judge: list[GeneratedExample] = []
+    unjudged: list[GeneratedExample] = []
     judged = judge_candidates(after_static, judge, spec, max_workers=max_workers)
     for example, codes in judged:
-        if codes:
+        if codes == (UNJUDGED,):
+            unjudged.append(example)
+            stage_counts["judge_unavailable"] += 1
+        elif codes:
             rejected.append(_reject(example, codes, "llm_judge"))
             stage_counts["llm_judge"] += 1
         else:
@@ -200,7 +213,13 @@ def run_quality_gate(
         candidate_count=len(candidates),
         accepted_count=len(accepted),
         rejected_count=len(rejected),
-        acceptance_rate=round(len(accepted) / len(candidates), 4) if candidates else 0.0,
+        unjudged_count=len(unjudged),
+        judged_count=len(candidates) - len(unjudged),
+        complete=not unjudged,
+        # Denominator excludes candidates the judge never saw, so an outage
+        # cannot depress the reported acceptance rate.
+        acceptance_rate=round(len(accepted) / (len(candidates) - len(unjudged)), 4)
+        if (len(candidates) - len(unjudged)) else 0.0,
         rejections_by_reason=dict(reasons.most_common()),
         rejections_by_stage=dict(stage_counts.most_common()),
         language_distribution=dists.get("language", {}),
@@ -222,7 +241,8 @@ def run_quality_gate(
         notes=notes,
     )
 
-    return GateOutcome(accepted=accepted, rejected=rejected, report=report)
+    return GateOutcome(accepted=accepted, rejected=rejected,
+                       unjudged=unjudged, report=report)
 
 
 # =============================================================================
@@ -245,6 +265,7 @@ def write_dataset_version(
         "rejected": repo_root / "data" / "rejected" / f"{dataset_version}.jsonl",
         "version_accepted": version_dir / "accepted.jsonl",
         "version_rejected": version_dir / "rejected.jsonl",
+        "version_unjudged": version_dir / "unjudged.jsonl",
         "report_json": version_dir / "report.json",
         "report_md": version_dir / "report.md",
     }
@@ -253,6 +274,9 @@ def write_dataset_version(
     write_jsonl(paths["rejected"], outcome.rejected)
     write_jsonl(paths["version_accepted"], outcome.accepted)
     write_jsonl(paths["version_rejected"], outcome.rejected)
+    # Written even when empty, so "no unjudged candidates" is an assertion in
+    # the artifacts rather than an absent file open to interpretation.
+    write_jsonl(paths["version_unjudged"], outcome.unjudged)
 
     assert outcome.report is not None
     paths["report_json"].write_text(

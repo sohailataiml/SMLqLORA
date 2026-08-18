@@ -21,6 +21,7 @@ sys.path.insert(0, str(REPO_ROOT))
 from behavior.spec import load_spec  # noqa: E402
 from evaluation.judge import DeterministicJudge, LLMJudge  # noqa: E402
 from evaluation.schemas import iter_jsonl, load_scenario_files  # noqa: E402
+from filtering.judge import CachedJudge, build_verdict_cache  # noqa: E402
 from filtering.quality_gate import run_quality_gate, write_dataset_version  # noqa: E402
 from generation.schemas import GeneratedExample  # noqa: E402
 from generation.topup import plan_topup  # noqa: E402
@@ -66,6 +67,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--notes", default="")
     parser.add_argument("--target-accepted", type=int, default=600,
                         help="target size; used only to size a top-up tranche")
+    parser.add_argument("--no-resume", action="store_true",
+                        help="ignore prior judge verdicts and re-purchase all of them")
     args = parser.parse_args(argv)
 
     spec = load_spec()
@@ -81,6 +84,23 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.mock
         else LLMJudge(MeteredAdapter(resolve_model(args.judge), meter), spec)
     )
+
+    # Reuse verdicts already paid for. An outage part-way through judging must
+    # not force re-purchasing the calls that succeeded.
+    cache_hits = 0
+    if not args.no_resume:
+        version_dir = REPO_ROOT / "data" / "versions" / args.dataset_version
+        prior: list = []
+        for name in ("accepted.jsonl", "rejected.jsonl", "unjudged.jsonl"):
+            path = version_dir / name
+            if path.exists():
+                prior.extend(load_candidates(path))
+        if prior:
+            verdicts = build_verdict_cache(prior)
+            if verdicts:
+                judge = CachedJudge(judge, verdicts)
+                cache_hits = len(verdicts)
+                print(f"Resuming        : {cache_hits} prior judge verdict(s) reusable")
 
     print(f"Candidates      : {len(candidates)}")
     print(f"Judge           : {judge.describe()['judge_model']}")
@@ -114,7 +134,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     print()
     print(f"accepted        : {report.accepted_count}")
     print(f"rejected        : {report.rejected_count}")
-    print(f"acceptance rate : {report.acceptance_rate:.1%}")
+    print(f"unjudged (infra): {report.unjudged_count}")
+    print(f"acceptance rate : {report.acceptance_rate:.1%} of {report.judged_count} judged")
+    if not report.complete:
+        print(f"STATUS          : INCOMPLETE — {report.unjudged_count} candidate(s) "
+              f"never reached the judge. Do not freeze this version.")
     print(f"dataset hash    : {report.dataset_hash[:16]}")
     print(f"contamination   : {report.contamination_summary}")
     print()

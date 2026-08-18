@@ -465,6 +465,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--sizes", nargs="+", type=int, default=list(SWEEP_SIZES))
     parser.add_argument("--human-review-target", type=int,
                         default=HUMAN_REVIEW_TARGET)
+    parser.add_argument("--no-freeze", action="store_true",
+                        help="audit only; do not freeze (use while the gate is "
+                             "incomplete, e.g. candidates still unjudged)")
     parser.add_argument("--refreeze", action="store_true",
                         help="overwrite an existing freeze (use only for a "
                              "genuine re-cut of the same version)")
@@ -500,8 +503,45 @@ def main(argv: Sequence[str] | None = None) -> int:
         "status": "NOT YET HUMAN-REVIEWED",
     }
 
+    # Never freeze a version whose gate did not finish: a frozen hash asserts
+    # "this is the dataset", and a dataset missing 410 unjudged candidates is
+    # not yet that.
+    unjudged_path = version_dir / "unjudged.jsonl"
+    unjudged_count = sum(
+        1 for line in unjudged_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ) if unjudged_path.exists() else 0
+    report["gate_completeness"] = {
+        "unjudged_candidates": unjudged_count,
+        "complete": unjudged_count == 0,
+    }
+
     freeze_path = version_dir / "freeze.json"
     freeze = build_freeze(accepted, report, version)
+    if unjudged_count and not args.no_freeze:
+        print()
+        print(f"REFUSING TO FREEZE — {unjudged_count} candidate(s) never reached "
+              f"the judge.")
+        print("  Those are an infrastructure outcome, not rejections. Restore "
+              "provider credit and re-run the gate;")
+        print("  it reuses the verdicts already paid for. Re-run with "
+              "--no-freeze to produce an interim audit only.")
+        return 1
+    if args.no_freeze:
+        freeze["frozen"] = False
+        freeze["status"] = (
+            f"INTERIM — not frozen; {unjudged_count} candidate(s) still unjudged"
+        )
+        report["freeze"] = freeze
+        card_path = version_dir / "DATASET_CARD.md"
+        card_path.write_text(render_dataset_card(report, version), encoding="utf-8")
+        audit_path = version_dir / "audit.json"
+        audit_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+        print()
+        print(f"  INTERIM audit written (NOT frozen): "
+              f"{audit_path.relative_to(REPO_ROOT)}")
+        print(f"  unjudged remaining   : {unjudged_count}")
+        return 0
     if freeze_path.exists() and not args.refreeze:
         prior = json.loads(freeze_path.read_text(encoding="utf-8"))
         if prior.get("dataset_hash") != freeze["dataset_hash"]:

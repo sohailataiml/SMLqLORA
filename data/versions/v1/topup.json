@@ -1,0 +1,11 @@
+{
+  "target_accepted": 600,
+  "accepted_so_far": 578,
+  "observed_acceptance_rate": 0.4857,
+  "shortfall": 22,
+  "raw_estimate": 46,
+  "safety_margin": 0.1,
+  "additional_candidates": 100,
+  "needed": true,
+  "reason": "need 22 more accepted at an observed rate of 0.486 -> 46 candidates, +10% margin, rounded to 50"
+}

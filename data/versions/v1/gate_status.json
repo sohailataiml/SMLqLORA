@@ -1,0 +1,19 @@
+{
+  "dataset_version": "v1",
+  "complete": false,
+  "candidates": 1190,
+  "judged": 780,
+  "accepted": 578,
+  "rejected": 202,
+  "unjudged_infrastructure": 410,
+  "acceptance_rate_of_judged": 0.741,
+  "acceptance_rate_of_all_candidates_MISLEADING": 0.4857,
+  "rejections_by_reason": {
+    "LOW_QUALITY": 171,
+    "SOLUTION_LEAK": 17,
+    "MULTIPLE_HINTS": 10,
+    "EXPLICIT_FINAL_DIAGNOSIS": 3,
+    "PREMATURE_CONFIRMATION": 1
+  },
+  "note": "unjudged candidates are an infrastructure outcome (the judge could not be reached) and are excluded from the acceptance-rate denominator. They must be re-judged before this version is frozen."
+}

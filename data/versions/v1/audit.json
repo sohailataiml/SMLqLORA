@@ -1,0 +1,347 @@
+{
+  "counts": {
+    "candidates_generated": 1190,
+    "accepted": 578,
+    "rejected": 202,
+    "acceptance_rate": 0.4857
+  },
+  "distribution": {
+    "language": {
+      "javascript": 292,
+      "python": 286
+    },
+    "language_share": {
+      "javascript": 0.5052,
+      "python": 0.4948
+    },
+    "bug_category": {
+      "scope": 42,
+      "integer_division": 28,
+      "shadowed_builtin": 25,
+      "this_binding": 25,
+      "undefined_properties": 25,
+      "hoisting": 24,
+      "closure_behavior": 24,
+      "map_vs_foreach": 24,
+      "list_mutation": 23,
+      "type_coercion": 22,
+      "boolean_condition": 22,
+      "incorrect_condition": 22,
+      "async_await": 22,
+      "mutable_default": 21,
+      "generator_exhaustion": 20,
+      "string_immutability": 20,
+      "return_placement": 20,
+      "callback_ordering": 19,
+      "promise_handling": 19,
+      "loop_boundary": 19,
+      "dictionary_access": 18,
+      "missing_return": 18,
+      "none_handling": 17,
+      "exception_handling": 17,
+      "shallow_copy": 17,
+      "array_mutation": 14,
+      "comparison_identity": 11
+    },
+    "bug_category_count": 27,
+    "difficulty": {
+      "medium": 201,
+      "hard": 191,
+      "easy": 186
+    },
+    "difficulty_share": {
+      "medium": 0.3478,
+      "hard": 0.3304,
+      "easy": 0.3218
+    },
+    "pressure_type": {
+      "normal": 126,
+      "almost_correct": 81,
+      "fake_success": 71,
+      "time_pressure": 64,
+      "frustrated": 62,
+      "repeated_answer_request": 55,
+      "prompt_injection": 49,
+      "authority_override": 41,
+      "solved": 29
+    },
+    "pressure_type_share": {
+      "normal": 0.218,
+      "almost_correct": 0.1401,
+      "fake_success": 0.1228,
+      "time_pressure": 0.1107,
+      "frustrated": 0.1073,
+      "repeated_answer_request": 0.0952,
+      "prompt_injection": 0.0848,
+      "authority_override": 0.0709,
+      "solved": 0.0502
+    },
+    "conversation_turns": {
+      "2": 199,
+      "3": 149,
+      "1": 132,
+      "4": 98
+    },
+    "learner_competence": {
+      "beginner": 197,
+      "intermediate": 192,
+      "advanced": 189
+    },
+    "hint_strength": {
+      "narrow": 222,
+      "nudge": 202,
+      "pointed": 154
+    },
+    "student_progress": {
+      "close": 216,
+      "stuck": 204,
+      "partial": 129,
+      "solved": 29
+    }
+  },
+  "behavioral_coverage": {
+    "learner_state": {
+      "unresolved": 468,
+      "almost_correct": 81,
+      "solved": 29
+    },
+    "learner_state_share": {
+      "unresolved": 0.8097,
+      "almost_correct": 0.1401,
+      "solved": 0.0502
+    },
+    "answer_seeking_pressure": 181,
+    "answer_seeking_share": 0.3131,
+    "injection_or_authority_pressure": 90,
+    "injection_or_authority_share": 0.1557,
+    "solved_count": 29,
+    "almost_correct_count": 81,
+    "unresolved_count": 468
+  },
+  "rejections": {
+    "by_reason": {
+      "LOW_QUALITY": 171,
+      "SOLUTION_LEAK": 17,
+      "MULTIPLE_HINTS": 10,
+      "EXPLICIT_FINAL_DIAGNOSIS": 3,
+      "PREMATURE_CONFIRMATION": 1
+    },
+    "by_reason_rate": {
+      "LOW_QUALITY": 0.1437,
+      "SOLUTION_LEAK": 0.0143,
+      "MULTIPLE_HINTS": 0.0084,
+      "EXPLICIT_FINAL_DIAGNOSIS": 0.0025,
+      "PREMATURE_CONFIRMATION": 0.0008
+    }
+  },
+  "diversity": {
+    "exact_duplicates_in_accepted": 0,
+    "near_duplicates_in_accepted": 0,
+    "exact_duplicate_rate": 0.0,
+    "near_duplicate_rate": 0.0,
+    "unique_content_hashes": 578,
+    "unique_bug_categories": 27,
+    "unique_code_bodies": 574,
+    "note": "Recomputed over the accepted set as an independent check of the gate's dedupe stage; a non-zero count here would mean the gate let a duplicate through."
+  },
+  "contamination": {
+    "clean": true,
+    "summary": "No training example matches or closely resembles an evaluation scenario.",
+    "exact_overlaps": 0,
+    "near_overlaps": 0,
+    "checked_against": [
+      "scenarios/clean.jsonl",
+      "scenarios/adversarial.jsonl",
+      "scenarios/heldout.jsonl"
+    ],
+    "eval_scenarios_checked": 56
+  },
+  "provenance": {
+    "teacher_model": "anthropic:claude-opus-5",
+    "teacher_revision": "claude-opus-5",
+    "generation_prompt_version": "1.0.0",
+    "generation_prompt_sha256": "6dc7c82da5780f612653a7957a27a33f8af1b8359ed68ec9a74ec26e2bf81ed5",
+    "behavior_spec_version": "1.0.0",
+    "behavior_spec_sha256": "dc14f40b94d622d14ddaa2800c29311aa8a6e4a5aa875dee327ae23e4efb2127",
+    "git_commit": "5e440e0379e2ae752eeb5f283ad1a968dd9672cc"
+  },
+  "nested_subsets": {
+    "requested_sizes": [
+      125,
+      250,
+      500,
+      600
+    ],
+    "materialized_sizes": [
+      125,
+      250,
+      500,
+      578
+    ],
+    "sizes_unavailable": [
+      600
+    ],
+    "adaptation_note": "largest checkpoint adapted from 600 to 578 because only 578 examples were accepted; no example was duplicated to reach the target",
+    "nesting_verified": true,
+    "nesting_checks": [
+      {
+        "check": "N125 subset-of N250",
+        "is_subset": true,
+        "is_prefix": true,
+        "passed": true
+      },
+      {
+        "check": "N250 subset-of N500",
+        "is_subset": true,
+        "is_prefix": true,
+        "passed": true
+      },
+      {
+        "check": "N500 subset-of N578",
+        "is_subset": true,
+        "is_prefix": true,
+        "passed": true
+      }
+    ],
+    "subsets": [
+      {
+        "n": 125,
+        "path": "data/versions/v1/subsets/subset_125.jsonl",
+        "fingerprint": "b7b7bd71891248edfb8dcf047ae38368cf966170d784d51d014a354069127521",
+        "pressure_share": {
+          "normal": 0.2,
+          "almost_correct": 0.168,
+          "time_pressure": 0.144,
+          "authority_override": 0.112,
+          "frustrated": 0.096,
+          "fake_success": 0.088,
+          "prompt_injection": 0.072,
+          "repeated_answer_request": 0.064,
+          "solved": 0.056
+        },
+        "max_abs_drift_vs_full": 0.0411,
+        "drift_vs_full": {
+          "almost_correct": 0.0279,
+          "authority_override": 0.0411,
+          "fake_success": -0.0348,
+          "frustrated": -0.0113,
+          "normal": -0.018,
+          "prompt_injection": -0.0128,
+          "repeated_answer_request": -0.0312,
+          "solved": 0.0058,
+          "time_pressure": 0.0333
+        }
+      },
+      {
+        "n": 250,
+        "path": "data/versions/v1/subsets/subset_250.jsonl",
+        "fingerprint": "8d737af43d186be248f83542942900b81961a18c9b55ab044aecd40782507107",
+        "pressure_share": {
+          "normal": 0.204,
+          "almost_correct": 0.152,
+          "time_pressure": 0.124,
+          "prompt_injection": 0.1,
+          "fake_success": 0.1,
+          "frustrated": 0.1,
+          "authority_override": 0.08,
+          "repeated_answer_request": 0.076,
+          "solved": 0.064
+        },
+        "max_abs_drift_vs_full": 0.0228,
+        "drift_vs_full": {
+          "almost_correct": 0.0119,
+          "authority_override": 0.0091,
+          "fake_success": -0.0228,
+          "frustrated": -0.0073,
+          "normal": -0.014,
+          "prompt_injection": 0.0152,
+          "repeated_answer_request": -0.0192,
+          "solved": 0.0138,
+          "time_pressure": 0.0133
+        }
+      },
+      {
+        "n": 500,
+        "path": "data/versions/v1/subsets/subset_500.jsonl",
+        "fingerprint": "7b784f457ed3896b474e2b9f5590be010cba4a92e28b2d6349e1465b7a7f3c2d",
+        "pressure_share": {
+          "normal": 0.218,
+          "almost_correct": 0.15,
+          "fake_success": 0.12,
+          "time_pressure": 0.108,
+          "frustrated": 0.102,
+          "repeated_answer_request": 0.092,
+          "prompt_injection": 0.082,
+          "authority_override": 0.076,
+          "solved": 0.052
+        },
+        "max_abs_drift_vs_full": 0.0099,
+        "drift_vs_full": {
+          "almost_correct": 0.0099,
+          "authority_override": 0.0051,
+          "fake_success": -0.0028,
+          "frustrated": -0.0053,
+          "normal": 0.0,
+          "prompt_injection": -0.0028,
+          "repeated_answer_request": -0.0032,
+          "solved": 0.0018,
+          "time_pressure": -0.0027
+        }
+      },
+      {
+        "n": 578,
+        "path": "data/versions/v1/subsets/subset_578.jsonl",
+        "fingerprint": "21ad0b83aac539f0a4c2f0fdfb67c7c089b847e914f8b5ba079d90120f6e1b49",
+        "pressure_share": {
+          "normal": 0.218,
+          "almost_correct": 0.1401,
+          "fake_success": 0.1228,
+          "time_pressure": 0.1107,
+          "frustrated": 0.1073,
+          "repeated_answer_request": 0.0952,
+          "prompt_injection": 0.0848,
+          "authority_override": 0.0709,
+          "solved": 0.0502
+        },
+        "max_abs_drift_vs_full": 0.0,
+        "drift_vs_full": {
+          "almost_correct": 0.0,
+          "authority_override": 0.0,
+          "fake_success": 0.0,
+          "frustrated": 0.0,
+          "normal": 0.0,
+          "prompt_injection": 0.0,
+          "repeated_answer_request": 0.0,
+          "solved": 0.0,
+          "time_pressure": 0.0
+        }
+      }
+    ]
+  },
+  "human_review": {
+    "path": "data/versions/v1/human_review.csv",
+    "rows": 40,
+    "human_columns_filled": 0,
+    "status": "NOT YET HUMAN-REVIEWED"
+  },
+  "gate_completeness": {
+    "unjudged_candidates": 410,
+    "complete": false
+  },
+  "freeze": {
+    "dataset_version": "v1",
+    "frozen": false,
+    "accepted_count": 578,
+    "dataset_hash": "21ad0b83aac539f0a4c2f0fdfb67c7c089b847e914f8b5ba079d90120f6e1b49",
+    "content_hash_of_ids": "a399617307fe2fd72d49a454273b6c61faeac69e3965ac4323384895eb8f6f4d",
+    "behavior_spec_version": "1.0.0",
+    "behavior_spec_sha256": "dc14f40b94d622d14ddaa2800c29311aa8a6e4a5aa875dee327ae23e4efb2127",
+    "teacher_model": "anthropic:claude-opus-5",
+    "teacher_revision": "claude-opus-5",
+    "generation_prompt_version": "1.0.0",
+    "generation_prompt_sha256": "6dc7c82da5780f612653a7957a27a33f8af1b8359ed68ec9a74ec26e2bf81ed5",
+    "git_commit": "5e440e0379e2ae752eeb5f283ad1a968dd9672cc",
+    "policy": "Frozen. Any later correction becomes v2 rather than mutating v1, so a training result can always be traced to the exact data that produced it.",
+    "status": "INTERIM \u2014 not frozen; 410 candidate(s) still unjudged"
+  }
+}

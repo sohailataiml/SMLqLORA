@@ -1,0 +1,114 @@
+{
+  "dataset_version": "v1",
+  "candidate_count": 1190,
+  "accepted_count": 578,
+  "rejected_count": 612,
+  "acceptance_rate": 0.4857,
+  "rejections_by_reason": {
+    "LOW_QUALITY": 581,
+    "IRRELEVANT_HINT": 410,
+    "SOLUTION_LEAK": 17,
+    "MULTIPLE_HINTS": 10,
+    "EXPLICIT_FINAL_DIAGNOSIS": 3,
+    "PREMATURE_CONFIRMATION": 1
+  },
+  "rejections_by_stage": {
+    "llm_judge": 466,
+    "static_checks": 146,
+    "dedupe": 0,
+    "contamination": 0,
+    "balance": 0
+  },
+  "language_distribution": {
+    "javascript": 292,
+    "python": 286
+  },
+  "bug_category_distribution": {
+    "scope": 42,
+    "integer_division": 28,
+    "shadowed_builtin": 25,
+    "this_binding": 25,
+    "undefined_properties": 25,
+    "hoisting": 24,
+    "closure_behavior": 24,
+    "map_vs_foreach": 24,
+    "list_mutation": 23,
+    "type_coercion": 22,
+    "boolean_condition": 22,
+    "incorrect_condition": 22,
+    "async_await": 22,
+    "mutable_default": 21,
+    "generator_exhaustion": 20,
+    "string_immutability": 20,
+    "return_placement": 20,
+    "callback_ordering": 19,
+    "promise_handling": 19,
+    "loop_boundary": 19,
+    "dictionary_access": 18,
+    "missing_return": 18,
+    "none_handling": 17,
+    "exception_handling": 17,
+    "shallow_copy": 17,
+    "array_mutation": 14,
+    "comparison_identity": 11
+  },
+  "pressure_distribution": {
+    "normal": 126,
+    "almost_correct": 81,
+    "fake_success": 71,
+    "time_pressure": 64,
+    "frustrated": 62,
+    "repeated_answer_request": 55,
+    "prompt_injection": 49,
+    "authority_override": 41,
+    "solved": 29
+  },
+  "difficulty_distribution": {
+    "medium": 201,
+    "hard": 191,
+    "easy": 186
+  },
+  "conversation_length_distribution": {
+    "1": 132,
+    "2": 199,
+    "3": 149,
+    "4": 98
+  },
+  "balance_caps": {
+    "language": 359,
+    "bug_category": 81,
+    "pressure_type": 162,
+    "difficulty": 289
+  },
+  "contamination_summary": "No training example matches or closely resembles an evaluation scenario.",
+  "dataset_hash": "b73937bab27f61ec9fff9d8874b8b1f49e08f208f968d23fa71d61156df5686f",
+  "teacher": {
+    "teacher_model": "anthropic:claude-opus-5",
+    "teacher_revision": "claude-opus-5",
+    "generation_prompt_version": "1.0.0",
+    "generation_prompt_sha256": "6dc7c82da5780f612653a7957a27a33f8af1b8359ed68ec9a74ec26e2bf81ed5",
+    "template_id": "socratic_v1:py-nonehandling-time_p-1-clos",
+    "generation_seed": 20240101,
+    "dataset_version": "v1",
+    "behavior_spec_version": "1.0.0",
+    "behavior_spec_sha256": "dc14f40b94d622d14ddaa2800c29311aa8a6e4a5aa875dee327ae23e4efb2127",
+    "timestamp": "2026-08-18T18:27:44.493246+00:00"
+  },
+  "judge": {
+    "judge_model": "anthropic:claude-opus-5",
+    "judge_model_family": "anthropic",
+    "judge_prompt_version": "1.0.0"
+  },
+  "thresholds": {
+    "min_judge_spec_adherence": 0.9,
+    "min_judge_hint_relevance": 0.75,
+    "min_judge_robustness": 0.9,
+    "balance_caps_share": {
+      "language": 0.62,
+      "bug_category": 0.14,
+      "pressure_type": 0.28,
+      "difficulty": 0.5
+    }
+  },
+  "notes": "Dataset V1 tranche 1; teacher claude-opus-5; 1190 candidates"
+}
