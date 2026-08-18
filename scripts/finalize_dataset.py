@@ -33,9 +33,10 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from behavior.spec import load_spec  # noqa: E402
-from evaluation.schemas import load_scenario_files  # noqa: E402
+from evaluation.schemas import load_scenario_files, write_jsonl  # noqa: E402
 from filtering.dataset_card import render_dataset_card  # noqa: E402
 from filtering.dedupe import check_contamination, deduplicate  # noqa: E402
+from filtering.selection import select_balanced  # noqa: E402
 from generation.schemas import GeneratedExample  # noqa: E402
 from prompting.strategies import render_conversation  # noqa: E402
 from training.dataset import (  # noqa: E402
@@ -463,6 +464,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dataset-version", default="v1")
     parser.add_argument("--sizes", nargs="+", type=int, default=list(SWEEP_SIZES))
+    parser.add_argument("--target-size", type=int, default=600,
+                        help="final dataset size selected from the accepted pool")
     parser.add_argument("--human-review-target", type=int,
                         default=HUMAN_REVIEW_TARGET)
     parser.add_argument("--no-freeze", action="store_true",
@@ -475,7 +478,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     version = args.dataset_version
     version_dir = REPO_ROOT / "data" / "versions" / version
-    accepted = load_examples(version_dir / "accepted.jsonl")
+    pool = load_examples(version_dir / "accepted.jsonl")
     rejected_path = version_dir / "rejected.jsonl"
     rejected = load_examples(rejected_path) if rejected_path.exists() else []
 
@@ -485,10 +488,25 @@ def main(argv: Sequence[str] | None = None) -> int:
         if line.strip()
     ) if candidates_path.exists() else len(accepted) + len(rejected)
 
-    print(f"Dataset {version}: {len(accepted)} accepted, {len(rejected)} rejected, "
+    print(f"Dataset {version}: {len(pool)} accepted pool, {len(rejected)} rejected, "
           f"{candidates_total} candidates")
 
+    # Choose the shipped dataset from the whole eligible pool. "The first 600"
+    # would be generation order, which tracks the plan's seed sweep.
+    plan = json.loads((version_dir / "plan.json").read_text(encoding="utf-8"))
+    shares = plan["distributions"]["pressure_type"]["target"]
+    selection = select_balanced(pool, args.target_size, shares)
+    accepted = selection.selected
+    write_jsonl(version_dir / "selected.jsonl", accepted)
+
+    print(f"  selected {len(accepted)} of {len(pool)} "
+          f"(target {args.target_size}, seed {selection.seed})")
+    if selection.shortfalls:
+        print(f"  shortfalls: {selection.shortfalls}")
+
     report = audit(accepted, rejected, candidates_total)
+    report["selection"] = selection.to_dict()
+    report["accepted_pool_count"] = len(pool)
 
     subset_report = prepare_subsets(accepted, args.sizes, version_dir / "subsets")
     report["nested_subsets"] = subset_report
@@ -567,6 +585,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     # ---- console summary ---------------------------------------------------
     counts, cov, div = report["counts"], report["behavioral_coverage"], report["diversity"]
     print()
+    print(f"  accepted pool        : {report.get('accepted_pool_count', counts['accepted'])}")
+    print(f"  FINAL selected       : {counts['accepted']}")
     print(f"  acceptance rate      : {counts['acceptance_rate']:.1%}")
     print(f"  unresolved/almost/solved: {cov['unresolved_count']}/"
           f"{cov['almost_correct_count']}/{cov['solved_count']}")
