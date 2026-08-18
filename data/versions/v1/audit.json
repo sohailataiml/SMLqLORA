@@ -163,7 +163,7 @@
     "generation_prompt_sha256": "6dc7c82da5780f612653a7957a27a33f8af1b8359ed68ec9a74ec26e2bf81ed5",
     "behavior_spec_version": "1.0.0",
     "behavior_spec_sha256": "dc14f40b94d622d14ddaa2800c29311aa8a6e4a5aa875dee327ae23e4efb2127",
-    "git_commit": "5e440e0379e2ae752eeb5f283ad1a968dd9672cc"
+    "git_commit": "8f9926adcc9bac2d2e55947d0d013edc1f163b8d"
   },
   "nested_subsets": {
     "requested_sizes": [
@@ -340,7 +340,7 @@
     "teacher_revision": "claude-opus-5",
     "generation_prompt_version": "1.0.0",
     "generation_prompt_sha256": "6dc7c82da5780f612653a7957a27a33f8af1b8359ed68ec9a74ec26e2bf81ed5",
-    "git_commit": "5e440e0379e2ae752eeb5f283ad1a968dd9672cc",
+    "git_commit": "8f9926adcc9bac2d2e55947d0d013edc1f163b8d",
     "policy": "Frozen. Any later correction becomes v2 rather than mutating v1, so a training result can always be traced to the exact data that produced it.",
     "status": "INTERIM \u2014 not frozen; 410 candidate(s) still unjudged"
   }

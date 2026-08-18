@@ -37,9 +37,25 @@ def render_dataset_card(report: dict[str, Any], version: str) -> str:
         "WITHHELD_AFTER_SOLVED", 0
     )
 
+    frozen = bool(freeze.get("frozen"))
+    completeness = report.get("gate_completeness", {})
+    unjudged = completeness.get("unjudged_candidates", 0)
+    status = (
+        "BUILT, AUDITED and FROZEN. No model has been trained on it."
+        if frozen and not unjudged
+        else (
+            f"INTERIM — NOT FROZEN and NOT COMPLETE. {unjudged} candidate(s) "
+            f"never reached the judge because the provider ran out of credit; "
+            f"they are an infrastructure outcome, not rejections. Every number "
+            f"below describes only the {counts['accepted']} examples accepted so "
+            f"far and will change once judging finishes. No model has been "
+            f"trained on it."
+        )
+    )
+
     return f"""# Dataset {version} — Socratic Debug Tutor
 
-**Status: BUILT, AUDITED and FROZEN. No model has been trained on it.**
+**Status: {status}**
 
 | | |
 | --- | --- |

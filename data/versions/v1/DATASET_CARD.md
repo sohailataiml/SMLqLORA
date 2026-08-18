@@ -1,6 +1,6 @@
 # Dataset v1 — Socratic Debug Tutor
 
-**Status: BUILT, AUDITED and FROZEN. No model has been trained on it.**
+**Status: INTERIM — NOT FROZEN and NOT COMPLETE. 410 candidate(s) never reached the judge because the provider ran out of credit; they are an infrastructure outcome, not rejections. Every number below describes only the 578 examples accepted so far and will change once judging finishes. No model has been trained on it.**
 
 | | |
 | --- | --- |
@@ -13,7 +13,7 @@
 | Behavior spec | `1.0.0` (`dc14f40b94d622d1`) |
 | Teacher | `anthropic:claude-opus-5` (`claude-opus-5`) |
 | Generation prompt | `1.0.0` (`6dc7c82da5780f61`) |
-| Git commit | `5e440e0379e2` |
+| Git commit | `8f9926adcc9b` |
 
 ## Purpose
 
