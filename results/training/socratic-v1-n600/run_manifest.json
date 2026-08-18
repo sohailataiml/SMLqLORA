@@ -1,0 +1,165 @@
+{
+  "run_id": "socratic-v1-n600",
+  "status": "NOT_TRAINED",
+  "status_reason": "No CUDA device meeting the QLoRA requirement is reachable from this environment. Nothing was trained; no metric in this file is estimated.",
+  "prepared_at": "2026-08-18T22:57:08.921382+00:00",
+  "base_model": {
+    "repo": "Qwen/Qwen3-1.7B",
+    "revision": "70d244cc86ccca08cf5af4e1e306ecf908b1ad5e",
+    "revision_source": "https://huggingface.co/api/models/Qwen/Qwen3-1.7B (sha of main)",
+    "variant": "instruct/chat (Qwen3-1.7B); Qwen3-1.7B-Base deliberately not used",
+    "architecture": "Qwen3ForCausalLM",
+    "model_type": "qwen3",
+    "total_parameters": 2031739904,
+    "non_embedding_parameters_approx": "1.7B",
+    "weights_dtype_on_hub": "BF16",
+    "gated": false,
+    "tokenizer_revision": "70d244cc86ccca08cf5af4e1e306ecf908b1ad5e",
+    "chat_template": "bundled with the repo revision (tokenizer_config.json)"
+  },
+  "dataset": {
+    "version": "v1",
+    "path": "data/versions/v1/selected.jsonl",
+    "frozen_dataset_hash": "9121c24e47c7253818040aa40356a67d3a359ddcec057bc5bfc533d6a77e2656",
+    "verified_on_disk": true,
+    "record_count": 600,
+    "train_count": 540,
+    "validation_count": 60,
+    "transformed_train_hash": "c9137b71637761bed1d04563dcfa356013d0cde9b85c80550e1bc5aac168dc65",
+    "transformed_validation_hash": "93d21ee3136250e68cb4c1a833674225cfea5da8039c96be672a8024210c7670",
+    "transformed_all_hash": "f22b4ea52b585767155632b872c1c57cfc80d3dbb44519b743ee6453a3784e04",
+    "training_format_version": "1.0.0"
+  },
+  "behavior_spec": {
+    "version": "1.0.0",
+    "sha256": "dc14f40b94d622d14ddaa2800c29311aa8a6e4a5aa875dee327ae23e4efb2127"
+  },
+  "training_prompt": {
+    "strategy": "zero_shot",
+    "rationale": "weak/minimal prompt, so a behavioral gain is attributable to weights",
+    "text": "You are a programming tutor. Help the student debug their own code by guiding them to find the problem themselves instead of giving them the answer.",
+    "chars": 148,
+    "sha256": "cae5bdada1ece4b785acb2c2e7ec1fc989e89e6a1f79e52a906d04a996292df1"
+  },
+  "training_config": {
+    "file": "training/configs/qlora_qwen3_1_7b.yaml",
+    "sha256": "23f849d2d361ec4fddc946620afe6466cce76321be8cf132687071f5c5207b50",
+    "seed": 42,
+    "quantization": {
+      "load_in_4bit": true,
+      "bnb_4bit_quant_type": "nf4",
+      "bnb_4bit_use_double_quant": true,
+      "bnb_4bit_compute_dtype": "bfloat16"
+    },
+    "lora": {
+      "r": 16,
+      "alpha": 32,
+      "dropout": 0.05,
+      "bias": "none",
+      "task_type": "CAUSAL_LM",
+      "target_modules": [
+        "q_proj",
+        "k_proj",
+        "v_proj",
+        "o_proj",
+        "gate_proj",
+        "up_proj",
+        "down_proj"
+      ]
+    },
+    "training_arguments": {
+      "num_train_epochs": 3,
+      "per_device_train_batch_size": 2,
+      "gradient_accumulation_steps": 8,
+      "learning_rate": 0.0002,
+      "lr_scheduler_type": "cosine",
+      "warmup_ratio": 0.03,
+      "weight_decay": 0.0,
+      "max_grad_norm": 0.3,
+      "optim": "paged_adamw_8bit",
+      "logging_steps": 5,
+      "eval_strategy": "epoch",
+      "save_strategy": "epoch",
+      "save_total_limit": 1,
+      "bf16": false,
+      "fp16": true,
+      "gradient_checkpointing": true,
+      "seed": 42,
+      "report_to": "none"
+    },
+    "max_seq_length": 2048,
+    "attn_implementation": "eager",
+    "framework": "transformers + peft + trl (SFTTrainer); Unsloth not installed"
+  },
+  "eval_sets": {
+    "clean": {
+      "count": 16,
+      "hash": "1671e8c6afa77fc07ce6fc08b3c160606da34dd4560faed950ccc27ac903f880"
+    },
+    "adversarial": {
+      "count": 20,
+      "hash": "315a1d5de4e59e48677976c4334aba99f3ddd755a472be5c6d4fe8dd972d59dd"
+    },
+    "heldout": {
+      "count": 20,
+      "hash": "a30abe2a9be7df5420e01197ba700b9e582fefb06fa3d0a0855351c1fbb5f048"
+    }
+  },
+  "primary_eval_set": {
+    "path": "scenarios/heldout.jsonl",
+    "count": 20,
+    "hash": "a30abe2a9be7df5420e01197ba700b9e582fefb06fa3d0a0855351c1fbb5f048"
+  },
+  "environment": {
+    "platform": "Windows-10-10.0.19045-SP0",
+    "python": "3.12.10",
+    "torch": null,
+    "cuda_available": false,
+    "gpus_detected": [
+      {
+        "name": "NVIDIA GeForce GTX 1050",
+        "architecture": "Pascal GP107",
+        "compute_capability": "6.1",
+        "vram_gib_reported": 2.0,
+        "meets_requirement": false,
+        "why": "bitsandbytes NF4 needs cc >= 7.5; QLoRA on this model needs ~12GiB"
+      },
+      {
+        "name": "Intel(R) UHD Graphics 620",
+        "meets_requirement": false,
+        "why": "not CUDA"
+      }
+    ],
+    "package_versions": {
+      "anthropic": "0.122.0",
+      "openai": "3.2.0",
+      "pydantic": "2.13.4",
+      "torch": "not-installed",
+      "transformers": "not-installed",
+      "peft": "not-installed",
+      "trl": "not-installed",
+      "bitsandbytes": "not-installed",
+      "datasets": "not-installed",
+      "accelerate": "not-installed"
+    }
+  },
+  "results": {
+    "start_timestamp": null,
+    "end_timestamp": null,
+    "wall_clock_seconds": null,
+    "steps": null,
+    "epochs_completed": null,
+    "final_train_loss": null,
+    "final_eval_loss": null,
+    "peak_vram_gib": null,
+    "checkpoint_path": null,
+    "checkpoint_sha256": null,
+    "adapter_size_bytes": null,
+    "warnings": null,
+    "nan_or_overflow_events": null,
+    "oom_events": null,
+    "note": "All null because training did not run. Not estimated, not inferred."
+  },
+  "git_commit": "a02d02512171cd51451d4ae895d834e569116a11",
+  "git_dirty": true
+}

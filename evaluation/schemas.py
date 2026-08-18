@@ -89,6 +89,10 @@ _INFRASTRUCTURE_MARKERS = (
     "authenticationerror",
     "permissiondeniederror",
     "missingcredentials",
+    # A model that never loaded produced no behavior to score. Without this the
+    # run reports pass_rate 0.0 with infrastructure_error_count 0 - a broken
+    # install reads as a model that failed every scenario.
+    "missingdependency",
 )
 
 

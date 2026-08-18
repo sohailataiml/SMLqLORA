@@ -97,18 +97,19 @@ The single most important table in this README.
 
 | Component | Status |
 | --- | --- |
-| Behavior spec, scenario schema, deterministic checks | **TESTED LOCALLY** — 368 unit tests |
+| Behavior spec, scenario schema, deterministic checks | **TESTED LOCALLY** — 475 unit tests, 1 skip |
 | Evaluation harness, judge abstraction, model adapters | **TESTED LOCALLY** |
 | 56 evaluation scenarios (clean / adversarial / held-out) | **IMPLEMENTED**, split-isolation enforced in code |
 | Prompt-ceiling ablation | **REAL EXPERIMENT RESULT — COMPLETE** — 216/216 evaluations, 6/6 cells |
 | Failure-mode analysis + proposed training distribution | **DERIVED** from the complete two-family experiment |
 | Connectivity preflight, resumable runner | **TESTED LOCALLY** |
 | Human/judge agreement harness | **IMPLEMENTED**; **NOT YET GRADED** — no human labels exist |
-| Dataset V1 generation plan | **PLANNED** — [`data/versions/v1/plan.json`](data/versions/v1/plan.json); no candidate generated |
-| Teacher generation + quality gate | **IMPLEMENTED**, **TESTED LOCALLY** on a mock teacher; **NOT RUN** for real |
-| QLoRA training | **IMPLEMENTED**, dry-run validated; **NOT RUN** (no capable GPU here) |
+| Teacher generation + quality gate | **REAL RUN — COMPLETE** — 1190 candidates judged, 1055 accepted |
+| Dataset V1 | **BUILT, AUDITED, FROZEN** — 600 examples, hash `9121c24e…` |
+| N=600 training data conversion | **VERIFIED OFFLINE** — 10/10 checks, [`results/training/verification.json`](results/training/verification.json) |
+| QLoRA training (N=600) | **RECIPE FROZEN; NOT RUN** — no GPU with cc ≥ 7.5 reachable ([preflight](results/training/socratic-v1-n600/PREFLIGHT.md)) |
 | Base vs tuned | **NOT RUN** — requires a checkpoint |
-| Data efficiency | **NOT RUN** — requires checkpoints |
+| Data efficiency (N=125/250/500) | **NOT RUN** — deliberately gated on the N=600 result |
 
 Nothing in `results/` is invented. Files that would hold un-run experiments say
 `NOT_RUN`; the one experiment that has run says `REAL_EXPERIMENT_RESULT` and
@@ -358,8 +359,22 @@ intersect the ceiling set.
 
 ## Dataset
 
-**Status: pipeline IMPLEMENTED and TESTED on a mock teacher; NOT RUN for real
-(exhausted API credit).**
+**Status: RUN FOR REAL. Dataset V1 is built, audited, frozen and committed.**
+
+| | |
+| --- | --- |
+| Version | `v1` — 600 examples |
+| Dataset hash | `9121c24e47c7253818040aa40356a67d3a359ddcec057bc5bfc533d6a77e2656` |
+| Behavior Spec | `1.0.0` / `dc14f40b94d622d1` |
+| Freeze commit | `c0217b9` |
+| Duplicates / near-duplicates / eval contamination | 0 / 0 / 0 |
+| Language balance | Python 49.3% · JavaScript 50.7% · 27 bug categories |
+| Learner state | solved 14.2% · almost-correct 12.2% · unresolved 73.7% |
+| Adversarial pressure | answer-seeking 29.2% · injection + authority 16.0% |
+
+V1 is **immutable**. Any correction becomes Dataset V2 rather than an edit, so
+every training result stays traceable to the exact data that produced it. The
+card is [`data/versions/v1/DATASET_CARD.md`](data/versions/v1/DATASET_CARD.md).
 
 Generation is not "ask a teacher for 2000 examples". Each call is pinned to one
 point in a controlled space — language × bug category × difficulty × pressure
@@ -549,18 +564,49 @@ sweep isolates.
 and revision, dataset version, hash and text fingerprint, seed, LoRA config,
 training arguments, package versions and git commit.
 
-**This machine cannot train.** The GPU is a GTX 1050 (Pascal, cc 6.1);
-bitsandbytes NF4 needs ≥ 7.5. `training/train.py` detects this and says so
-instead of crashing. [`notebooks/train_colab.ipynb`](notebooks/train_colab.ipynb)
-is set up for a free T4.
+**This machine cannot train.** The GPU is a GTX 1050 (Pascal, cc 6.1, ~2 GiB);
+bitsandbytes NF4 needs ≥ 7.5 and this model needs ~12 GiB. `training/train.py`
+detects this and says so instead of crashing.
+[`notebooks/train_colab.ipynb`](notebooks/train_colab.ipynb) is set up for a
+free T4.
+
+### The N=600 run — prepared, not executed
+
+The first real fine-tune, `socratic-v1-n600`, is frozen and waiting on a GPU.
+Everything that can be checked without one has been:
+
+| Check | Result |
+| --- | --- |
+| Dataset V1 hash on disk vs freeze record | **match** |
+| Records after chat conversion | 600 → 540 train / 60 validation |
+| Shape, role order, empty turns, single weak prompt | pass |
+| Gate metadata in model-visible text | none |
+| Overlap with clean / adversarial / held-out | none |
+| Transformed training-data hash | `f22b4ea52b585767…` |
+| Base model revision | pinned to `70d244cc86ccca08…` |
+
+The trainer now refuses to start if `data/versions/v1/selected.jsonl` no longer
+hashes to the frozen value, so an adapter can always be traced back to its data.
+Preflight and the frozen recipe:
+[`results/training/socratic-v1-n600/`](results/training/socratic-v1-n600/).
 
 ---
 
 ## Results
 
-Only the prompt ceiling has real numbers; they are in
-[Why fine-tuning?](#why-fine-tuning--the-prompt-ceiling) above and in
-[`results/prompt_ceiling/`](results/prompt_ceiling/).
+Four stages, only two of which have produced numbers:
+
+| Stage | Status |
+| --- | --- |
+| **Prompt ceiling** | REAL RESULT — [`results/prompt_ceiling/`](results/prompt_ceiling/). Verdict: **fine-tuning justified** |
+| **Dataset V1** | REAL — 600 examples, frozen, hashed, [`data/versions/v1/`](data/versions/v1/) |
+| **N=600 training** | NOT RUN — recipe frozen and verified, blocked on GPU |
+| **Base vs tuned** | NOT RUN — requires the checkpoint |
+
+**No fine-tuning result exists yet.** Nothing in this repository claims that
+fine-tuning taught the behavior, because that has not been measured. The
+Minimum Viable Dataset Size is likewise **not** claimed: the N=125/250/500 sweep
+is deliberately gated on N=600 first showing a real improvement.
 
 `results/base_vs_tuned/` and `results/data_efficiency/` are **NOT RUN**. They
 will be populated by the commands below once a checkpoint exists. The

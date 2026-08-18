@@ -13,11 +13,12 @@ BASE_MODEL ?= Qwen/Qwen3-1.7B
 JUDGE ?= anthropic:claude-opus-5
 MODELS ?= anthropic:claude-opus-5 openai:gpt-5
 CANDIDATES ?= 1200
-RUN ?= socratic-$(DATASET_VERSION)
+RUN ?= socratic-$(DATASET_VERSION)-n600
 EVAL_SET ?= scenarios/heldout.jsonl
 
 .PHONY: help setup test lint scenarios eval-smoke smoke-data prompt-ceiling \
         prompt-ceiling-mock reanalyze analyze dataset-plan plan agreement preflight \
+        verify-training-data \
         generate-data filter-data train train-dry \
         evaluate data-efficiency data-efficiency-plan manifest clean-demo
 
@@ -30,6 +31,7 @@ help:
 	@echo "  make smoke-data            end-to-end data pipeline on a mock teacher"
 	@echo "  make prompt-ceiling-mock   ablation pipeline on mocks (labelled MOCKED)"
 	@echo "  make train-dry             validate training config and build the dataset"
+	@echo "  make verify-training-data  offline gate: hash, format, contamination"
 	@echo "  make reanalyze             re-render reports from saved transcripts"
 	@echo "  make analyze               failure modes, training distribution, plots"
 	@echo "  make dataset-plan          rebuild the Dataset V1 generation plan"
@@ -70,6 +72,9 @@ prompt-ceiling-mock:
 
 train-dry:
 	$(PYTHON) -m training.train --dry-run --run-name $(RUN)-dry
+
+verify-training-data:
+	$(PYTHON) scripts/verify_training_data.py --expect-count 600
 
 reanalyze:
 	$(PYTHON) scripts/reanalyze.py --results-dir results/prompt_ceiling

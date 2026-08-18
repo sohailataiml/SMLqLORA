@@ -38,6 +38,8 @@ from training.dataset import (  # noqa: E402
     build_dataset,
     dataset_fingerprint,
     load_accepted,
+    stable_order,
+    to_chat_record,
     write_dataset,
 )
 
@@ -52,6 +54,35 @@ MIN_COMPUTE_CAPABILITY = (7, 5)
 
 class TrainingUnavailableError(RuntimeError):
     """Raised when the environment cannot run training, with what to do instead."""
+
+
+class DatasetHashMismatchError(RuntimeError):
+    """Raised when the source dataset no longer hashes to its frozen value."""
+
+
+def source_dataset_hash(examples: Sequence[Any]) -> str:
+    """Hash the source file the same way `scripts/finalize_dataset.py` froze it.
+
+    Recomputing it here (rather than trusting the recorded value) is what makes
+    a training run traceable: the adapter can be tied to the exact bytes that
+    produced it, not to a filename that happened to sit at that path.
+    """
+    chat = [to_chat_record(e) for e in stable_order(list(examples))]
+    return dataset_fingerprint(chat)
+
+
+def verify_source_dataset(examples: Sequence[Any], expected: str | None) -> str:
+    """Refuse to train on a dataset that has drifted from its frozen hash."""
+    actual = source_dataset_hash(examples)
+    if expected and actual != expected:
+        raise DatasetHashMismatchError(
+            f"""Dataset on disk does not match the frozen hash - refusing to train.
+  expected: {expected}
+  actual  : {actual}
+Dataset V1 is immutable. If the data genuinely needs to change, that change
+is Dataset V2, not an edit to v1."""
+        )
+    return actual
 
 
 @dataclass
@@ -163,6 +194,7 @@ def build_checkpoint_metadata(
     validation_rows: Sequence[dict[str, Any]],
     output_dir: Path,
     environment: dict[str, Any],
+    source_dataset_hash: str | None = None,
 ) -> dict[str, Any]:
     model_cfg = config.section("model")
     return {
@@ -172,6 +204,7 @@ def build_checkpoint_metadata(
         "base_model_revision": model_cfg.get("revision", "main"),
         "dataset_path": dataset_path,
         "dataset_version": dataset_version,
+        "source_dataset_hash": source_dataset_hash,
         "dataset_train_size": len(train_rows),
         "dataset_validation_size": len(validation_rows),
         "dataset_fingerprint": dataset_fingerprint(list(train_rows)),
@@ -196,7 +229,7 @@ def build_checkpoint_metadata(
 
 def prepare_data(
     config: TrainingConfig, *, limit: int | None, accepted_override: str | None = None
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]], str, str]:
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], str, str, str]:
     data_cfg = config.section("data")
     accepted_path = REPO_ROOT / (
         accepted_override or data_cfg.get("accepted_path", "data/accepted/v1.jsonl")
@@ -210,6 +243,9 @@ def prepare_data(
         )
 
     examples = load_accepted(accepted_path)
+    source_hash = verify_source_dataset(
+        examples, data_cfg.get("expected_dataset_hash")
+    )
     eval_scenarios = load_scenario_files([REPO_ROOT / p for p in EVAL_SETS])
 
     split = build_dataset(
@@ -218,8 +254,11 @@ def prepare_data(
         validation_fraction=float(data_cfg.get("validation_fraction", 0.1)),
         limit=limit if limit is not None else data_cfg.get("limit"),
     )
-    version = examples[0].provenance.dataset_version if examples else "unknown"
-    return split.train, split.validation, str(accepted_path), version
+    version = (
+        data_cfg.get("dataset_version")
+        or (examples[0].provenance.dataset_version if examples else "unknown")
+    )
+    return split.train, split.validation, str(accepted_path), version, source_hash
 
 
 def train(
@@ -233,13 +272,18 @@ def train(
     run = run_name or config.run_name
     output_dir = REPO_ROOT / config.section("output").get("output_dir", "outputs") / run
 
-    train_rows, validation_rows, dataset_path, dataset_version = prepare_data(
-        config, limit=limit, accepted_override=accepted_override
-    )
+    (
+        train_rows,
+        validation_rows,
+        dataset_path,
+        dataset_version,
+        source_hash,
+    ) = prepare_data(config, limit=limit, accepted_override=accepted_override)
 
     print(f"run              : {run}")
     print(f"base model       : {config.section('model').get('base_model')}")
     print(f"dataset          : {dataset_path} (version {dataset_version})")
+    print(f"source hash      : {source_hash[:16]} (verified against freeze)")
     print(f"train / val      : {len(train_rows)} / {len(validation_rows)}")
     print(f"fingerprint      : {dataset_fingerprint(train_rows)[:16]}")
     print(f"output           : {output_dir}")
@@ -254,6 +298,7 @@ def train(
         validation_rows=validation_rows,
         output_dir=output_dir,
         environment=environment,
+        source_dataset_hash=source_hash,
     )
 
     output_dir.mkdir(parents=True, exist_ok=True)

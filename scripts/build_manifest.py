@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import json
 import sys
+
+import yaml
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -77,10 +79,17 @@ def dataset_status() -> list[dict[str, Any]]:
         report = _read_json(directory / "report.json")
         if report is None:
             continue
+        # A frozen version is authoritative: `report.json` hashes the accepted
+        # POOL, while the freeze hashes the SELECTION that training actually
+        # uses. Reporting the pool hash here contradicts every other artifact.
+        freeze = _read_json(directory / "freeze.json") or {}
         out.append(
             {
                 "dataset_version": report.get("dataset_version", directory.name),
-                "dataset_hash": report.get("dataset_hash"),
+                "dataset_hash": freeze.get("dataset_hash") or report.get("dataset_hash"),
+                "frozen": bool(freeze.get("frozen")),
+                "selected_count": freeze.get("final_selected_count"),
+                "accepted_pool_hash": report.get("dataset_hash"),
                 "candidate_count": report.get("candidate_count"),
                 "accepted_count": report.get("accepted_count"),
                 "rejected_count": report.get("rejected_count"),
@@ -120,6 +129,19 @@ def checkpoint_status() -> list[dict[str, Any]]:
     return found
 
 
+def completed_checkpoints(checkpoints: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Dry runs and interrupted runs are not models. Never present one as tuned."""
+    return [c for c in checkpoints if c.get("completed")]
+
+
+def _training_config() -> dict[str, Any]:
+    raw = yaml.safe_load(
+        (REPO_ROOT / "training" / "configs" / "qlora_qwen3_1_7b.yaml")
+        .read_text(encoding="utf-8")
+    )
+    return dict((raw or {}).get("model") or {})
+
+
 def main() -> int:
     spec = load_spec()
     versions = package_versions()
@@ -138,6 +160,10 @@ def main() -> int:
 
     datasets = dataset_status()
     checkpoints = checkpoint_status()
+    trained = completed_checkpoints(checkpoints)
+    model_cfg = _training_config()
+    BASE_MODEL = model_cfg.get('base_model', 'Qwen/Qwen3-1.7B')
+    BASE_MODEL_REVISION = str(model_cfg.get('revision', 'main'))
 
     manifest = {
         "project": "socratic-debug-tutor",
@@ -161,11 +187,11 @@ def main() -> int:
         "dataset_version": datasets[-1]["dataset_version"] if datasets else None,
         "dataset_hash": datasets[-1]["dataset_hash"] if datasets else None,
 
-        "base_model": "Qwen/Qwen3-1.7B",
-        "base_model_revision": "main (pin a commit sha before final runs)",
-        "tuned_model": checkpoints[-1]["path"] if checkpoints else None,
+        "base_model": BASE_MODEL,
+        "base_model_revision": BASE_MODEL_REVISION,
+        "tuned_model": trained[-1]["path"] if trained else None,
         "tuned_model_revision": (
-            checkpoints[-1]["dataset_fingerprint"] if checkpoints else None
+            trained[-1]["dataset_fingerprint"] if trained else None
         ),
         "checkpoints": checkpoints,
 

@@ -1,0 +1,16 @@
+# Line endings are part of this project's provenance.
+#
+# `behavior/spec.yaml` is hashed byte-for-byte, and that hash is pinned inside
+# the frozen Dataset V1 record, the prompt-ceiling manifest and 18 result
+# artifacts (`dc14f40b94d622d1...`). With `core.autocrlf` deciding endings per
+# machine, the same unchanged spec hashes differently on different checkouts,
+# silently severing every result from the behavior it claims to measure. This
+# was observed: a fresh checkout produced `6359a71245432547...` for a file git
+# reported as unmodified.
+#
+# Pinning the ending makes the hash a property of the content again. The rule is
+# deliberately narrow — no repo-wide normalization, which would rewrite every
+# working file for no benefit.
+#
+# `tests/test_training_integration.py` fails if this ever stops holding.
+behavior/spec.yaml text eol=crlf

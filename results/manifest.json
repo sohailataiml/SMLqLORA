@@ -1,7 +1,7 @@
 {
   "project": "socratic-debug-tutor",
   "manifest_version": "1.0.0",
-  "experiment_timestamp": "2026-08-18T15:07:24.209175+00:00",
+  "experiment_timestamp": "2026-08-18T23:02:23.844106+00:00",
   "behavior_spec_version": "1.0.0",
   "behavior_spec_sha256": "dc14f40b94d622d14ddaa2800c29311aa8a6e4a5aa875dee327ae23e4efb2127",
   "eval_sets": {
@@ -44,11 +44,32 @@
   "judge_prompt_sha256": "a34b7a2b508d31e6eb6a7d9e3361e8ba909be39d4a88ebb22b7c10f11fe1aba6",
   "generation_prompt_version": "1.0.0",
   "generation_prompt_sha256": "6dc7c82da5780f612653a7957a27a33f8af1b8359ed68ec9a74ec26e2bf81ed5",
-  "datasets": [],
-  "dataset_version": null,
-  "dataset_hash": null,
+  "datasets": [
+    {
+      "dataset_version": "v1",
+      "dataset_hash": "9121c24e47c7253818040aa40356a67d3a359ddcec057bc5bfc533d6a77e2656",
+      "frozen": true,
+      "selected_count": 600,
+      "accepted_pool_hash": "af9aae8eec6db87cd35349df4bd66b56c9c14ff622c9629e74648851d3021b45",
+      "candidate_count": 1190,
+      "accepted_count": 1055,
+      "rejected_count": 135,
+      "acceptance_rate": 0.8866,
+      "teacher_model": "anthropic:claude-opus-5",
+      "judge_model": "anthropic:claude-opus-5",
+      "top_rejections": {
+        "LOW_QUALITY": 104,
+        "SOLUTION_LEAK": 17,
+        "MULTIPLE_HINTS": 10,
+        "EXPLICIT_FINAL_DIAGNOSIS": 3,
+        "PREMATURE_CONFIRMATION": 1
+      }
+    }
+  ],
+  "dataset_version": "v1",
+  "dataset_hash": "9121c24e47c7253818040aa40356a67d3a359ddcec057bc5bfc533d6a77e2656",
   "base_model": "Qwen/Qwen3-1.7B",
-  "base_model_revision": "main (pin a commit sha before final runs)",
+  "base_model_revision": "70d244cc86ccca08cf5af4e1e306ecf908b1ad5e",
   "tuned_model": null,
   "tuned_model_revision": null,
   "checkpoints": [],
@@ -72,10 +93,10 @@
       "note": "no artifacts at results\\data_efficiency\\results.json"
     }
   ],
-  "git_commit": "bd9186667dc7a43579f682789ea6d7e3d263fa3e",
-  "git_dirty": false,
+  "git_commit": "a02d02512171cd51451d4ae895d834e569116a11",
+  "git_dirty": true,
   "dependency_versions": {
-    "anthropic": "0.117.1",
+    "anthropic": "0.122.0",
     "openai": "3.2.0",
     "pydantic": "2.13.4",
     "torch": "not-installed",
@@ -86,6 +107,6 @@
     "datasets": "not-installed",
     "accelerate": "not-installed"
   },
-  "dependency_lock_hash": "394e3e903e2bdfaeb81497b006d2c81ff6ab3a78331443a1360e64d06f03b70c",
-  "python_version": "3.13.7"
+  "dependency_lock_hash": "fd5aebe68173fcaadbf3b64be97e8e5dae06670c583f74948a9ba4f4e779ae19",
+  "python_version": "3.12.10"
 }

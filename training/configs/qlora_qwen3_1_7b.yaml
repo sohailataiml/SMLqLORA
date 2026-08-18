@@ -5,13 +5,14 @@
 # in the data-efficiency sweep. Do not tune these per-N; varying them would
 # confound the only variable the sweep is supposed to isolate.
 
-run_name: socratic-v1
+run_name: socratic-v1-n600
 
 model:
   base_model: Qwen/Qwen3-1.7B
-  # Pin a commit sha before the final run so results are reproducible.
-  # Find it with: huggingface-cli scan-cache, or the model page's commit history.
-  revision: main
+  # Pinned so the run is reproducible against an exact snapshot of the weights.
+  # This is the chat/instruct variant; Qwen/Qwen3-1.7B-Base is the raw LM and is
+  # deliberately NOT used here.
+  revision: 70d244cc86ccca08cf5af4e1e306ecf908b1ad5e
   trust_remote_code: false
   max_seq_length: 2048
   attn_implementation: eager   # 'flash_attention_2' when the GPU supports it
@@ -58,10 +59,17 @@ training:
   report_to: none
 
 data:
-  # Path to accepted examples produced by the quality gate.
-  accepted_path: data/accepted/v1.jsonl
+  # The FROZEN Dataset V1 selection (600 examples), not the 1055-example accepted
+  # pool it was drawn from. `data/accepted/v1.jsonl` is the pre-selection pool and
+  # training on it would silently run a different experiment than the one the
+  # dataset card, freeze record and hash describe.
+  accepted_path: data/versions/v1/selected.jsonl
+  dataset_version: v1
+  # Refuse to train if the file on disk no longer hashes to the frozen value.
+  expected_dataset_hash: 9121c24e47c7253818040aa40356a67d3a359ddcec057bc5bfc533d6a77e2656
   validation_fraction: 0.1
-  # null trains on everything; the data-efficiency sweep overrides this per run.
+  # null trains on everything in the file; the data-efficiency sweep overrides
+  # this per run.
   limit: null
 
 output:
