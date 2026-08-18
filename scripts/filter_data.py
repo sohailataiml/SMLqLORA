@@ -21,7 +21,12 @@ sys.path.insert(0, str(REPO_ROOT))
 from behavior.spec import load_spec  # noqa: E402
 from evaluation.judge import DeterministicJudge, LLMJudge  # noqa: E402
 from evaluation.schemas import iter_jsonl, load_scenario_files  # noqa: E402
-from filtering.judge import CachedJudge, build_verdict_cache  # noqa: E402
+from filtering.judge import (  # noqa: E402
+    CachedJudge,
+    VerdictJournal,
+    build_verdict_cache,
+    load_journal,
+)
 from filtering.quality_gate import run_quality_gate, write_dataset_version  # noqa: E402
 from generation.schemas import GeneratedExample  # noqa: E402
 from generation.topup import plan_topup  # noqa: E402
@@ -88,19 +93,31 @@ def main(argv: Sequence[str] | None = None) -> int:
     # Reuse verdicts already paid for. An outage part-way through judging must
     # not force re-purchasing the calls that succeeded.
     cache_hits = 0
+    version_dir = REPO_ROOT / "data" / "versions" / args.dataset_version
+    journal_path = version_dir / "judge_journal.jsonl"
+    journal = None if args.mock else VerdictJournal(journal_path)
     if not args.no_resume:
-        version_dir = REPO_ROOT / "data" / "versions" / args.dataset_version
+        verdicts: dict = {}
         prior: list = []
         for name in ("accepted.jsonl", "rejected.jsonl", "unjudged.jsonl"):
             path = version_dir / name
             if path.exists():
                 prior.extend(load_candidates(path))
         if prior:
-            verdicts = build_verdict_cache(prior)
-            if verdicts:
-                judge = CachedJudge(judge, verdicts)
-                cache_hits = len(verdicts)
-                print(f"Resuming        : {cache_hits} prior judge verdict(s) reusable")
+            verdicts.update(build_verdict_cache(prior))
+        # Verdicts journalled mid-run by an interrupted attempt are just as
+        # paid for as those in the committed artifacts.
+        journalled = load_journal(journal_path)
+        if journalled:
+            verdicts.update(journalled)
+            print(f"Journal         : {len(journalled)} verdict(s) recovered "
+                  f"from an interrupted run")
+        if verdicts:
+            judge = CachedJudge(judge, verdicts, journal=journal)
+            cache_hits = len(verdicts)
+            print(f"Resuming        : {cache_hits} prior judge verdict(s) reusable")
+    if not isinstance(judge, CachedJudge) and journal is not None:
+        judge = CachedJudge(judge, {}, journal=journal)
 
     print(f"Candidates      : {len(candidates)}")
     print(f"Judge           : {judge.describe()['judge_model']}")
@@ -145,6 +162,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     print("top rejection reasons:")
     for reason, count in list(report.rejections_by_reason.items())[:8]:
         print(f"  {reason:<28} {count}")
+    if isinstance(judge, CachedJudge):
+        print(f"judge calls     : {judge.misses} bought, {judge.hits} reused")
+
     tokens = meter.totals()
     if tokens["totals"]["requests"]:
         t = tokens["totals"]

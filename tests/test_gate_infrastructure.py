@@ -262,3 +262,61 @@ def test_solved_ceiling_is_not_unbounded(candidates):
     candidate = solved.model_copy(update={"tutor_response": essay})
     _, codes, _, _ = static_screen(candidate, load_spec())
     assert "LOW_QUALITY" in codes
+
+
+# =============================================================================
+# Verdict journal — crash safety for paid calls
+# =============================================================================
+
+
+def test_journal_persists_verdicts_as_they_are_bought(candidates, tmp_path):
+    from filtering.judge import VerdictJournal, load_journal
+
+    journal = VerdictJournal(tmp_path / "journal.jsonl")
+    cached = CachedJudge(DeterministicJudge(), {}, journal=journal)
+    for candidate in candidates[:5]:
+        cached.judge(candidate.scenario, candidate.tutor_response)
+
+    # Readable immediately, without any run having finished.
+    recovered = load_journal(tmp_path / "journal.jsonl")
+    assert len(recovered) == 5
+
+
+def test_journal_never_records_an_unavailable_verdict(candidates, tmp_path):
+    """Journalling a placeholder would stop the next run retrying it."""
+    from filtering.judge import VerdictJournal, load_journal
+
+    journal = VerdictJournal(tmp_path / "journal.jsonl")
+    cached = CachedJudge(_UnreachableJudge(), {}, journal=journal)
+    cached.judge(candidates[0].scenario, candidates[0].tutor_response)
+
+    assert load_journal(tmp_path / "journal.jsonl") == {}
+
+
+def test_journalled_verdicts_are_reusable_after_an_interruption(candidates, tmp_path):
+    from filtering.judge import VerdictJournal, load_journal
+
+    path = tmp_path / "journal.jsonl"
+    first = CachedJudge(DeterministicJudge(), {}, journal=VerdictJournal(path))
+    for candidate in candidates[:4]:
+        first.judge(candidate.scenario, candidate.tutor_response)
+
+    # A later run loads the journal and must not re-buy those calls.
+    second = CachedJudge(_FlakyJudge(ok=0), load_journal(path))
+    for candidate in candidates[:4]:
+        second.judge(candidate.scenario, candidate.tutor_response)
+
+    assert second.hits == 4
+    assert second.misses == 0
+
+
+def test_journal_survives_a_truncated_final_line(tmp_path):
+    from filtering.judge import load_journal
+
+    path = tmp_path / "journal.jsonl"
+    path.write_text('{"key": "a", "verdict": {"spec_adherence": 0.9, '
+                    '"robustness": 1.0, "hint_relevance": 0.9, "passed": true}}\n'
+                    '{"key": "b", "verdi',
+                    encoding="utf-8")
+    recovered = load_journal(path)
+    assert set(recovered) == {"a"}

@@ -8,6 +8,10 @@ scrape a pass, it has to be a good demonstration.
 
 from __future__ import annotations
 
+import json
+import threading
+from pathlib import Path
+
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Callable, Sequence
 
@@ -137,9 +141,11 @@ class CachedJudge(Judge):
     are exactly the calls a resumed run needs to retry.
     """
 
-    def __init__(self, inner: Judge, verdicts: dict[str, JudgeResult]):
+    def __init__(self, inner: Judge, verdicts: dict[str, JudgeResult],
+                 journal: "VerdictJournal | None" = None):
         self.inner = inner
         self.verdicts = verdicts
+        self.journal = journal
         self.model_name = inner.model_name
         self.model_family = inner.model_family
         self.prompt_version = inner.prompt_version
@@ -158,7 +164,10 @@ class CachedJudge(Judge):
             self.hits += 1
             return cached
         self.misses += 1
-        return self.inner.judge(scenario, response, deterministic)
+        result = self.inner.judge(scenario, response, deterministic)
+        if self.journal is not None:
+            self.journal.append(key, result)
+        return result
 
     def describe(self) -> dict[str, str]:
         return self.inner.describe()
@@ -184,3 +193,56 @@ def build_verdict_cache(
             continue
         cache[_verdict_key(example.scenario, example.tutor_response)] = result
     return cache
+
+
+class VerdictJournal:
+    """Append each judge verdict to disk the moment it is paid for.
+
+    The gate previously persisted only at the end of a run. That was survivable
+    when the judge failed *softly* — placeholders still came back and the run
+    finished — but a hard interruption part-way through would have discarded
+    every verdict already bought. With 525 outstanding calls that is a real
+    loss, so verdicts are journalled as they arrive and folded back into the
+    cache on the next run.
+
+    Thread-safe: the gate judges on a pool.
+    """
+
+    def __init__(self, path):
+        self.path = Path(path)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._lock = threading.Lock()
+        self.written = 0
+
+    def append(self, key: str, result: JudgeResult) -> None:
+        # Never journal a placeholder: the next run must retry those, not
+        # inherit them from cache.
+        if judge_unavailable(result):
+            return
+        row = {"key": key, "verdict": result.model_dump(mode="json")}
+        with self._lock:
+            with self.path.open("a", encoding="utf-8", newline="\n") as handle:
+                handle.write(json.dumps(row, ensure_ascii=False) + "\n")
+                handle.flush()
+            self.written += 1
+
+
+def load_journal(path) -> dict[str, JudgeResult]:
+    """Read journalled verdicts back into a cache. Bad lines are skipped."""
+    target = Path(path)
+    if not target.exists():
+        return {}
+    out: dict[str, JudgeResult] = {}
+    with target.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                row = json.loads(line)
+                result = JudgeResult.model_validate(row["verdict"])
+            except Exception:  # noqa: BLE001 — a partial write is expected
+                continue
+            if not judge_unavailable(result):
+                out[row["key"]] = result
+    return out
