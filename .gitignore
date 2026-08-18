@@ -55,6 +55,7 @@ data/raw_api/
 
 # Demo/scratch experiment output that is not evidence.
 results/prompt_ceiling_mock/
+results/eval/
 data/candidates/vdemo.*
 data/accepted/vdemo.jsonl
 data/rejected/vdemo.jsonl

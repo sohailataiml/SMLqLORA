@@ -46,8 +46,8 @@
     "seed": 1234,
     "stop": []
   },
-  "git_commit": "unavailable:not-a-git-repository",
-  "git_dirty": null,
+  "git_commit": "949e2713dff876b389f90d6ea5b760b1a10691bf",
+  "git_dirty": true,
   "dependency_versions": {
     "anthropic": "0.122.0",
     "openai": "3.2.0",
@@ -63,7 +63,7 @@
   "dependency_lock_hash": "fd5aebe68173fcaadbf3b64be97e8e5dae06670c583f74948a9ba4f4e779ae19",
   "python_version": "3.12.10",
   "platform": "Windows-10-10.0.19045-SP0",
-  "experiment_timestamp": "2026-08-17T22:09:00.581977+00:00",
+  "experiment_timestamp": "2026-08-18T01:29:15.007046+00:00",
   "result_status": "PARTIAL",
   "notes": ""
 }

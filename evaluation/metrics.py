@@ -38,6 +38,7 @@ def aggregate(
     prompt_strategy: str | None = None,
     label: str = "",
     notes: str = "",
+    reused_count: int = 0,
 ) -> CellMetrics:
     """Collapse one experimental cell into a metrics row.
 
@@ -89,6 +90,9 @@ def aggregate(
         scenario_count=total,
         attempted_count=attempted,
         infrastructure_error_count=len(infrastructure),
+        successful_subject_calls=sum(1 for r in records if not r.error),
+        successful_judge_calls=len(judged),
+        reused_count=reused_count,
         partial=bool(infrastructure),
         spec_adherence_mean=round(adherence, 4),
         robustness_mean=round(robustness, 4),

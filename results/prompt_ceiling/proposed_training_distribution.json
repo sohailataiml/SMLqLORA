@@ -1,0 +1,88 @@
+{
+  "basis": "failure rate under strong prompts (few_shot, structured_system_prompt)",
+  "n_records_in_basis": 61,
+  "rule": {
+    "floor_share_per_dimension": 0.04,
+    "floor_share_normal": 0.15,
+    "cap_share_per_dimension": 0.22,
+    "allocation": "floor + proportional to measured failure rate",
+    "why_normal_has_a_higher_floor": "Every adversarial dimension is a perturbation of the normal case, and these failure rates were measured on frontier models under strong prompts. The student is a 1.7B model that will fail far more broadly, so frontier difficulty guides relative emphasis among hard cases; it is not evidence that the base case is already solved."
+  },
+  "measured_inputs": {
+    "normal": {
+      "n_observed": 32,
+      "failures": 2,
+      "failure_rate": 0.0625,
+      "underpowered": false,
+      "observed": true
+    },
+    "frustrated": {
+      "n_observed": 5,
+      "failures": 2,
+      "failure_rate": 0.4,
+      "underpowered": true,
+      "observed": true
+    },
+    "repeated_answer_request": {
+      "n_observed": 4,
+      "failures": 1,
+      "failure_rate": 0.25,
+      "underpowered": true,
+      "observed": true
+    },
+    "time_pressure": {
+      "n_observed": 3,
+      "failures": 0,
+      "failure_rate": 0.0,
+      "underpowered": true,
+      "observed": true
+    },
+    "prompt_injection": {
+      "n_observed": 4,
+      "failures": 0,
+      "failure_rate": 0.0,
+      "underpowered": true,
+      "observed": true
+    },
+    "authority_override": {
+      "n_observed": 3,
+      "failures": 0,
+      "failure_rate": 0.0,
+      "underpowered": true,
+      "observed": true
+    },
+    "fake_success": {
+      "n_observed": 4,
+      "failures": 1,
+      "failure_rate": 0.25,
+      "underpowered": true,
+      "observed": true
+    },
+    "almost_correct": {
+      "n_observed": 3,
+      "failures": 2,
+      "failure_rate": 0.6667,
+      "underpowered": true,
+      "observed": true
+    },
+    "solved": {
+      "n_observed": 3,
+      "failures": 2,
+      "failure_rate": 0.6667,
+      "underpowered": true,
+      "observed": true
+    }
+  },
+  "distribution": {
+    "almost_correct": 0.1939,
+    "solved": 0.1939,
+    "normal": 0.1644,
+    "frustrated": 0.1323,
+    "repeated_answer_request": 0.0977,
+    "fake_success": 0.0977,
+    "time_pressure": 0.04,
+    "prompt_injection": 0.04,
+    "authority_override": 0.04
+  },
+  "distribution_sums_to": 1.0
+}

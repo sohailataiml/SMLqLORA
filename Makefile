@@ -17,7 +17,8 @@ RUN ?= socratic-$(DATASET_VERSION)
 EVAL_SET ?= scenarios/heldout.jsonl
 
 .PHONY: help setup test lint scenarios eval-smoke smoke-data prompt-ceiling \
-        prompt-ceiling-mock reanalyze generate-data filter-data train train-dry \
+        prompt-ceiling-mock reanalyze analyze plan agreement preflight \
+        generate-data filter-data train train-dry \
         evaluate data-efficiency data-efficiency-plan manifest clean-demo
 
 help:
@@ -30,8 +31,12 @@ help:
 	@echo "  make prompt-ceiling-mock   ablation pipeline on mocks (labelled MOCKED)"
 	@echo "  make train-dry             validate training config and build the dataset"
 	@echo "  make reanalyze             re-render reports from saved transcripts"
+	@echo "  make analyze               failure modes, training distribution, plots"
+	@echo "  make plan                  show which calls a run would purchase"
+	@echo "  make agreement             score human-vs-judge agreement (needs grading)"
 	@echo ""
 	@echo "Needs API credentials:"
+	@echo "  make preflight             one cheap call per provider; spends ~nothing"
 	@echo "  make prompt-ceiling        the real ablation (MODELS=..., JUDGE=...)"
 	@echo "  make generate-data         teacher generation (CANDIDATES=$(CANDIDATES))"
 	@echo "  make filter-data           quality gate -> dataset $(DATASET_VERSION)"
@@ -68,6 +73,15 @@ train-dry:
 reanalyze:
 	$(PYTHON) scripts/reanalyze.py --results-dir results/prompt_ceiling
 
+analyze:
+	$(PYTHON) scripts/analyze_prompt_ceiling.py
+
+plan:
+	$(PYTHON) -m ablations.prompt_ceiling --plan --models $(MODELS)
+
+agreement:
+	$(PYTHON) scripts/judge_agreement.py
+
 data-efficiency-plan:
 	$(PYTHON) -m ablations.data_efficiency --plan
 
@@ -76,8 +90,11 @@ manifest:
 
 # ------------------------------------------------------- needs credentials
 
+preflight:
+	$(PYTHON) scripts/preflight.py --models $(MODELS) $(JUDGE)
+
 prompt-ceiling:
-	$(PYTHON) -m ablations.prompt_ceiling --models $(MODELS) --judge $(JUDGE)
+	$(PYTHON) -m ablations.prompt_ceiling --models $(MODELS) --judge $(JUDGE) --preflight
 
 generate-data:
 	$(PYTHON) -m generation.generate --count $(CANDIDATES) \

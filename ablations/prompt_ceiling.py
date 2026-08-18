@@ -29,6 +29,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Sequence
 
+from pydantic import BaseModel
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
@@ -55,6 +57,7 @@ from evaluation.metrics import (  # noqa: E402
     group_by_cell,
 )
 from evaluation.reproducibility import build_manifest  # noqa: E402
+from evaluation.resume import ResumeIndex  # noqa: E402
 from evaluation.schemas import (  # noqa: E402
     CellMetrics,
     EvalRecord,
@@ -308,6 +311,7 @@ def run_experiment(
     limit: int | None = None,
     max_workers: int = 4,
     verbose: bool = True,
+    resume: bool = True,
 ) -> GateDecision:
     spec = load_spec()
     scenarios = load_scenario_files([REPO_ROOT / p for p in scenario_paths])
@@ -331,6 +335,21 @@ def run_experiment(
     out = REPO_ROOT / output_dir
     transcripts_dir = out / "judge_transcripts"
 
+    # Prior results are reused rather than re-purchased. Infrastructure failures
+    # are deliberately *not* reusable, so a resume retries exactly the calls that
+    # an exhausted quota cost us and nothing else.
+    index = (
+        ResumeIndex.from_file(out / "all_records.jsonl", allow_mock=mock)
+        if resume
+        else ResumeIndex.empty(allow_mock=mock)
+    )
+    if verbose:
+        print(f"resume: {index.stats.summary()}")
+        if index.stats.by_cell:
+            for cell_label, count in sorted(index.stats.by_cell.items()):
+                print(f"        reusable {count:3}  {cell_label}")
+        print()
+
     cells: list[CellMetrics] = []
     all_records: list[EvalRecord] = []
     unmeasured: list[str] = []
@@ -350,14 +369,43 @@ def run_experiment(
                 )
 
             safe = label.replace("/", "_").replace(":", "_").replace(" | ", "__")
+
+            # The prompt version embeds a hash of the *rendered* prompt, so this
+            # is per-scenario. Rendering is local and free; only the calls cost.
+            done, todo = index.partition(
+                scenarios,
+                model=model.name,
+                strategy=strategy.name,
+                prompt_version_for=lambda s: (
+                    f"{strategy.version}+{strategy.render(s).sha256[:12]}"
+                ),
+            )
+            if done and verbose:
+                print(f"      reusing {len(done)} prior result(s); "
+                      f"{len(todo)} call(s) to make")
+
             try:
-                metrics, records = evaluator.run(
-                    scenarios,
-                    transcript_path=str(transcripts_dir / f"{safe}.jsonl"),
+                fresh = (
+                    evaluator.evaluate(
+                        todo,
+                        on_progress=(
+                            (lambda done_n, total, rec: None)
+                            if not verbose
+                            else _progress
+                        ),
+                    )
+                    if todo
+                    else []
+                )
+                records = _merge_in_scenario_order(done, fresh, scenarios)
+                write_jsonl(str(transcripts_dir / f"{safe}.jsonl"), records)
+                metrics = aggregate(
+                    records,
+                    model=model.name,
+                    model_family=model.family,
+                    prompt_strategy=strategy.name,
                     label=label,
-                    on_progress=(
-                        (lambda done, total, rec: None) if not verbose else _progress
-                    ),
+                    reused_count=len(done),
                 )
             except ValueError as exc:
                 # Every call in this cell failed for infrastructure reasons.
@@ -417,6 +465,166 @@ def _progress(done: int, total: int, record: EvalRecord) -> None:
     print(f"      {done}/{total} scenarios", end=end, flush=True)
 
 
+class _JudgeRow(BaseModel):
+    """One judge verdict, flattened for audit."""
+
+    model_config = {"extra": "forbid"}
+
+    scenario_id: str
+    subject_model: str
+    subject_model_family: str
+    prompt_strategy: str
+    prompt_version: str
+    pressure_type: str
+    student_has_solved: bool
+    subject_response: str
+    judge_model: str = "unknown"
+    judge_model_family: str = "unknown"
+    judge_prompt_version: str = "unknown"
+    #: True when the judge and the subject come from the same family — the
+    #: self-evaluation rows, which are the ones a reviewer should scrutinize.
+    #: None when the judge is unidentifiable, which is not the same as False.
+    self_judged: bool | None = None
+    spec_adherence: float | None = None
+    robustness: float | None = None
+    hint_relevance: float | None = None
+    judge_pass: bool | None = None
+    judge_reasoning: str = ""
+    failure_reasons: tuple[str, ...] = ()
+    final_pass: bool = False
+    error_kind: str = "none"
+
+
+def _judge_family(judge) -> str:
+    """Resolve the judging model's family, falling back to the spec prefix.
+
+    `judge_model_family` was added after the first real run, so records written
+    before it exists carry "unknown". The model spec (`anthropic:claude-opus-5`)
+    already names the family, so derive it rather than reporting "unknown" for
+    data we can in fact identify.
+    """
+    if judge is None:
+        return "unknown"
+    if judge.judge_model_family not in {"", "unknown"}:
+        return judge.judge_model_family
+    if ":" in judge.judge_model:
+        return judge.judge_model.split(":", 1)[0]
+    if judge.judge_model.startswith("deterministic"):
+        return "deterministic"
+    return "unknown"
+
+
+def _judge_rows(records: Sequence[EvalRecord]) -> list[_JudgeRow]:
+    rows = []
+    for record in records:
+        judge = record.judge
+        family = _judge_family(judge)
+        rows.append(_JudgeRow(
+            scenario_id=record.scenario_id,
+            subject_model=record.model,
+            subject_model_family=record.model_family,
+            prompt_strategy=record.prompt_strategy,
+            prompt_version=record.prompt_version,
+            pressure_type=record.pressure_type.value,
+            student_has_solved=record.student_has_solved,
+            subject_response=record.model_response,
+            judge_model=judge.judge_model if judge else "unknown",
+            judge_model_family=family,
+            judge_prompt_version=judge.judge_prompt_version if judge else "unknown",
+            self_judged=(
+                None
+                if family in {"unknown", "deterministic"}
+                else family == record.model_family
+            ),
+            spec_adherence=judge.spec_adherence if judge else None,
+            robustness=judge.robustness if judge else None,
+            hint_relevance=judge.hint_relevance if judge else None,
+            judge_pass=judge.passed if judge else None,
+            judge_reasoning=judge.reasoning if judge else "",
+            failure_reasons=record.failure_reasons,
+            final_pass=record.passed,
+            error_kind=record.error_kind.value,
+        ))
+    return rows
+
+
+def plan_run(
+    *,
+    model_specs: Sequence[str] = DEFAULT_MODELS,
+    scenario_paths: Sequence[str] = DEFAULT_SCENARIOS,
+    output_dir: str = DEFAULT_OUTPUT,
+    resume: bool = True,
+) -> dict[str, Any]:
+    """Report what a run would purchase, without calling any model.
+
+    Answers the only question worth asking before an expensive run: how many
+    calls do I still owe, and for which cells?
+    """
+    spec = load_spec()
+    scenarios = load_scenario_files([REPO_ROOT / p for p in scenario_paths])
+    strategies = all_strategies(spec)
+    out = REPO_ROOT / output_dir
+    index = (
+        ResumeIndex.from_file(out / "all_records.jsonl")
+        if resume
+        else ResumeIndex.empty()
+    )
+
+    rows: list[dict[str, Any]] = []
+    for model_spec in model_specs:
+        for strategy in strategies:
+            done, todo = index.partition(
+                scenarios,
+                model=model_spec,
+                strategy=strategy.name,
+                prompt_version_for=lambda s, st=strategy: (
+                    f"{st.version}+{st.render(s).sha256[:12]}"
+                ),
+            )
+            rows.append({
+                "model": model_spec,
+                "prompt_strategy": strategy.name,
+                "scenarios": len(scenarios),
+                "reusable": len(done),
+                "to_purchase": len(todo),
+            })
+
+    return {
+        "resume_enabled": resume,
+        "prior_index": index.stats.summary(),
+        "cells": rows,
+        "subject_calls_to_purchase": sum(r["to_purchase"] for r in rows),
+        "subject_calls_if_cold": len(scenarios) * len(strategies) * len(model_specs),
+    }
+
+
+def print_plan(plan: dict[str, Any]) -> None:
+    print(f"resume: {plan['prior_index']}\n")
+    for row in plan["cells"]:
+        print(f"  {row['model']:<28} {row['prompt_strategy']:<26} "
+              f"reuse={row['reusable']:3}  purchase={row['to_purchase']:3}")
+    print()
+    print(f"subject calls to purchase : {plan['subject_calls_to_purchase']}")
+    print(f"a cold run would purchase : {plan['subject_calls_if_cold']}")
+    print("(judge calls are additional, one per successful subject call)")
+
+
+def _merge_in_scenario_order(
+    reused: Sequence[EvalRecord],
+    fresh: Sequence[EvalRecord],
+    scenarios: Sequence[Scenario],
+) -> list[EvalRecord]:
+    """Interleave reused and newly purchased records back into scenario order.
+
+    Order matters for reproducibility: a resumed run and a cold run over the same
+    scenario set must produce byte-identical transcripts, or the two are not
+    comparable artifacts.
+    """
+    by_id = {r.scenario_id: r for r in reused}
+    by_id.update({r.scenario_id: r for r in fresh})
+    return [by_id[s.id] for s in scenarios if s.id in by_id]
+
+
 # =============================================================================
 # Reports
 # =============================================================================
@@ -457,6 +665,10 @@ def write_reports(
     )
     write_csv(out / "results.csv", rows)
     write_jsonl(out / "all_records.jsonl", records)
+    # One flat judge transcript alongside the per-cell files: every judge
+    # verdict with the subject response it graded, so a reviewer can audit the
+    # judge without reassembling six files.
+    write_jsonl(out / "judge_transcripts.jsonl", _judge_rows(records))
 
     plot_prompt_ceiling(cells, out / "pass_rate_by_strategy.png")
     plot_failure_modes(
@@ -698,8 +910,37 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--max-workers", type=int, default=4)
     parser.add_argument("--mock", action="store_true",
                         help="scripted models and offline judge; output labelled MOCKED")
+    parser.add_argument("--no-resume", dest="resume", action="store_false",
+                        help="ignore prior results and re-purchase every call "
+                             "(default: reuse successful prior results)")
+    parser.add_argument("--preflight", action="store_true",
+                        help="check every model is reachable and funded before "
+                             "spending anything; abort the run if any fails")
+    parser.add_argument("--plan", action="store_true",
+                        help="report which calls a run would purchase, then exit "
+                             "without contacting any provider")
     parser.add_argument("--quiet", action="store_true")
     args = parser.parse_args(argv)
+
+    if args.plan:
+        print_plan(plan_run(
+            model_specs=args.models,
+            scenario_paths=args.scenarios,
+            output_dir=args.output,
+            resume=args.resume,
+        ))
+        return 0
+
+    if args.preflight and not args.mock:
+        from scripts.preflight import run as run_preflight
+
+        # dict.fromkeys keeps declaration order while dropping the duplicate
+        # when the judge is also a subject model.
+        probes = run_preflight(list(dict.fromkeys([*args.models, args.judge])))
+        if any(not p.ok for p in probes):
+            print("Preflight failed — the experiment was NOT started, "
+                  "and nothing was spent.")
+            return 2
 
     decision = run_experiment(
         model_specs=args.models,
@@ -710,6 +951,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         limit=args.limit,
         max_workers=args.max_workers,
         verbose=not args.quiet,
+        resume=args.resume,
     )
     return 0 if decision.status != "NOT_RUN" else 1
 

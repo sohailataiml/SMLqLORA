@@ -317,6 +317,10 @@ class JudgeResult(BaseModel):
     reasoning: str = ""
 
     judge_model: str = "unknown"
+    #: Recorded separately from `judge_model` so self-evaluation bias is
+    #: detectable by grouping: a record whose judge family equals its subject
+    #: family was graded by its own kind.
+    judge_model_family: str = "unknown"
     judge_prompt_version: str = "unknown"
     parse_warnings: tuple[str, ...] = ()
     raw_response: str = ""
@@ -402,10 +406,18 @@ class CellMetrics(BaseModel):
     model_family: str
     prompt_strategy: str
     #: Records that actually measured the model (excludes infrastructure failures).
+    #: This is the denominator of every behavioral rate below.
     scenario_count: int
     #: Scenarios attempted, including those lost to infrastructure failures.
     attempted_count: int = 0
     infrastructure_error_count: int = 0
+    #: Subject calls that returned a body (no error of any kind).
+    successful_subject_calls: int = 0
+    #: Judge calls that returned a parseable verdict. Lower than
+    #: `successful_subject_calls` when the judge itself failed.
+    successful_judge_calls: int = 0
+    #: Records served from a previous run rather than re-purchased.
+    reused_count: int = 0
     #: True when infrastructure failures make this cell incomplete.
     partial: bool = False
 

@@ -97,10 +97,13 @@ The single most important table in this README.
 
 | Component | Status |
 | --- | --- |
-| Behavior spec, scenario schema, deterministic checks | **TESTED LOCALLY** — 288 unit tests |
+| Behavior spec, scenario schema, deterministic checks | **TESTED LOCALLY** — 368 unit tests |
 | Evaluation harness, judge abstraction, model adapters | **TESTED LOCALLY** |
 | 56 evaluation scenarios (clean / adversarial / held-out) | **IMPLEMENTED**, split-isolation enforced in code |
 | Prompt-ceiling ablation | **REAL EXPERIMENT RESULT — PARTIAL** (see below) |
+| Failure-mode analysis + proposed training distribution | **DERIVED** from the real records above; provisional while the experiment is partial |
+| Connectivity preflight, resumable runner | **TESTED LOCALLY** |
+| Human/judge agreement harness | **IMPLEMENTED**; **NOT YET GRADED** — no human labels exist |
 | Teacher generation + quality gate | **IMPLEMENTED**, **TESTED LOCALLY** on a mock teacher; **NOT RUN** for real |
 | QLoRA training | **IMPLEMENTED**, dry-run validated; **NOT RUN** (no capable GPU here) |
 | Base vs tuned | **NOT RUN** — requires a checkpoint |
@@ -115,8 +118,29 @@ Nothing in `results/` is invented. Files that would hold un-run experiments say
 
 **Status: REAL, but INCOMPLETE.** Read the caveats before citing anything.
 
-Setup: `claude-opus-5` × 3 prompt strategies × the same 36 scenarios (16 clean,
-20 adversarial), judged by `claude-opus-5` against the spec.
+### Why this ablation exists
+
+Fine-tuning is only interesting if prompting cannot already do the job. So the
+project is not allowed to train until it has measured what the *best prompt on
+the best available model* achieves. If a frontier model with a strong prompt
+already holds the behavior at the configured reliability bar, the honest
+conclusion is "fine-tuning not justified — pick a harder behavior", and this
+experiment is designed to be able to return that answer.
+
+### Design
+
+| | |
+| --- | --- |
+| Model families required | 2 — `anthropic` and `openai` |
+| Model families **measured** | **1** (`anthropic:claude-opus-5`); `openai:gpt-5` has no credit |
+| Prompt strategies | 3 — `zero_shot`, `few_shot`, `structured_system_prompt` |
+| Scenarios per cell | 36 (16 clean, 20 adversarial), identical across every cell |
+| Complete matrix | 2 × 3 × 36 = **216** subject responses |
+| Actually measured | **97** (95 judged, 2 unjudged refusal/empty) |
+| Lost to infrastructure | **119** — never reached the model; excluded from every rate |
+| Judge | `anthropic:claude-opus-5`, judge prompt `v1.0.0` |
+
+Judged against the spec by `claude-opus-5`.
 
 | Prompt strategy | Scenarios measured | Spec adherence | Robustness | Pass rate |
 | --- | --- | --- | --- | --- |
@@ -124,11 +148,37 @@ Setup: `claude-opus-5` × 3 prompt strategies × the same 36 scenarios (16 clean
 | `few_shot` | 36 / 36 | 0.857 | 0.963 | **0.806** |
 | `structured_system_prompt` | 25 / 36 | 0.864 | 0.772 | **0.880** |
 
+All three `openai:gpt-5` cells measured **0 / 36** — every call returned
+`insufficient_quota`. They are reported as unmeasured, never as a score of zero.
+
 Thresholds required for "prompting is sufficient": adherence ≥ 0.95,
 robustness ≥ 0.95, pass rate ≥ 0.95 — all configuration, set before the run.
 
 **Gate result (provisional): FINE-TUNING JUSTIFIED.** The strongest measured cell
 missed every threshold, and `SOLUTION_LEAK` still survived the strongest prompt.
+
+### Strongest prompted configuration
+
+`structured_system_prompt` has the highest pass rate (0.880) and adherence
+(0.864), and the gate selects it. But it is **not** unambiguously the best
+prompt, and the ranking flips depending on which property you care about:
+
+| | `few_shot` | `structured_system_prompt` |
+| --- | --- | --- |
+| Scenarios measured | 36 / 36 | 25 / 36 |
+| Spec adherence | 0.857 | **0.864** |
+| Pass rate | 0.806 | **0.880** |
+| Robustness (under pressure) | **0.963** | 0.772 |
+
+The elaborate structured prompt bought clean-case accuracy and **lost**
+pressure-resistance — a 0.19 robustness drop. Since the behavior only matters
+under pressure (a learner who never pushes back never tests it), few-shot is
+arguably the more useful prompt despite scoring lower overall.
+
+Two reasons not to lean on this comparison yet: the structured cell is missing
+11 scenarios, and those missing scenarios are not a random subset — the run died
+partway through a fixed scenario order. Which prompt is genuinely strongest is
+**not yet settled**, and the completed experiment may reverse it.
 
 ### What survives the best prompt
 
@@ -153,24 +203,61 @@ training on it.
    requires ≥ 2 families; this ran with 1.
 2. **The strongest cell is incomplete.** The Anthropic key exhausted its credit
    partway through, losing 11 of 36 scenarios in the `structured` cell.
-3. Judge and one subject model are the same model, so self-preference bias is
-   possible.
+3. **Every measured response was self-judged.** 95 of the 97 measured records
+   have a judge from the same family as the subject (the other 2 have no judge
+   verdict at all). This is now recorded per record as `judge_model_family` and
+   `self_judged` in `judge_transcripts.jsonl`, so the affected rows are
+   identifiable rather than merely acknowledged.
+
+   The direction of that bias is worth stating, because it does not undermine
+   the headline: self-preference would *inflate* Anthropic's scores. The gate
+   fired because those scores fell **short** of the thresholds — so a
+   self-flattering judge makes `FINE-TUNING JUSTIFIED` a conservative
+   conclusion, not an inflated one. Where the bias does bite is any
+   *model-vs-model* comparison, which is precisely what the missing OpenAI
+   cells would have provided.
+4. **Per-pressure-type numbers are underpowered.** Under strong prompts most
+   pressure types have only n = 3–5 observations, where one response moves the
+   rate by 20–33 points. Every such slice is flagged `underpowered` in
+   `failure_modes.json` and in the report tables.
 
 Infrastructure failures are **excluded from every rate** rather than counted as
 model failures — otherwise a billing outage reads as a model that never passes.
 They are reported separately as `infrastructure_error_count`, and any cell that
 lost calls is flagged `partial`.
 
-Full evidence: [`results/prompt_ceiling/`](results/prompt_ceiling/) — `report.md`,
-`results.json`, `results.csv`, per-cell raw transcripts, and `manifest.json`.
+Full evidence: [`results/prompt_ceiling/`](results/prompt_ceiling/)
 
-**To complete it:** top up both providers, then
+| File | Contents |
+| --- | --- |
+| `report.md` | the gate decision and its evidence |
+| `results.json` / `results.csv` | per-cell metrics |
+| `failure_modes.json` / `failure_modes.md` | Step-8 breakdown by model, strategy and pressure |
+| `judge_transcripts.jsonl` | every judge verdict, with `self_judged` flagged |
+| `judge_transcripts/` | the same, split per cell |
+| `all_records.jsonl` | raw records, including infrastructure failures |
+| `proposed_training_distribution.json` | dataset shares derived from measured failures |
+| `human_validation.csv` | 40-row blind-grading sheet, **human columns empty** |
+| `manifest.json` | spec/prompt/judge hashes, git commit, dependency versions |
+| `*.png` | adherence, robustness, pass rate, failure modes, adversarial |
+
+### Completing it — the run is resumable
+
+Successful results are reused; only calls lost to infrastructure are retried.
+The key is `(model, prompt_strategy, scenario_id, prompt_version)`, and
+`prompt_version` embeds a hash of the *rendered* prompt, so editing a strategy
+correctly invalidates its cached results instead of silently reusing them.
 
 ```bash
-make prompt-ceiling          # or: python -m ablations.prompt_ceiling \
-                             #       --models anthropic:claude-opus-5 openai:gpt-5 \
-                             #       --judge anthropic:claude-opus-5
+make plan          # what a run would purchase, without contacting any provider
+make preflight     # one cheap call per provider; verifies key, model, quota
+make prompt-ceiling
 ```
+
+As of the current records `make plan` reports **119 subject calls to purchase**
+rather than 216 — the 97 already-measured responses are reused. `make
+prompt-ceiling` runs the preflight first and aborts before spending anything if
+either provider is unfunded.
 
 ---
 
@@ -279,6 +366,50 @@ make generate-data CANDIDATES=1400 DATASET_VERSION=v1
 make filter-data DATASET_VERSION=v1
 ```
 
+### Dataset shares are derived from measured failures
+
+**Status: DERIVED from the real prompt-ceiling records; PROVISIONAL while the
+experiment is partial. No candidate has been generated.**
+
+Rather than guessing how much of each pressure type to generate,
+`make analyze` computes the mix from where the model actually failed —
+[`proposed_training_distribution.json`](results/prompt_ceiling/proposed_training_distribution.json).
+
+The rule, stated so it can be argued with:
+
+1. Every dimension gets a floor (4%), guaranteeing coverage.
+2. The remainder is allocated in proportion to each dimension's failure rate
+   **under strong prompts only** — zero-shot is excluded because it measures the
+   absence of prompting, and its easily-prompted-away failures would otherwise
+   dominate the design.
+3. No dimension exceeds a 22% cap. A dataset that is 60% one pressure type
+   teaches that pressure type, not the behavior.
+4. `normal` gets a 15% floor instead of 4%.
+
+That last exception is the one worth defending. Pure failure-rate allocation
+gave `normal` 5.9%, and shipping that would have been a mistake for two reasons.
+Every adversarial dimension is a *perturbation of* the normal case, so a dataset
+that is 6% normal teaches a model to resist pressure without teaching it the
+base behavior being defended. And these failure rates were measured on a
+**frontier** model; the student is a 1.7B model that will fail on far easier
+inputs. Frontier difficulty is a guide to relative emphasis among the hard
+cases, not evidence that the base case is solved for a model three orders of
+magnitude smaller.
+
+Current proposal (from 61 strong-prompt records):
+
+| dimension | share | | dimension | share |
+| --- | ---: | --- | --- | ---: |
+| `almost_correct` | 19.4% | | `repeated_answer_request` | 9.8% |
+| `solved` | 19.4% | | `fake_success` | 9.8% |
+| `normal` | 16.4% | | `time_pressure` | 4.0% |
+| `frustrated` | 13.2% | | `prompt_injection` | 4.0% |
+| | | | `authority_override` | 4.0% |
+
+Most of these rest on n = 3–5 and are flagged `underpowered`. Re-running
+`make analyze` after the experiment completes recomputes the whole table; that
+is the entire update procedure.
+
 ### Failure-driven iteration
 
 The intended v1 → v2 loop, wired and ready: evaluate, read
@@ -341,16 +472,20 @@ python -m venv .venv && .venv/bin/pip install -e ".[providers,analysis,dev]"
 cp .env.example .env          # add ANTHROPIC_API_KEY and OPENAI_API_KEY
 
 # --- offline: no credentials, no GPU -------------------------------------
-make test                     # 288 unit tests
+make test                     # 368 unit tests
 make scenarios                # rebuild scenarios/*.jsonl, enforce split isolation
 make eval-smoke               # end-to-end evaluation, mock model + offline judge
 make smoke-data               # end-to-end data pipeline on a mock teacher
 make prompt-ceiling-mock      # ablation pipeline, output labelled MOCKED
 make train-dry                # validate training config, build + contamination-check data
 make reanalyze                # re-render reports from saved transcripts
+make analyze                  # failure modes, training distribution, plots
+make plan                     # which calls a real run would purchase
+make agreement                # human-vs-judge kappa (NOT YET GRADED)
 
 # --- needs API credentials ------------------------------------------------
-make prompt-ceiling
+make preflight                # one cheap call per provider; verifies key/model/quota
+make prompt-ceiling           # resumable; reuses the 97 measured records
 make generate-data CANDIDATES=1400 DATASET_VERSION=v1
 make filter-data DATASET_VERSION=v1
 
@@ -407,12 +542,30 @@ Stated plainly, because the experiment is only as good as its weakest claim.
 1. **The prompt ceiling is provisional.** One model family, one cell truncated at
    25/36. It shows a real and large gap, but it is not yet the two-family result
    the spec demands.
-2. **Judge and subject overlap.** `claude-opus-5` judged its own outputs.
-   Self-preference bias would, if anything, *flatter* the prompted baseline —
-   making the measured ceiling conservative — but it should be replaced with a
-   different-family judge, or a two-judge panel with agreement reported.
-3. **No human validation of the judge.** There is no measurement of judge-human
-   agreement on a labelled sample. Every downstream number inherits that.
+2. **Judge and subject overlap — quantified: 95 of 97 measured records.**
+   `claude-opus-5` judged its own outputs in every measured cell. Self-preference
+   bias would, if anything, *flatter* the prompted baseline, making the measured
+   ceiling conservative and the `JUSTIFIED` verdict robust to it; but it
+   contaminates any model-vs-model comparison.
+
+   Cross-family judging (Anthropic subject → OpenAI judge, and vice versa) was
+   considered and **deliberately not adopted**, because it trades one bias for a
+   worse one: each family would then be graded by a different judge, so a
+   difference between families could not be separated from a difference between
+   judges. Consistency across cells is what makes the six cells comparable to
+   each other and to a fixed threshold. Switching now would also invalidate the
+   97 completed records. The intended fix is instead a cross-family **audit** on
+   a subsample plus the human validation below — measuring the bias rather than
+   swapping it for another one. `judge_model_family` and `self_judged` are now
+   recorded per record so the audit can be scoped precisely.
+3. **No human validation of the judge — the harness exists, no labels do.**
+   `results/prompt_ceiling/human_validation.csv` holds a 40-row stratified,
+   failure-enriched sample with empty human columns; `make agreement` computes
+   percent agreement and Cohen's kappa once graded. It currently reports
+   `NOT YET GRADED` and refuses to emit a number. Kappa matters here because the
+   classes are unbalanced: at ~85% passes, a grader who wrote "pass" on every
+   row would score ~85% raw agreement while carrying no information. Every
+   downstream number inherits this unvalidated judge until the sheet is graded.
 4. **Deterministic checks trade recall for precision by design.** A leak phrased
    in unusual prose can pass them; that is why they never run alone.
 5. **56 scenarios is small.** Adequate for a large effect, too small to resolve
@@ -436,14 +589,16 @@ behavior/spec.yaml          the specification everything reads
 scenarios/*.jsonl           56 evaluation scenarios, three isolated splits
 prompting/strategies.py     zero_shot | few_shot | structured_system_prompt
 models/                     provider-independent adapters (API, local HF, PEFT)
-evaluation/                 checks, judge, evaluator, metrics, reproducibility
+evaluation/                 checks, judge, evaluator, metrics, reproducibility,
+                            resume, failure_analysis, human_validation, plots
 generation/                 controlled dimension space + teacher
 filtering/                  static checks, judge, dedupe, balance, quality gate
 training/                   chat-format conversion, QLoRA, configs
 ablations/                  prompt_ceiling, base_vs_tuned, data_efficiency
 results/                    JSON, CSV, Markdown, plots, raw judge transcripts
-scripts/                    scenario build, data filtering, reanalysis, manifest
-tests/                      288 tests, no network, no GPU
+scripts/                    scenario build, filtering, reanalysis, manifest,
+                            preflight, analyze_prompt_ceiling, judge_agreement
+tests/                      368 tests, no network, no GPU
 eval.py                     the one-command entry point
 ```
 

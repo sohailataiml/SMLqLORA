@@ -40,6 +40,9 @@ class Judge(ABC):
     """Common judge interface."""
 
     model_name: str = "unknown"
+    #: Family of the judging model. Recorded so cross-family vs. self-family
+    #: judging can be separated during analysis.
+    model_family: str = "unknown"
     prompt_version: str = JUDGE_PROMPT_VERSION
 
     @abstractmethod
@@ -52,7 +55,11 @@ class Judge(ABC):
         ...
 
     def describe(self) -> dict[str, str]:
-        return {"judge_model": self.model_name, "judge_prompt_version": self.prompt_version}
+        return {
+            "judge_model": self.model_name,
+            "judge_model_family": self.model_family,
+            "judge_prompt_version": self.prompt_version,
+        }
 
 
 # =============================================================================
@@ -238,6 +245,7 @@ def parse_judge_payload(
     spec: BehaviorSpec,
     *,
     judge_model: str,
+    judge_model_family: str = "unknown",
     prompt_version: str,
     raw: str = "",
 ) -> JudgeResult:
@@ -269,6 +277,7 @@ def parse_judge_payload(
         failure_reasons=tuple(reasons),
         reasoning=str(payload.get("reasoning", "")).strip(),
         judge_model=judge_model,
+        judge_model_family=judge_model_family,
         judge_prompt_version=prompt_version,
         parse_warnings=tuple(warnings),
         raw_response=raw[:4000],
@@ -296,6 +305,7 @@ class LLMJudge(Judge):
         self.params = params or JUDGE_PARAMS
         self.retries = retries
         self.model_name = model.name
+        self.model_family = model.family
         self.prompt_version = JUDGE_PROMPT_VERSION
 
     def judge(
@@ -322,6 +332,7 @@ class LLMJudge(Judge):
                 payload,
                 self.spec,
                 judge_model=self.model_name,
+                judge_model_family=self.model_family,
                 prompt_version=self.prompt_version,
                 raw=model_response.text,
             )
@@ -335,6 +346,7 @@ class LLMJudge(Judge):
             failure_reasons=("LOW_QUALITY",),
             reasoning=f"Judge failed after {self.retries + 1} attempts: {last_error}",
             judge_model=self.model_name,
+            judge_model_family=self.model_family,
             judge_prompt_version=self.prompt_version,
             parse_warnings=("judge_unavailable",),
         )
@@ -363,6 +375,7 @@ class DeterministicJudge(Judge):
         self.spec = spec or load_spec()
         self.config = config or DEFAULT_CONFIG
         self.model_name = name
+        self.model_family = "deterministic"
         self.prompt_version = f"{JUDGE_PROMPT_VERSION}-deterministic"
 
     def judge(
@@ -395,6 +408,7 @@ class DeterministicJudge(Judge):
                 "with the expected bug and is not a substitute for an LLM judge."
             ),
             judge_model=self.model_name,
+            judge_model_family=self.model_family,
             judge_prompt_version=self.prompt_version,
         )
 
