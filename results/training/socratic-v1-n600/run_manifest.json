@@ -160,6 +160,6 @@
     "oom_events": null,
     "note": "All null because training did not run. Not estimated, not inferred."
   },
-  "git_commit": "a02d02512171cd51451d4ae895d834e569116a11",
-  "git_dirty": true
+  "git_commit": "b2b52d81a85489521b6338391aca55cc8f2d53b8",
+  "git_dirty": false
 }
