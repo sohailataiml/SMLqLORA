@@ -1,0 +1,7 @@
+{
+  "base_seed": 20240101,
+  "dataset_version": "v1",
+  "generation_prompt_version": "1.0.0",
+  "generation_prompt_sha256": "6dc7c82da5780f612653a7957a27a33f8af1b8359ed68ec9a74ec26e2bf81ed5",
+  "teacher_model": "anthropic:claude-opus-5"
+}
