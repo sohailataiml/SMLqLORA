@@ -216,6 +216,9 @@ class GenerationBatchStats(BaseModel):
     parse_failures: int = 0
     schema_failures: int = 0
     provider_errors: int = 0
+    #: True API/network failures. Kept separate from content failures so an
+    #: outage can never be reported as a dataset-quality problem.
+    infrastructure_errors: int = 0
     #: Candidates reused from a prior interrupted run rather than re-purchased.
     reused: int = 0
     #: Candidates actually bought during this invocation.

@@ -233,10 +233,14 @@ def generate(
                     writer.write(example)
                 else:
                     failures.append(error or "unknown failure")
-                    if error and "INVALID_SCHEMA" in error:
-                        stats.schema_failures += 1
-                    elif error and "unparseable JSON" in error:
+                    # `work()` prefixes the propagated cause as "[CODE] ...", so
+                    # a malformed teacher payload is never filed as an outage.
+                    if error and error.startswith("[INFRASTRUCTURE]"):
+                        stats.infrastructure_errors += 1
+                    elif error and error.startswith("[UNPARSEABLE]"):
                         stats.parse_failures += 1
+                    elif error and error.startswith("[INVALID_SCHEMA]"):
+                        stats.schema_failures += 1
                     else:
                         stats.provider_errors += 1
                 if verbose and (done % 10 == 0 or done == len(todo)):
@@ -348,6 +352,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     print(f"bought this run  : {stats.generated_this_run}")
     print(f"parse failures   : {stats.parse_failures}")
     print(f"schema failures  : {stats.schema_failures}")
+    print(f"infra errors     : {stats.infrastructure_errors}")
     print(f"provider errors  : {stats.provider_errors}")
     tokens = stats.usage.get("totals", {})
     if tokens.get("requests"):

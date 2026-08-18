@@ -172,6 +172,11 @@ class Teacher:
         prompt = build_generation_prompt(dimensions, self.spec, seed=seed)
         example_id = f"gen_{self.dataset_version}_{index:05d}"
         last_error = "no attempt made"
+        # Carried out of the loop so the final error keeps the *cause*. Without
+        # this every failure surfaces as GENERATION_ERROR and a malformed
+        # teacher payload gets counted as a provider outage, which would let a
+        # content problem masquerade as an infrastructure one.
+        last_code = "GENERATION_ERROR"
 
         for _ in range(self.retries + 1):
             response = self.model.generate(
@@ -181,11 +186,13 @@ class Teacher:
             )
             if not response.ok:
                 last_error = response.error or "unknown provider error"
+                last_code = "INFRASTRUCTURE"
                 continue
             try:
                 payload = extract_json_object(response.text)
             except ValueError as exc:
                 last_error = f"unparseable JSON: {exc}"
+                last_code = "UNPARSEABLE"
                 continue
             try:
                 return build_example(
@@ -199,11 +206,13 @@ class Teacher:
                 )
             except TeacherError as exc:
                 last_error = str(exc)
+                last_code = exc.code
                 continue
 
         raise TeacherError(
             f"{example_id}: teacher failed after {self.retries + 1} attempt(s) "
-            f"({dimensions.slug()}): {last_error}"
+            f"({dimensions.slug()}): {last_error}",
+            last_code,
         )
 
     def describe(self) -> dict[str, str]:

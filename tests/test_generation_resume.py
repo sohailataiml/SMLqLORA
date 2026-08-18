@@ -365,7 +365,34 @@ def test_infrastructure_failures_are_not_written_as_candidates(tmp_path):
                                            candidates_path=path)
 
     assert candidates == []
-    assert stats.provider_errors == 3
+    # A real outage is an infrastructure error, never a content failure.
+    assert stats.infrastructure_errors == 3
+    assert stats.parse_failures == 0
+    assert stats.schema_failures == 0
     assert failures
     # Nothing persisted, so the next run retries all three.
     assert not path.exists() or path.read_text(encoding="utf-8").strip() == ""
+
+
+def test_unparseable_teacher_output_is_not_an_infrastructure_error(tmp_path):
+    """A malformed payload is a content failure, not an outage.
+
+    Conflating the two would let a bad teacher run look like a provider
+    problem, or — worse — let an outage be reported as dataset quality.
+    """
+
+    class _Garbage(ModelAdapter):
+        def __init__(self):
+            super().__init__("garbage:teacher", "mock", "rev")
+
+        def _generate(self, messages, system, params) -> ModelResponse:
+            return ModelResponse(text="not json at all", model=self.name)
+
+    from generation.teacher import Teacher
+
+    _, stats, _ = generate(count=2, teacher=Teacher(_Garbage(),
+                                                    dataset_version="vtest"),
+                           verbose=False, candidates_path=tmp_path / "c.jsonl")
+
+    assert stats.parse_failures == 2
+    assert stats.infrastructure_errors == 0

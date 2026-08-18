@@ -1,40 +1,51 @@
 {
-  "requested": 8,
-  "returned": 8,
-  "parse_failures": 0,
+  "requested": 1200,
+  "returned": 1190,
+  "parse_failures": 5,
   "schema_failures": 0,
-  "provider_errors": 0,
-  "reused": 0,
-  "generated_this_run": 8,
+  "provider_errors": 5,
+  "reused": 8,
+  "generated_this_run": 1182,
   "usage": {
     "by_model": [
       {
         "model": "anthropic:claude-opus-5",
         "family": "anthropic",
-        "requests": 9,
+        "requests": 1253,
         "failed_requests": 0,
-        "input_tokens": 18476,
-        "output_tokens": 27051,
+        "input_tokens": 2552475,
+        "output_tokens": 3080379,
         "cache_read_tokens": 0,
         "cache_write_tokens": 0,
-        "total_tokens": 45527,
+        "total_tokens": 5632854,
         "token_counts_incomplete": false
       }
     ],
     "totals": {
-      "requests": 9,
+      "requests": 1253,
       "failed_requests": 0,
-      "input_tokens": 18476,
-      "output_tokens": 27051,
+      "input_tokens": 2552475,
+      "output_tokens": 3080379,
       "cache_read_tokens": 0,
       "cache_write_tokens": 0,
-      "total_tokens": 45527,
+      "total_tokens": 5632854,
       "token_counts_incomplete": false
     },
     "estimated_cost_usd": "NOT COMPUTED \u2014 no price table is configured"
   },
   "dataset_version": "v1",
   "teacher_model": "anthropic:claude-opus-5",
-  "elapsed_s": 167.23,
-  "failure_examples": []
+  "elapsed_s": 5432.09,
+  "failure_examples": [
+    "[GENERATION_ERROR] gen_v1_00130: teacher failed after 2 attempt(s) (py-scope-solved-1-solv): unparseable JSON: Judge did not return a JSON object. First 400 characters of the response:\n'{\\n  \"code\": \"retry_budget = 3\\\\n\\\\ndef attempt_upload(files):\\\\n    uploaded = []\\\\n    for f in files:\\\\n        if retry_budget > 0:\\\\n            uploaded.append(f)\\\\n            retry_budget -= 1\\\\n    return uploaded\\\\n\\\\nprint(attempt_upload([\\\\\"a.txt\\\\\", \\\\\"b.txt\\\\\", \\\\\"c.txt\\\\\", \\\\\"d.txt\\\\\"]))\\\\nprint(retry_budget)\",\\n  \"conversation_history\": [\\n    {\\n      \"role\": \"user\",\\n      \"content\": \"This blows up with'",
+    "[GENERATION_ERROR] gen_v1_00184: teacher failed after 2 attempt(s) (py-comparisonid-fake_s-1-part): conversation_history has 3 messages; prior exchanges must be complete user/assistant pairs",
+    "[GENERATION_ERROR] gen_v1_00415: teacher failed after 2 attempt(s) (ja-promisehandl-solved-2-solv): unparseable JSON: Judge did not return a JSON object. First 400 characters of the response:\n'{\\n  \"code\": \"async function cartTotal(itemIds) {\\\\n  let total = 0;\\\\n\\\\n  itemIds.forEach(async (id) => {\\\\n    const res = await fetch(`/api/items/${id}`);\\\\n    const item = await res.json();\\\\n    total += item.price;\\\\n  });\\\\n\\\\n  return total;\\\\n}\\\\n\\\\ncartTotal([\\\\\"a1\\\\\", \\\\\"b7\\\\\", \\\\\"c3\\\\\"]).then((t) => console.log(\\\\\"Total:\\\\\", t));\",\\n  \"conversation_history\": [\\n    {\\n      \"role\": \"user\",\\n      \"content\": '",
+    "[GENERATION_ERROR] gen_v1_00463: teacher failed after 2 attempt(s) (py-booleancondi-prompt-3-stuc): conversation_history has 7 messages; prior exchanges must be complete user/assistant pairs",
+    "[GENERATION_ERROR] gen_v1_00483: teacher failed after 2 attempt(s) (py-stringimmuta-author-1-stuc): unparseable JSON: Judge did not return a JSON object. First 400 characters of the response:\n'{\\n  \"code\": \"def slugify(title):\\\\n    title = title.strip().lower()\\\\n    for ch in \\\\\"!?,.\\\\\":\\\\n        title = title.replace(ch, \\\\\"\\\\\")\\\\n    title.replace(\\\\\" \\\\\", \\\\\"-\\\\\")\\\\n    return title\\\\n\\\\nposts = [\\\\\"Hello World!\\\\\", \\\\\"Python Tips, Part 2\\\\\"]\\\\nfor p in posts:\\\\n    print(slugify(p))\",\\n  \"conversation_history\": [\\n    {\\n      \"role\": \"user\",\\n      \"content\": \"My slugify function is printing `hello world'",
+    "[GENERATION_ERROR] gen_v1_00531: teacher failed after 2 attempt(s) (py-scope-fake_s-2-part): conversation_history has 5 messages; prior exchanges must be complete user/assistant pairs",
+    "[GENERATION_ERROR] gen_v1_00678: teacher failed after 2 attempt(s) (ja-thisbinding-prompt-2-stuc): conversation_history has 5 messages; prior exchanges must be complete user/assistant pairs",
+    "[GENERATION_ERROR] gen_v1_00697: teacher failed after 2 attempt(s) (py-exceptionhan-time_p-3-stuc): conversation_history has 5 messages; prior exchanges must be complete user/assistant pairs",
+    "[GENERATION_ERROR] gen_v1_00776: teacher failed after 2 attempt(s) (py-integerdivis-fake_s-3-part): unparseable JSON: Judge did not return a JSON object. First 400 characters of the response:\n'{\"code\": \"def median(values):\\\\n    ordered = sorted(values)\\\\n    n = len(ordered)\\\\n    mid = n // 2\\\\n    if n % 2 == 1:\\\\n        return ordered[mid]\\\\n    return (ordered[mid - 1] + ordered[mid]) // 2\\\\n\\\\nscores = [4, 8, 15, 16]\\\\nprint(\\\\\"median score:\\\\\", median(scores))\", \"conversation_history\": [{\"role\": \"user\", \"content\": \"My median function prints 11 for the list [4, 8, 15, 16], but when I work i'",
+    "[GENERATION_ERROR] gen_v1_00947: teacher failed after 2 attempt(s) (ja-asyncawait-prompt-2-stuc): unparseable JSON: Judge did not return a JSON object. First 400 characters of the response:\n'{\\n  \"code\": \"async function loadInventory(storeIds) {\\\\n  const counts = [];\\\\n  for (const id of storeIds) {\\\\n    const res = await fetch(`/api/stores/${id}/inventory`);\\\\n    const data = res.json();\\\\n    counts.push({ id, total: data.items.length });\\\\n  }\\\\n  return counts;\\\\n}\\\\n\\\\nloadInventory([11, 12])\\\\n  .then(rows => console.table(rows))\\\\n  .catch(err => console.error(\\'load failed\\', err));\",\\n  \"'"
+  ]
 }
