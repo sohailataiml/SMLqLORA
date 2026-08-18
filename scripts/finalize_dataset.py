@@ -122,7 +122,14 @@ def audit(
     accepted: Sequence[GeneratedExample],
     rejected: Sequence[GeneratedExample],
     candidates_total: int,
+    pool_total: int | None = None,
 ) -> dict[str, Any]:
+    """Audit the shipped dataset.
+
+    `accepted` is the *selected* dataset; `pool_total` is how many passed the
+    gate. Acceptance rate describes the gate, not the selection — conflating
+    them would report a smaller shipped dataset as a stricter gate.
+    """
     spec = load_spec()
     eval_scenarios = load_scenario_files([REPO_ROOT / p for p in EVAL_SETS])
 
@@ -148,10 +155,17 @@ def audit(
     return {
         "counts": {
             "candidates_generated": candidates_total,
+            "accepted_pool": pool_total if pool_total is not None else total,
+            "final_selected": total,
             "accepted": total,
             "rejected": len(rejected),
-            "acceptance_rate": round(total / candidates_total, 4)
-            if candidates_total else 0.0,
+            # The gate's rate: what fraction of candidates were good enough.
+            "acceptance_rate": round(
+                (pool_total if pool_total is not None else total) / candidates_total, 4
+            ) if candidates_total else 0.0,
+            "selection_rate_of_pool": round(
+                total / pool_total, 4
+            ) if pool_total else 1.0,
         },
         "distribution": {
             "language": _counts([e.scenario.language.value for e in accepted]),
@@ -432,10 +446,26 @@ def build_freeze(
     chat = [to_chat_record(e) for e in stable_order(list(accepted))]
     spec = load_spec()
     provenance = audit_report["provenance"]
+    selection = audit_report.get("selection", {})
+    gate = json.loads(
+        (REPO_ROOT / "data" / "versions" / dataset_version / "report.json")
+        .read_text(encoding="utf-8")
+    ) if (REPO_ROOT / "data" / "versions" / dataset_version
+          / "report.json").exists() else {}
     return {
         "dataset_version": dataset_version,
         "frozen": True,
+        "accepted_pool_count": audit_report.get("accepted_pool_count"),
+        "final_selected_count": len(accepted),
         "accepted_count": len(accepted),
+        "selection_seed": selection.get("seed"),
+        "selection_method": selection.get("method"),
+        "selection_shortfalls": selection.get("shortfalls", {}),
+        "judge_model": (gate.get("judge") or {}).get("judge_model"),
+        "judge_model_family": (gate.get("judge") or {}).get("judge_model_family"),
+        "judge_prompt_version": (gate.get("judge") or {}).get("judge_prompt_version"),
+        "gate_complete": gate.get("complete"),
+        "unjudged_count": gate.get("unjudged_count"),
         "dataset_hash": dataset_fingerprint(chat),
         "content_hash_of_ids": dataset_fingerprint(
             [{"id": e.id} for e in stable_order(list(accepted))]
@@ -504,7 +534,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if selection.shortfalls:
         print(f"  shortfalls: {selection.shortfalls}")
 
-    report = audit(accepted, rejected, candidates_total)
+    report = audit(accepted, rejected, candidates_total, pool_total=len(pool))
     report["selection"] = selection.to_dict()
     report["accepted_pool_count"] = len(pool)
 
@@ -587,7 +617,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     print()
     print(f"  accepted pool        : {report.get('accepted_pool_count', counts['accepted'])}")
     print(f"  FINAL selected       : {counts['accepted']}")
-    print(f"  acceptance rate      : {counts['acceptance_rate']:.1%}")
+    print(f"  gate acceptance rate : {counts['acceptance_rate']:.1%} "
+          f"({counts['accepted_pool']}/{counts['candidates_generated']})")
     print(f"  unresolved/almost/solved: {cov['unresolved_count']}/"
           f"{cov['almost_correct_count']}/{cov['solved_count']}")
     print(f"  answer-seeking       : {cov['answer_seeking_pressure']} "

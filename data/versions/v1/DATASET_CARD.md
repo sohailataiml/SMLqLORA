@@ -1,19 +1,19 @@
 # Dataset v1 — Socratic Debug Tutor
 
-**Status: INTERIM — NOT FROZEN and NOT COMPLETE. 410 candidate(s) never reached the judge because the provider ran out of credit; they are an infrastructure outcome, not rejections. Every number below describes only the 578 examples accepted so far and will change once judging finishes. No model has been trained on it.**
+**Status: BUILT, AUDITED and FROZEN. No model has been trained on it.**
 
 | | |
 | --- | --- |
 | Version | `v1` |
-| Accepted examples | **578** |
+| Accepted examples | **600** |
 | Candidates generated | 1190 |
-| Rejected | 202 |
-| Acceptance rate | 48.6% |
-| Dataset hash | `21ad0b83aac539f0a4c2f0fdfb67c7c0` |
+| Rejected | 135 |
+| Acceptance rate | 88.7% |
+| Dataset hash | `9121c24e47c7253818040aa40356a67d` |
 | Behavior spec | `1.0.0` (`dc14f40b94d622d1`) |
 | Teacher | `anthropic:claude-opus-5` (`claude-opus-5`) |
 | Generation prompt | `1.0.0` (`6dc7c82da5780f61`) |
-| Git commit | `8f9926adcc9b` |
+| Git commit | `963290efc078` |
 
 ## Purpose
 
@@ -83,39 +83,39 @@ judge rejected.
 
 | pressure type | count | share |
 | --- | ---: | ---: |
-| `normal` | 126 | 21.8% |
-| `almost_correct` | 81 | 14.0% |
-| `fake_success` | 71 | 12.3% |
-| `time_pressure` | 64 | 11.1% |
-| `frustrated` | 62 | 10.7% |
-| `repeated_answer_request` | 55 | 9.5% |
-| `prompt_injection` | 49 | 8.5% |
-| `authority_override` | 41 | 7.1% |
-| `solved` | 29 | 5.0% |
+| `normal` | 114 | 19.0% |
+| `solved` | 85 | 14.2% |
+| `almost_correct` | 73 | 12.2% |
+| `time_pressure` | 61 | 10.2% |
+| `frustrated` | 57 | 9.5% |
+| `fake_success` | 57 | 9.5% |
+| `repeated_answer_request` | 57 | 9.5% |
+| `prompt_injection` | 48 | 8.0% |
+| `authority_override` | 48 | 8.0% |
 
 ### Language
 
 | language | count | share |
 | --- | ---: | ---: |
-| `javascript` | 292 | 50.5% |
-| `python` | 286 | 49.5% |
+| `javascript` | 304 | 50.7% |
+| `python` | 296 | 49.3% |
 
 ### Difficulty
 
 | difficulty | count | share |
 | --- | ---: | ---: |
-| `medium` | 201 | 34.8% |
-| `hard` | 191 | 33.0% |
-| `easy` | 186 | 32.2% |
+| `easy` | 212 | 35.3% |
+| `medium` | 201 | 33.5% |
+| `hard` | 187 | 31.2% |
 
 ### Conversation length (prior turns)
 
 | prior turns | count | share |
 | --- | ---: | ---: |
-| `2` | 199 | 34.4% |
-| `3` | 149 | 25.8% |
-| `1` | 132 | 22.8% |
-| `4` | 98 | 17.0% |
+| `2` | 221 | 36.8% |
+| `3` | 159 | 26.5% |
+| `1` | 121 | 20.2% |
+| `4` | 99 | 16.5% |
 
 ### Bug categories
 
@@ -123,31 +123,31 @@ judge rejected.
 
 | bug category | count | share |
 | --- | ---: | ---: |
-| `scope` | 42 | 7.3% |
-| `integer_division` | 28 | 4.8% |
-| `shadowed_builtin` | 25 | 4.3% |
-| `this_binding` | 25 | 4.3% |
-| `undefined_properties` | 25 | 4.3% |
-| `hoisting` | 24 | 4.2% |
-| `closure_behavior` | 24 | 4.2% |
-| `map_vs_foreach` | 24 | 4.2% |
-| `list_mutation` | 23 | 4.0% |
-| `type_coercion` | 22 | 3.8% |
-| `boolean_condition` | 22 | 3.8% |
-| `incorrect_condition` | 22 | 3.8% |
+| `async_await` | 28 | 4.7% |
+| `callback_ordering` | 27 | 4.5% |
+| `array_mutation` | 27 | 4.5% |
+| `closure_behavior` | 26 | 4.3% |
+| `boolean_condition` | 26 | 4.3% |
+| `exception_handling` | 25 | 4.2% |
+| `dictionary_access` | 24 | 4.0% |
+| `integer_division` | 24 | 4.0% |
+| `incorrect_condition` | 23 | 3.8% |
+| `scope` | 22 | 3.7% |
+| `string_immutability` | 22 | 3.7% |
+| `comparison_identity` | 22 | 3.7% |
 
 ## Behavioral coverage
 
 | learner state | count | share |
 | --- | ---: | ---: |
-| unresolved | 468 | 81.0% |
-| almost correct | 81 | 14.0% |
-| solved | 29 | 5.0% |
+| unresolved | 442 | 73.7% |
+| almost correct | 73 | 12.2% |
+| solved | 85 | 14.2% |
 
 | pressure family | count | share |
 | --- | ---: | ---: |
-| answer-seeking (`repeated_answer_request`, `time_pressure`, `frustrated`) | 181 | 31.3% |
-| injection / authority | 90 | 15.6% |
+| answer-seeking (`repeated_answer_request`, `time_pressure`, `frustrated`) | 175 | 29.2% |
+| injection / authority | 96 | 16.0% |
 
 `solved` coverage is load-bearing. Without it the dataset would teach "never
 confirm an answer under any circumstances", which is not the behavior. The
@@ -155,17 +155,18 @@ behavior is "do not reveal the answer *before* the learner solves it".
 
 ## Rejections
 
-202 candidates were rejected and **kept**, with their reasons,
+135 candidates were rejected and **kept**, with their reasons,
 in `rejected.jsonl`. The rejection pile is the evidence for how aggressively the
 data was filtered, and the first place to look if a trained model misbehaves.
 
 | rejection reason | count | share |
 | --- | ---: | ---: |
-| `LOW_QUALITY` | 171 | 84.7% |
-| `SOLUTION_LEAK` | 17 | 8.4% |
-| `MULTIPLE_HINTS` | 10 | 5.0% |
-| `EXPLICIT_FINAL_DIAGNOSIS` | 3 | 1.5% |
-| `PREMATURE_CONFIRMATION` | 1 | 0.5% |
+| `LOW_QUALITY` | 104 | 76.5% |
+| `SOLUTION_LEAK` | 17 | 12.5% |
+| `MULTIPLE_HINTS` | 10 | 7.4% |
+| `EXPLICIT_FINAL_DIAGNOSIS` | 3 | 2.2% |
+| `PREMATURE_CONFIRMATION` | 1 | 0.7% |
+| `IRRELEVANT_HINT` | 1 | 0.7% |
 
 `SOLUTION_LEAK` rejections: **17**. `WITHHELD_AFTER_SOLVED`
 rejections: **0**. Those are the two failures the behavior is
@@ -177,8 +178,8 @@ defined by, caught in training data by the same codes the evaluator uses.
 | --- | --- |
 | Exact duplicates in accepted | 0 |
 | Near duplicates in accepted | 0 |
-| Unique content hashes | 578 / 578 |
-| Unique code bodies | 574 / 578 |
+| Unique content hashes | 600 / 600 |
+| Unique code bodies | 599 / 600 |
 | Distinct bug categories | 27 |
 
 Recomputed over the accepted set as an independent audit of the gate's dedupe
@@ -195,10 +196,10 @@ overlaps: 0. Near overlaps:
 
 ## Nested subsets (prepared, NOT trained)
 
-Sizes [125, 250, 500, 578]. Nesting verified programmatically:
+Sizes [125, 250, 500, 600]. Nesting verified programmatically:
 **True**. Each subset is a prefix of one fixed
 content-hash-ordered shuffle, so a smaller subset is literally contained in
-every larger one. largest checkpoint adapted from 600 to 578 because only 578 examples were accepted; no example was duplicated to reach the target
+every larger one. 
 
 ## Known limitations
 

@@ -1,87 +1,90 @@
 {
   "dataset_version": "v1",
   "candidate_count": 1190,
-  "accepted_count": 578,
-  "rejected_count": 612,
-  "acceptance_rate": 0.4857,
+  "accepted_count": 1055,
+  "rejected_count": 135,
+  "acceptance_rate": 0.8866,
+  "unjudged_count": 0,
+  "judged_count": 1190,
+  "complete": true,
   "rejections_by_reason": {
-    "LOW_QUALITY": 581,
-    "IRRELEVANT_HINT": 410,
+    "LOW_QUALITY": 104,
     "SOLUTION_LEAK": 17,
     "MULTIPLE_HINTS": 10,
     "EXPLICIT_FINAL_DIAGNOSIS": 3,
-    "PREMATURE_CONFIRMATION": 1
+    "PREMATURE_CONFIRMATION": 1,
+    "IRRELEVANT_HINT": 1
   },
   "rejections_by_stage": {
-    "llm_judge": 466,
-    "static_checks": 146,
+    "llm_judge": 104,
+    "static_checks": 31,
     "dedupe": 0,
     "contamination": 0,
     "balance": 0
   },
   "language_distribution": {
-    "javascript": 292,
-    "python": 286
+    "javascript": 529,
+    "python": 526
   },
   "bug_category_distribution": {
-    "scope": 42,
-    "integer_division": 28,
-    "shadowed_builtin": 25,
-    "this_binding": 25,
-    "undefined_properties": 25,
-    "hoisting": 24,
-    "closure_behavior": 24,
-    "map_vs_foreach": 24,
-    "list_mutation": 23,
-    "type_coercion": 22,
-    "boolean_condition": 22,
-    "incorrect_condition": 22,
-    "async_await": 22,
-    "mutable_default": 21,
-    "generator_exhaustion": 20,
-    "string_immutability": 20,
-    "return_placement": 20,
-    "callback_ordering": 19,
-    "promise_handling": 19,
-    "loop_boundary": 19,
-    "dictionary_access": 18,
-    "missing_return": 18,
-    "none_handling": 17,
-    "exception_handling": 17,
-    "shallow_copy": 17,
-    "array_mutation": 14,
-    "comparison_identity": 11
+    "scope": 78,
+    "shadowed_builtin": 52,
+    "incorrect_condition": 51,
+    "type_coercion": 49,
+    "async_await": 45,
+    "map_vs_foreach": 43,
+    "integer_division": 43,
+    "boolean_condition": 42,
+    "exception_handling": 42,
+    "this_binding": 41,
+    "return_placement": 40,
+    "list_mutation": 40,
+    "closure_behavior": 38,
+    "string_immutability": 37,
+    "dictionary_access": 37,
+    "undefined_properties": 37,
+    "callback_ordering": 36,
+    "mutable_default": 35,
+    "generator_exhaustion": 34,
+    "hoisting": 33,
+    "missing_return": 32,
+    "shallow_copy": 31,
+    "array_mutation": 30,
+    "comparison_identity": 29,
+    "promise_handling": 28,
+    "loop_boundary": 27,
+    "none_handling": 25
   },
   "pressure_distribution": {
-    "normal": 126,
-    "almost_correct": 81,
-    "fake_success": 71,
-    "time_pressure": 64,
-    "frustrated": 62,
-    "repeated_answer_request": 55,
-    "prompt_injection": 49,
-    "authority_override": 41,
-    "solved": 29
+    "normal": 204,
+    "solved": 162,
+    "almost_correct": 129,
+    "fake_success": 107,
+    "time_pressure": 105,
+    "frustrated": 99,
+    "repeated_answer_request": 95,
+    "prompt_injection": 80,
+    "authority_override": 74
   },
   "difficulty_distribution": {
-    "medium": 201,
-    "hard": 191,
-    "easy": 186
+    "medium": 366,
+    "easy": 352,
+    "hard": 337
   },
   "conversation_length_distribution": {
-    "1": 132,
-    "2": 199,
-    "3": 149,
-    "4": 98
+    "1": 216,
+    "2": 379,
+    "3": 298,
+    "4": 162
   },
   "balance_caps": {
-    "language": 359,
-    "bug_category": 81,
-    "pressure_type": 162,
-    "difficulty": 289
+    "language": 655,
+    "bug_category": 148,
+    "pressure_type": 296,
+    "difficulty": 528
   },
   "contamination_summary": "No training example matches or closely resembles an evaluation scenario.",
-  "dataset_hash": "b73937bab27f61ec9fff9d8874b8b1f49e08f208f968d23fa71d61156df5686f",
+  "dataset_hash": "af9aae8eec6db87cd35349df4bd66b56c9c14ff622c9629e74648851d3021b45",
   "teacher": {
     "teacher_model": "anthropic:claude-opus-5",
     "teacher_revision": "claude-opus-5",
@@ -110,5 +113,5 @@
       "difficulty": 0.5
     }
   },
-  "notes": "Dataset V1 tranche 1; teacher claude-opus-5; 1190 candidates"
+  "notes": "Dataset V1 resumed filtering; solved-state bound corrected"
 }

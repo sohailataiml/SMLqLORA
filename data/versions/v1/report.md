@@ -2,23 +2,23 @@
 
 Teacher: `unknown`  
 Judge: `anthropic:claude-opus-5`  
-Dataset hash: `b73937bab27f61ec`
+Dataset hash: `af9aae8eec6db87c`
 
 ## Funnel
 
 | metric | count |
 | --- | --- |
 | candidates | 1190 |
-| accepted | 578 |
-| rejected | 612 |
-| acceptance rate | 48.6% |
+| accepted | 1055 |
+| rejected | 135 |
+| acceptance rate | 88.7% |
 
 ## Rejections by stage
 
 | stage | rejected |
 | --- | --- |
-| llm_judge | 466 |
-| static_checks | 146 |
+| llm_judge | 104 |
+| static_checks | 31 |
 | dedupe | 0 |
 | contamination | 0 |
 | balance | 0 |
@@ -27,12 +27,12 @@ Dataset hash: `b73937bab27f61ec`
 
 | reason | count |
 | --- | --- |
-| LOW_QUALITY | 581 |
-| IRRELEVANT_HINT | 410 |
+| LOW_QUALITY | 104 |
 | SOLUTION_LEAK | 17 |
 | MULTIPLE_HINTS | 10 |
 | EXPLICIT_FINAL_DIAGNOSIS | 3 |
 | PREMATURE_CONFIRMATION | 1 |
+| IRRELEVANT_HINT | 1 |
 
 ## Accepted distribution
 
@@ -40,71 +40,71 @@ Dataset hash: `b73937bab27f61ec`
 
 | bucket | count |
 | --- | --- |
-| javascript | 292 |
-| python | 286 |
+| javascript | 529 |
+| python | 526 |
 
 ### Bug category
 
 | bucket | count |
 | --- | --- |
-| scope | 42 |
-| integer_division | 28 |
-| shadowed_builtin | 25 |
-| this_binding | 25 |
-| undefined_properties | 25 |
-| hoisting | 24 |
-| closure_behavior | 24 |
-| map_vs_foreach | 24 |
-| list_mutation | 23 |
-| type_coercion | 22 |
-| boolean_condition | 22 |
-| incorrect_condition | 22 |
-| async_await | 22 |
-| mutable_default | 21 |
-| generator_exhaustion | 20 |
-| string_immutability | 20 |
-| return_placement | 20 |
-| callback_ordering | 19 |
-| promise_handling | 19 |
-| loop_boundary | 19 |
-| dictionary_access | 18 |
-| missing_return | 18 |
-| none_handling | 17 |
-| exception_handling | 17 |
-| shallow_copy | 17 |
-| array_mutation | 14 |
-| comparison_identity | 11 |
+| scope | 78 |
+| shadowed_builtin | 52 |
+| incorrect_condition | 51 |
+| type_coercion | 49 |
+| async_await | 45 |
+| map_vs_foreach | 43 |
+| integer_division | 43 |
+| boolean_condition | 42 |
+| exception_handling | 42 |
+| this_binding | 41 |
+| return_placement | 40 |
+| list_mutation | 40 |
+| closure_behavior | 38 |
+| string_immutability | 37 |
+| dictionary_access | 37 |
+| undefined_properties | 37 |
+| callback_ordering | 36 |
+| mutable_default | 35 |
+| generator_exhaustion | 34 |
+| hoisting | 33 |
+| missing_return | 32 |
+| shallow_copy | 31 |
+| array_mutation | 30 |
+| comparison_identity | 29 |
+| promise_handling | 28 |
+| loop_boundary | 27 |
+| none_handling | 25 |
 
 ### Pressure type
 
 | bucket | count |
 | --- | --- |
-| normal | 126 |
-| almost_correct | 81 |
-| fake_success | 71 |
-| time_pressure | 64 |
-| frustrated | 62 |
-| repeated_answer_request | 55 |
-| prompt_injection | 49 |
-| authority_override | 41 |
-| solved | 29 |
+| normal | 204 |
+| solved | 162 |
+| almost_correct | 129 |
+| fake_success | 107 |
+| time_pressure | 105 |
+| frustrated | 99 |
+| repeated_answer_request | 95 |
+| prompt_injection | 80 |
+| authority_override | 74 |
 
 ### Difficulty
 
 | bucket | count |
 | --- | --- |
-| medium | 201 |
-| hard | 191 |
-| easy | 186 |
+| medium | 366 |
+| easy | 352 |
+| hard | 337 |
 
 ### Conversation length (learner turns)
 
 | bucket | count |
 | --- | --- |
-| 1 | 132 |
-| 2 | 199 |
-| 3 | 149 |
-| 4 | 98 |
+| 1 | 216 |
+| 2 | 379 |
+| 3 | 298 |
+| 4 | 162 |
 
 ## Contamination
 
@@ -128,4 +128,4 @@ No training example matches or closely resembles an evaluation scenario.
 
 ## Notes
 
-Dataset V1 tranche 1; teacher claude-opus-5; 1190 candidates
+Dataset V1 resumed filtering; solved-state bound corrected
