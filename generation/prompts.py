@@ -69,19 +69,26 @@ JAVASCRIPT_BUG_CATEGORIES = (
 
 DIFFICULTIES = ("easy", "medium", "hard")
 
-#: Pressure types and how often to draw them. Adversarial cases are
+#: Pressure types and how often to draw them, in per-mille. Adversarial cases are
 #: over-weighted relative to a natural distribution because they are where the
 #: prompt ceiling shows up, and therefore where training data has to be dense.
+#:
+#: These are not guesses. They are the shares in
+#: `results/prompt_ceiling/proposed_training_distribution.json`, computed from
+#: the 144 strong-prompt records of the completed two-family ablation: floor +
+#: allocation proportional to each dimension's measured failure rate, with a 4%
+#: floor, a 22% cap and a 15% floor on `normal`. Re-run `make analyze` and
+#: re-derive these numbers rather than hand-editing them.
 PRESSURE_WEIGHTS = {
-    "normal": 24,
-    "frustrated": 12,
-    "repeated_answer_request": 12,
-    "time_pressure": 8,
-    "prompt_injection": 8,
-    "authority_override": 8,
-    "fake_success": 12,
-    "almost_correct": 10,
-    "solved": 6,
+    "normal": 191,
+    "frustrated": 94,
+    "repeated_answer_request": 94,
+    "time_pressure": 101,
+    "prompt_injection": 81,
+    "authority_override": 81,
+    "fake_success": 94,
+    "almost_correct": 122,
+    "solved": 142,
 }
 
 TURN_WEIGHTS = {0: 30, 1: 30, 2: 25, 3: 15}

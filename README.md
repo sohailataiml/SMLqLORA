@@ -100,23 +100,26 @@ The single most important table in this README.
 | Behavior spec, scenario schema, deterministic checks | **TESTED LOCALLY** — 368 unit tests |
 | Evaluation harness, judge abstraction, model adapters | **TESTED LOCALLY** |
 | 56 evaluation scenarios (clean / adversarial / held-out) | **IMPLEMENTED**, split-isolation enforced in code |
-| Prompt-ceiling ablation | **REAL EXPERIMENT RESULT — PARTIAL** (see below) |
-| Failure-mode analysis + proposed training distribution | **DERIVED** from the real records above; provisional while the experiment is partial |
+| Prompt-ceiling ablation | **REAL EXPERIMENT RESULT — COMPLETE** — 216/216 evaluations, 6/6 cells |
+| Failure-mode analysis + proposed training distribution | **DERIVED** from the complete two-family experiment |
 | Connectivity preflight, resumable runner | **TESTED LOCALLY** |
 | Human/judge agreement harness | **IMPLEMENTED**; **NOT YET GRADED** — no human labels exist |
+| Dataset V1 generation plan | **PLANNED** — [`data/versions/v1/plan.json`](data/versions/v1/plan.json); no candidate generated |
 | Teacher generation + quality gate | **IMPLEMENTED**, **TESTED LOCALLY** on a mock teacher; **NOT RUN** for real |
 | QLoRA training | **IMPLEMENTED**, dry-run validated; **NOT RUN** (no capable GPU here) |
 | Base vs tuned | **NOT RUN** — requires a checkpoint |
 | Data efficiency | **NOT RUN** — requires checkpoints |
 
 Nothing in `results/` is invented. Files that would hold un-run experiments say
-`NOT_RUN`; the one experiment that did run says `PARTIAL` and lists exactly why.
+`NOT_RUN`; the one experiment that has run says `REAL_EXPERIMENT_RESULT` and
+carries the manifest that reproduces it.
 
 ---
 
 ## Why fine-tuning? — the prompt ceiling
 
-**Status: REAL, but INCOMPLETE.** Read the caveats before citing anything.
+**Status: REAL and COMPLETE.** 216 of 216 evaluations, 6 of 6 cells, zero
+infrastructure errors remaining. Read the limitations before citing anything.
 
 ### Why this ablation exists
 
@@ -132,94 +135,120 @@ experiment is designed to be able to return that answer.
 | | |
 | --- | --- |
 | Model families required | 2 — `anthropic` and `openai` |
-| Model families **measured** | **1** (`anthropic:claude-opus-5`); `openai:gpt-5` has no credit |
+| Model families **measured** | **2** — `anthropic:claude-opus-5`, `openai:gpt-5` |
 | Prompt strategies | 3 — `zero_shot`, `few_shot`, `structured_system_prompt` |
 | Scenarios per cell | 36 (16 clean, 20 adversarial), identical across every cell |
-| Complete matrix | 2 × 3 × 36 = **216** subject responses |
-| Actually measured | **97** (95 judged, 2 unjudged refusal/empty) |
-| Lost to infrastructure | **119** — never reached the model; excluded from every rate |
+| Complete matrix | 2 x 3 x 36 = **216** subject responses |
+| Actually measured | **216** (214 judged, 2 unjudged behavioral refusals) |
+| Lost to infrastructure | **0** |
 | Judge | `anthropic:claude-opus-5`, judge prompt `v1.0.0` |
 
-Judged against the spec by `claude-opus-5`.
+Every cell is COMPLETE: 36 valid evaluations each, against a required minimum of
+30. Nothing below is aggregated across a partial cell.
 
-| Prompt strategy | Scenarios measured | Spec adherence | Robustness | Pass rate |
-| --- | --- | --- | --- | --- |
-| `zero_shot` | 36 / 36 | 0.215 | 0.458 | **0.056** |
-| `few_shot` | 36 / 36 | 0.857 | 0.963 | **0.806** |
-| `structured_system_prompt` | 25 / 36 | 0.864 | 0.772 | **0.880** |
+| model | strategy | valid | infra err | adherence | robustness | pass rate | leak rate | adversarial pass | status |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `claude-opus-5` | `zero_shot` | 36 | 0 | 0.215 | 0.458 | 0.056 | 0.167 | 0.100 | COMPLETE |
+| `claude-opus-5` | `few_shot` | 36 | 0 | 0.857 | 0.963 | 0.806 | 0.056 | 0.750 | COMPLETE |
+| `claude-opus-5` | `structured_system_prompt` | 36 | 0 | 0.844 | 0.865 | 0.861 | **0.028** | 0.750 | COMPLETE |
+| `gpt-5` | `zero_shot` | 36 | 0 | 0.142 | 0.255 | 0.028 | 0.278 | 0.050 | COMPLETE |
+| `gpt-5` | `few_shot` | 36 | 0 | 0.712 | 0.920 | 0.194 | 0.028 | 0.200 | COMPLETE |
+| `gpt-5` | `structured_system_prompt` | 36 | 0 | **0.874** | 0.902 | **0.889** | 0.111 | **0.850** | COMPLETE |
 
-All three `openai:gpt-5` cells measured **0 / 36** — every call returned
-`insufficient_quota`. They are reported as unmeasured, never as a score of zero.
+Thresholds required for "prompting is sufficient": adherence >= 0.95,
+robustness >= 0.95, pass rate >= 0.95 — all configuration, fixed in
+`behavior/spec.yaml` before the run and unchanged after seeing results.
 
-Thresholds required for "prompting is sufficient": adherence ≥ 0.95,
-robustness ≥ 0.95, pass rate ≥ 0.95 — all configuration, set before the run.
+### GATE RESULT: FINE-TUNING JUSTIFIED
 
-**Gate result (provisional): FINE-TUNING JUSTIFIED.** The strongest measured cell
-missed every threshold, and `SOLUTION_LEAK` still survived the strongest prompt.
+Strongest cell: **`openai:gpt-5` + `structured_system_prompt`**, which misses
+every one of the three thresholds:
+
+| metric | measured | required | met |
+| --- | ---: | ---: | --- |
+| spec adherence | 0.874 | 0.950 | no |
+| robustness | 0.902 | 0.950 | no |
+| pass rate | 0.889 | 0.950 | no |
+
+**The verdict does not depend on which cell is called "best".** Zero of the six
+cells clear all three thresholds; the closest non-winner, `claude-opus-5` +
+`few_shot`, clears robustness (0.963) but misses adherence by 0.09 and pass rate
+by 0.14. Every reasonable choice of winner returns the same gate.
 
 ### Strongest prompted configuration
 
-`structured_system_prompt` has the highest pass rate (0.880) and adherence
-(0.864), and the gate selects it. But it is **not** unambiguously the best
-prompt, and the ranking flips depending on which property you care about:
+Ranking by pass rate alone hides a real tradeoff — the three strong cells each
+win on a different axis:
 
-| | `few_shot` | `structured_system_prompt` |
-| --- | --- | --- |
-| Scenarios measured | 36 / 36 | 25 / 36 |
-| Spec adherence | 0.857 | **0.864** |
-| Pass rate | 0.806 | **0.880** |
-| Robustness (under pressure) | **0.963** | 0.772 |
+| | `opus-5` few_shot | `opus-5` structured | `gpt-5` structured |
+| --- | ---: | ---: | ---: |
+| Spec adherence | 0.857 | 0.844 | **0.874** |
+| Pass rate | 0.806 | 0.861 | **0.889** |
+| Robustness | **0.963** | 0.865 | 0.902 |
+| Solution-leak rate | 0.056 | **0.028** | 0.111 |
+| Adversarial pass | 0.750 | 0.750 | **0.850** |
 
-The elaborate structured prompt bought clean-case accuracy and **lost**
-pressure-resistance — a 0.19 robustness drop. Since the behavior only matters
-under pressure (a learner who never pushes back never tests it), few-shot is
-arguably the more useful prompt despite scoring lower overall.
+`gpt-5` + structured wins overall accuracy and adversarial pass rate, but has
+**the worst solution-leak rate of the three** (0.111 — four leaks). For a
+Socratic tutor a leak is the cardinal failure: it does not merely score badly,
+it destroys the point of the interaction. On that single metric the best
+configuration is `claude-opus-5` + structured, at 0.028.
 
-Two reasons not to lean on this comparison yet: the structured cell is missing
-11 scenarios, and those missing scenarios are not a random subset — the run died
-partway through a fixed scenario order. Which prompt is genuinely strongest is
-**not yet settled**, and the completed experiment may reverse it.
+**Did few-shot really beat structured prompting on robustness?** Partly — and
+the earlier reading was substantially exaggerated by the truncated run. When the
+`opus-5` structured cell held only 25 scenarios, its robustness read 0.772
+against few-shot's 0.963, a 0.191 gap. The 11 scenarios missing from it were
+**all adversarial**, so the truncation was not random: it removed exactly the
+scenarios robustness is computed from. Completing them moved structured
+robustness to 0.865 and cut the gap to 0.098. So the direction survives —
+few-shot remains the most pressure-resistant Anthropic prompt — but half the
+apparent effect was an artifact of a billing failure, and the same pattern does
+**not** reproduce in the OpenAI family, where structured beats few-shot on every
+axis including robustness (0.902 vs 0.920 is within noise, while pass rate is
+0.889 vs 0.194).
 
 ### What survives the best prompt
 
-The interesting part is *which* failures are prompt-resistant. Under `zero_shot`
-the model fails constantly and shallowly — 31 of 36 responses stack multiple
-questions, 23 over-explain. A good prompt fixes almost all of that. What it does
-not reliably fix:
+Under `zero_shot` both models fail constantly and shallowly — 92 of 216
+responses across the matrix stack multiple questions, 30 over-explain. Strong
+prompting fixes most of that. What it does not fix:
 
-- **`SOLUTION_LEAK`** persists into the strongest prompt.
-- **Robustness drops under pressure** even as clean-case adherence rises:
-  `structured` scored 0.772 robustness against `few_shot`'s 0.963, i.e. the
-  elaborate prompt did not buy pressure-resistance.
-- Adversarial pass rate trails clean pass rate in every measured cell.
+- **`SOLUTION_LEAK` is the residual failure.** In the strongest cell **all four
+  failures were solution leaks** (two co-occurring with
+  `EXPLICIT_FINAL_DIAGNOSIS`), and they cluster under answer-seeking pressure:
+  `time_pressure` (1 of 2), `frustrated` (1 of 3), `repeated_answer_request`
+  (1 of 3), against 1 of 16 on `normal`.
+- **Across both strong strategies** (144 evaluations, pass rate 0.688) the
+  survivors are `MULTIPLE_HINTS` x29, `SOLUTION_LEAK` x8,
+  `EXPLICIT_FINAL_DIAGNOSIS` x5, `WITHHELD_AFTER_SOLVED` x4.
+- **The hardest pressure types under strong prompting** are `solved` (pass 0.375,
+  n=8), `almost_correct` (0.500, n=8) and `time_pressure` (0.625, n=8) — all
+  flagged `underpowered`. `solved` is a notable one: the failure there is
+  *withholding confirmation from a learner who already fixed the bug*, the
+  mirror image of leaking.
 
 That is a behavior-shaped gap, not a knowledge-shaped one — which is the case for
 training on it.
 
-### Caveats (why "provisional", not "proven")
+### Limitations of this result
 
-1. **Only one model family produced data.** `gpt-5` returned
-   `insufficient_quota` on all 108 calls — the OpenAI key has no credit. The spec
-   requires ≥ 2 families; this ran with 1.
-2. **The strongest cell is incomplete.** The Anthropic key exhausted its credit
-   partway through, losing 11 of 36 scenarios in the `structured` cell.
-3. **Every measured response was self-judged.** 95 of the 97 measured records
-   have a judge from the same family as the subject (the other 2 have no judge
-   verdict at all). This is now recorded per record as `judge_model_family` and
-   `self_judged` in `judge_transcripts.jsonl`, so the affected rows are
-   identifiable rather than merely acknowledged.
-
-   The direction of that bias is worth stating, because it does not undermine
-   the headline: self-preference would *inflate* Anthropic's scores. The gate
-   fired because those scores fell **short** of the thresholds — so a
-   self-flattering judge makes `FINE-TUNING JUSTIFIED` a conservative
-   conclusion, not an inflated one. Where the bias does bite is any
-   *model-vs-model* comparison, which is precisely what the missing OpenAI
-   cells would have provided.
-4. **Per-pressure-type numbers are underpowered.** Under strong prompts most
-   pressure types have only n = 3–5 observations, where one response moves the
-   rate by 20–33 points. Every such slice is flagged `underpowered` in
-   `failure_modes.json` and in the report tables.
+1. **Judge and subject overlap on the Anthropic cells — 106 of 216 records.**
+   The completed experiment improves this rather than merely acknowledging it:
+   the **winning cell is cross-family judged**. All 108 `gpt-5` records were
+   graded by `claude-opus-5`, a different family, so the shortfall that fired
+   the gate is not self-preference. Self-judging remains on the 106 Anthropic
+   records, where the bias direction would *flatter* the prompted baseline and
+   therefore makes `JUSTIFIED` conservative. Judge configuration was held fixed
+   across all six cells on purpose — see [Limitations](#limitations).
+2. **Per-pressure-type numbers are underpowered.** Under strong prompts most
+   pressure types have n = 8-12, where one response moves the rate by 8-12
+   points. Every such slice is flagged `underpowered` in `failure_modes.json`.
+3. **No human validation of the judge yet.** The 40-row sheet is generated and
+   ungraded; see [Limitations](#limitations).
+4. **Two behavioral refusals carry no judge verdict.** `claude-opus-5` declined
+   two scenarios outright (one under `zero_shot`, one under `few_shot`). These
+   are recorded as behavioral outcomes and counted as failures, not retried for
+   a friendlier answer, and not excluded as infrastructure.
 
 Infrastructure failures are **excluded from every rate** rather than counted as
 model failures — otherwise a billing outage reads as a model that never passes.
@@ -241,12 +270,23 @@ Full evidence: [`results/prompt_ceiling/`](results/prompt_ceiling/)
 | `manifest.json` | spec/prompt/judge hashes, git commit, dependency versions |
 | `*.png` | adherence, robustness, pass rate, failure modes, adversarial |
 
-### Completing it — the run is resumable
+### How it was completed — the run is resumable
 
-Successful results are reused; only calls lost to infrastructure are retried.
-The key is `(model, prompt_strategy, scenario_id, prompt_version)`, and
-`prompt_version` embeds a hash of the *rendered* prompt, so editing a strategy
-correctly invalidates its cached results instead of silently reusing them.
+The experiment was finished in two sittings, and the resume mechanism is why the
+second one cost 119 calls instead of 216. Successful results are reused; only
+calls lost to infrastructure are retried. The cache key is
+`(model, prompt_strategy, scenario_id, prompt_version)`, and `prompt_version`
+embeds a hash of the *rendered* prompt, so editing a strategy correctly
+invalidates its cached results instead of silently reusing them.
+
+Two properties mattered when the run resumed:
+
+* **Legitimate behavioral refusals were not retried.** Two `claude-opus-5`
+  responses were refusals, not outages. Re-rolling them until they answered
+  would have been fishing for a better score, so they were reused as-is and
+  counted as failures.
+* **Infrastructure failures are not reusable**, so the resume retried exactly
+  the 119 calls that exhausted credit had cost and nothing else.
 
 ```bash
 make plan          # what a run would purchase, without contacting any provider
@@ -254,10 +294,10 @@ make preflight     # one cheap call per provider; verifies key, model, quota
 make prompt-ceiling
 ```
 
-As of the current records `make plan` reports **119 subject calls to purchase**
-rather than 216 — the 97 already-measured responses are reused. `make
-prompt-ceiling` runs the preflight first and aborts before spending anything if
-either provider is unfunded.
+`make plan` now reports **0 subject calls to purchase** — all 216 records are
+present and valid. `make prompt-ceiling` runs the preflight first and aborts
+before spending anything if either provider is unfunded, which is what stopped
+the earlier attempt from burning calls against an unfunded OpenAI account.
 
 ---
 
@@ -362,18 +402,20 @@ doing its job on a deliberately repetitive teacher.
 **To run for real:**
 
 ```bash
-make generate-data CANDIDATES=1400 DATASET_VERSION=v1
+make generate-data CANDIDATES=1200 DATASET_VERSION=v1   # tranche 1; NOT RUN
 make filter-data DATASET_VERSION=v1
 ```
 
 ### Dataset shares are derived from measured failures
 
-**Status: DERIVED from the real prompt-ceiling records; PROVISIONAL while the
-experiment is partial. No candidate has been generated.**
+**Status: DERIVED from the complete two-family prompt-ceiling experiment.
+No candidate has been generated.**
 
 Rather than guessing how much of each pressure type to generate,
-`make analyze` computes the mix from where the model actually failed —
-[`proposed_training_distribution.json`](results/prompt_ceiling/proposed_training_distribution.json).
+`make analyze` computes the mix from where the models actually failed —
+[`proposed_training_distribution.json`](results/prompt_ceiling/proposed_training_distribution.json),
+now computed over **144 strong-prompt records** rather than the 61 available
+while the experiment was partial.
 
 The rule, stated so it can be argued with:
 
@@ -386,29 +428,93 @@ The rule, stated so it can be argued with:
    teaches that pressure type, not the behavior.
 4. `normal` gets a 15% floor instead of 4%.
 
-That last exception is the one worth defending. Pure failure-rate allocation
-gave `normal` 5.9%, and shipping that would have been a mistake for two reasons.
+That last exception is the one worth defending, and it is why the allocation is
+deliberately **not** proportional to failure rate. Pure failure-rate allocation
+under-serves `normal`, and shipping that would be a mistake for two reasons.
 Every adversarial dimension is a *perturbation of* the normal case, so a dataset
-that is 6% normal teaches a model to resist pressure without teaching it the
-base behavior being defended. And these failure rates were measured on a
-**frontier** model; the student is a 1.7B model that will fail on far easier
-inputs. Frontier difficulty is a guide to relative emphasis among the hard
-cases, not evidence that the base case is solved for a model three orders of
-magnitude smaller.
+thin on normal teaches a model to resist pressure without teaching it the base
+behavior being defended. And these failure rates were measured on **frontier**
+models; the student is a 1.7B model that will fail on far easier inputs.
+Frontier difficulty is a guide to relative emphasis among the hard cases, not
+evidence that the base case is solved for a model three orders of magnitude
+smaller. The 22% cap exists for the mirror reason: `solved` and `almost_correct`
+are the hardest dimensions measured, and without a cap they would crowd out the
+rest.
 
-Current proposal (from 61 strong-prompt records):
+Recomputed from the complete experiment (144 strong-prompt records):
 
 | dimension | share | | dimension | share |
 | --- | ---: | --- | --- | ---: |
-| `almost_correct` | 19.4% | | `repeated_answer_request` | 9.8% |
-| `solved` | 19.4% | | `fake_success` | 9.8% |
-| `normal` | 16.4% | | `time_pressure` | 4.0% |
-| `frustrated` | 13.2% | | `prompt_injection` | 4.0% |
-| | | | `authority_override` | 4.0% |
+| `normal` | 19.1% | | `frustrated` | 9.4% |
+| `solved` | 14.2% | | `repeated_answer_request` | 9.4% |
+| `almost_correct` | 12.2% | | `fake_success` | 9.4% |
+| `time_pressure` | 10.1% | | `prompt_injection` | 8.1% |
+| | | | `authority_override` | 8.1% |
 
-Most of these rest on n = 3–5 and are flagged `underpowered`. Re-running
-`make analyze` after the experiment completes recomputes the whole table; that
-is the entire update procedure.
+Completing the experiment changed this materially: `solved` rose from 6% to
+14.2% of the plan and `almost_correct` settled at 12.2%, because both turned out
+to be the hardest dimensions for strong prompts. Those shares are now the
+`PRESSURE_WEIGHTS` in [`generation/prompts.py`](generation/prompts.py), carried
+across as per-mille integers, so the generator samples the measured
+distribution rather than a hand-picked one.
+
+### Dataset V1 plan
+
+[`data/versions/v1/plan.json`](data/versions/v1/plan.json) is the machine-readable
+generation plan. **Nothing has been generated.** It is derived, not typed: the
+pressure shares are read back from the ablation artifacts and the realized
+language / bug-category / difficulty / turn mix is read out of the same sampler
+generation will use, so the plan cannot drift from what the generator does.
+
+| | |
+| --- | --- |
+| Target accepted | **600** |
+| Tranche 1 candidates | **1200**, then measure the real acceptance rate and top up |
+| Single-pass equivalent | 1819 at a 0.33 acceptance rate, 1334 at 0.45 |
+| Primary target failure mode | `SOLUTION_LEAK` |
+| Secondary | `MULTIPLE_HINTS`, `EXPLICIT_FINAL_DIAGNOSIS`, `WITHHELD_AFTER_SOLVED` |
+| Teacher | `anthropic:claude-opus-5` |
+| Language | ~50/50 Python / JavaScript |
+| Difficulty | ~33% each easy / medium / hard |
+| Conversation length | 0-3 prior turns (36% single-turn, 19% zero-turn) |
+
+The candidate count is a **band, not a point estimate**, because the only
+acceptance rate ever measured here is 33% — and that came from a deliberately
+repetitive mock teacher whose rejections were dominated by dedupe. A real
+teacher should dedupe less and leak more. Rather than commit ~1800 candidates on
+that number, the plan generates 1200, measures the true rate, and computes the
+top-up as `shortfall / observed_rate`. Generation is seeded and resumable, so a
+top-up extends the plan instead of regenerating it.
+
+```bash
+python scripts/build_dataset_plan.py     # rebuild the plan; no API calls
+```
+
+### The future data-efficiency sweep
+
+**NOT RUN.** The dataset is sized at 600 to serve four nested checkpoints:
+
+```
+N = 125  subset-of  250  subset-of  500  subset-of  600
+```
+
+Nesting is guaranteed by construction, not by convention.
+`training.dataset.nested_subsets()` sorts the accepted examples by
+`content_hash`, applies a seeded shuffle (`seed=13`), and takes **prefixes** of
+that single fixed ordering — prefixes of one ordering are nested by definition.
+Sorting on content hash *before* shuffling is what makes it robust: concurrency,
+retries and a top-up tranche cannot change which examples land in the N=125
+subset.
+
+Because the ordering is a uniform shuffle of the whole accepted set, each prefix
+is a simple random sample and reproduces the dataset's distribution up to
+sampling error. It is deliberately **not** stratified, so shares at N=125 will
+wobble by a few points; that is the honest tradeoff for exact nesting, and it is
+recorded in the plan.
+
+```bash
+python -m ablations.data_efficiency --train --sizes 125 250 500 600   # NOT RUN
+```
 
 ### Failure-driven iteration
 
@@ -485,8 +591,8 @@ make agreement                # human-vs-judge kappa (NOT YET GRADED)
 
 # --- needs API credentials ------------------------------------------------
 make preflight                # one cheap call per provider; verifies key/model/quota
-make prompt-ceiling           # resumable; reuses the 97 measured records
-make generate-data CANDIDATES=1400 DATASET_VERSION=v1
+make prompt-ceiling           # resumable; COMPLETE — 216/216, 0 calls left to buy
+make generate-data CANDIDATES=1200 DATASET_VERSION=v1   # tranche 1; NOT RUN
 make filter-data DATASET_VERSION=v1
 
 # --- needs a CUDA GPU (cc >= 7.5) ----------------------------------------
@@ -539,25 +645,44 @@ the run already completed.
 
 Stated plainly, because the experiment is only as good as its weakest claim.
 
-1. **The prompt ceiling is provisional.** One model family, one cell truncated at
-   25/36. It shows a real and large gap, but it is not yet the two-family result
-   the spec demands.
-2. **Judge and subject overlap — quantified: 95 of 97 measured records.**
-   `claude-opus-5` judged its own outputs in every measured cell. Self-preference
-   bias would, if anything, *flatter* the prompted baseline, making the measured
-   ceiling conservative and the `JUSTIFIED` verdict robust to it; but it
-   contaminates any model-vs-model comparison.
+1. **The prompt ceiling is complete, but 36 scenarios per cell is still small.**
+   Both families, all six cells, 216/216 evaluations, zero infrastructure loss.
+   The gap it shows is large (the best cell misses the pass-rate threshold by
+   0.061 and adherence by 0.076) and no cell clears the bar, so the verdict is
+   robust. But 36 scenarios cannot resolve differences of a few points, and no
+   confidence intervals are reported.
+2. **Judge and subject overlap — quantified: 106 of 216 records.**
+   `claude-opus-5` judged its own outputs in the three Anthropic cells. Two
+   things limit the damage. The **winning cell is cross-family judged**: all 108
+   `gpt-5` records were graded by a different family, so the shortfall that
+   fired the gate is not self-preference. And on the Anthropic cells the bias
+   direction *flatters* the prompted baseline, making the measured ceiling
+   conservative and `JUSTIFIED` robust to it. Where it still bites is the
+   model-vs-model comparison — `gpt-5` was graded by a rival family while
+   `claude-opus-5` graded itself, so the cross-family ranking is the least
+   trustworthy number in the table and is not relied on for the gate.
 
    Cross-family judging (Anthropic subject → OpenAI judge, and vice versa) was
    considered and **deliberately not adopted**, because it trades one bias for a
    worse one: each family would then be graded by a different judge, so a
    difference between families could not be separated from a difference between
    judges. Consistency across cells is what makes the six cells comparable to
-   each other and to a fixed threshold. Switching now would also invalidate the
-   97 completed records. The intended fix is instead a cross-family **audit** on
-   a subsample plus the human validation below — measuring the bias rather than
-   swapping it for another one. `judge_model_family` and `self_judged` are now
-   recorded per record so the audit can be scoped precisely.
+   each other and to a fixed threshold. Switching mid-experiment would also have
+   invalidated the 97 records already purchased, so the judge was deliberately
+   held fixed for the whole primary experiment. The intended fix is instead a
+   cross-family **audit** on a subsample plus the human validation below —
+   measuring the bias rather than swapping it for another one.
+   `judge_model_family` and `self_judged` are recorded per record so the audit
+   can be scoped precisely.
+
+   *Planned audit, not a prerequisite for this result:* re-judge the 106
+   self-judged Anthropic records with `openai:gpt-5` as judge, holding the judge
+   prompt and rubric fixed, and report the per-record verdict delta and the
+   shift in each Anthropic cell's pass rate. If the shift is small the
+   self-judging caveat is bounded empirically; if it is large, the Anthropic
+   cells are re-reported with both judges side by side. Either way the gate is
+   unaffected, because the gate fired on a cross-family-judged cell. Cost: 106
+   judge calls, no subject calls.
 3. **No human validation of the judge — the harness exists, no labels do.**
    `results/prompt_ceiling/human_validation.csv` holds a 40-row stratified,
    failure-enriched sample with empty human columns; `make agreement` computes

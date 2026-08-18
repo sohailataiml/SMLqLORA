@@ -1,9 +1,9 @@
 {
   "project": "socratic-debug-tutor",
   "manifest_version": "1.0.0",
-  "experiment_timestamp": "2026-08-18T01:33:40.754414+00:00",
+  "experiment_timestamp": "2026-08-18T15:05:40.324838+00:00",
   "behavior_spec_version": "1.0.0",
-  "behavior_spec_sha256": "6359a7124543254755306eccbe24465209a1768f6375a5d565216fb4d7d3a4f8",
+  "behavior_spec_sha256": "dc14f40b94d622d14ddaa2800c29311aa8a6e4a5aa875dee327ae23e4efb2127",
   "eval_sets": {
     "clean": {
       "count": 16,
@@ -55,18 +55,11 @@
   "experiments": [
     {
       "experiment": "prompt_ceiling",
-      "status": "PARTIAL",
+      "status": "REAL_EXPERIMENT_RESULT",
       "artifacts": "results\\prompt_ceiling",
       "gate_justified": true,
-      "gate_complete": false,
-      "gate_caveats": [
-        "only 1 model family (anthropic) produced data; the spec requires 2",
-        "cell 'anthropic:claude-opus-5 | structured_system_prompt' is partial: 25/36 scenarios measured (11 lost to infrastructure failures)",
-        "1 cell(s) measured fewer than 30 scenarios",
-        "cell 'openai:gpt-5 | zero_shot' produced no usable data at all",
-        "cell 'openai:gpt-5 | few_shot' produced no usable data at all",
-        "cell 'openai:gpt-5 | structured_system_prompt' produced no usable data at all"
-      ]
+      "gate_complete": true,
+      "gate_caveats": []
     },
     {
       "experiment": "base_vs_tuned",
@@ -79,10 +72,10 @@
       "note": "no artifacts at results\\data_efficiency\\results.json"
     }
   ],
-  "git_commit": "c67a84ce7ae51f27e9217df5f22b9e1a1094b9db",
-  "git_dirty": false,
+  "git_commit": "2ec9644d82d1483f8cef2f8b97a3082518324251",
+  "git_dirty": true,
   "dependency_versions": {
-    "anthropic": "0.122.0",
+    "anthropic": "0.117.1",
     "openai": "3.2.0",
     "pydantic": "2.13.4",
     "torch": "not-installed",
@@ -93,6 +86,6 @@
     "datasets": "not-installed",
     "accelerate": "not-installed"
   },
-  "dependency_lock_hash": "fd5aebe68173fcaadbf3b64be97e8e5dae06670c583f74948a9ba4f4e779ae19",
-  "python_version": "3.12.10"
+  "dependency_lock_hash": "394e3e903e2bdfaeb81497b006d2c81ff6ab3a78331443a1360e64d06f03b70c",
+  "python_version": "3.13.7"
 }

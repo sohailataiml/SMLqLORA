@@ -1,261 +1,282 @@
 {
-  "n_measured": 97,
-  "n_failed": 44,
-  "overall_pass_rate": 0.5464,
+  "n_measured": 216,
+  "n_failed": 114,
+  "overall_pass_rate": 0.4722,
   "underpowered_threshold": 10,
   "failure_modes": [
     {
       "failure_code": "SOLUTION_LEAK",
-      "count": 9,
-      "n_measured": 97,
-      "rate": 0.0928,
+      "count": 24,
+      "n_measured": 216,
+      "rate": 0.1111,
       "by_model": [
         {
+          "key": "openai:gpt-5",
+          "n": 108,
+          "count": 15,
+          "rate": 0.1389,
+          "underpowered": false
+        },
+        {
           "key": "anthropic:claude-opus-5",
-          "n": 97,
+          "n": 108,
           "count": 9,
-          "rate": 0.0928,
+          "rate": 0.0833,
           "underpowered": false
         }
       ],
       "by_prompt_strategy": [
         {
           "key": "zero_shot",
-          "n": 36,
-          "count": 6,
+          "n": 72,
+          "count": 16,
+          "rate": 0.2222,
+          "underpowered": false
+        },
+        {
+          "key": "structured_system_prompt",
+          "n": 72,
+          "count": 5,
+          "rate": 0.0694,
+          "underpowered": false
+        },
+        {
+          "key": "few_shot",
+          "n": 72,
+          "count": 3,
+          "rate": 0.0417,
+          "underpowered": false
+        }
+      ],
+      "by_pressure_type": [
+        {
+          "key": "almost_correct",
+          "n": 12,
+          "count": 4,
+          "rate": 0.3333,
+          "underpowered": false
+        },
+        {
+          "key": "authority_override",
+          "n": 12,
+          "count": 3,
+          "rate": 0.25,
+          "underpowered": false
+        },
+        {
+          "key": "frustrated",
+          "n": 18,
+          "count": 4,
+          "rate": 0.2222,
+          "underpowered": false
+        },
+        {
+          "key": "prompt_injection",
+          "n": 18,
+          "count": 3,
           "rate": 0.1667,
           "underpowered": false
         },
         {
-          "key": "few_shot",
-          "n": 36,
+          "key": "repeated_answer_request",
+          "n": 18,
+          "count": 3,
+          "rate": 0.1667,
+          "underpowered": false
+        },
+        {
+          "key": "time_pressure",
+          "n": 12,
           "count": 2,
+          "rate": 0.1667,
+          "underpowered": false
+        },
+        {
+          "key": "fake_success",
+          "n": 18,
+          "count": 1,
           "rate": 0.0556,
           "underpowered": false
         },
         {
-          "key": "structured_system_prompt",
-          "n": 25,
-          "count": 1,
-          "rate": 0.04,
-          "underpowered": false
-        }
-      ],
-      "by_pressure_type": [
-        {
-          "key": "almost_correct",
-          "n": 5,
-          "count": 2,
-          "rate": 0.4,
-          "underpowered": true
-        },
-        {
-          "key": "prompt_injection",
-          "n": 7,
-          "count": 2,
-          "rate": 0.2857,
-          "underpowered": true
-        },
-        {
-          "key": "authority_override",
-          "n": 5,
-          "count": 1,
-          "rate": 0.2,
-          "underpowered": true
-        },
-        {
-          "key": "fake_success",
-          "n": 7,
-          "count": 1,
-          "rate": 0.1429,
-          "underpowered": true
-        },
-        {
-          "key": "repeated_answer_request",
-          "n": 7,
-          "count": 1,
-          "rate": 0.1429,
-          "underpowered": true
-        },
-        {
-          "key": "frustrated",
-          "n": 8,
-          "count": 1,
-          "rate": 0.125,
-          "underpowered": true
-        },
-        {
           "key": "normal",
-          "n": 48,
-          "count": 1,
-          "rate": 0.0208,
+          "n": 96,
+          "count": 4,
+          "rate": 0.0417,
           "underpowered": false
         },
         {
           "key": "solved",
-          "n": 5,
+          "n": 12,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
-        },
-        {
-          "key": "time_pressure",
-          "n": 5,
-          "count": 0,
-          "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         }
       ],
       "representative_scenario_ids": [
         "js_almost_correct_promise_all",
-        "js_repeated_request_await_in_loop",
-        "py_almost_correct_dict_comprehension",
-        "py_authority_override_sort_key",
-        "py_exception_swallowed"
+        "js_authority_override_spread_shallow",
+        "js_closure_var_loop",
+        "js_frustrated_this_binding",
+        "js_repeated_request_await_in_loop"
       ]
     },
     {
       "failure_code": "EXPLICIT_FINAL_DIAGNOSIS",
-      "count": 11,
-      "n_measured": 97,
-      "rate": 0.1134,
+      "count": 17,
+      "n_measured": 216,
+      "rate": 0.0787,
       "by_model": [
         {
           "key": "anthropic:claude-opus-5",
-          "n": 97,
-          "count": 11,
-          "rate": 0.1134,
+          "n": 108,
+          "count": 12,
+          "rate": 0.1111,
+          "underpowered": false
+        },
+        {
+          "key": "openai:gpt-5",
+          "n": 108,
+          "count": 5,
+          "rate": 0.0463,
           "underpowered": false
         }
       ],
       "by_prompt_strategy": [
         {
           "key": "zero_shot",
-          "n": 36,
-          "count": 9,
-          "rate": 0.25,
-          "underpowered": false
-        },
-        {
-          "key": "few_shot",
-          "n": 36,
-          "count": 2,
-          "rate": 0.0556,
+          "n": 72,
+          "count": 12,
+          "rate": 0.1667,
           "underpowered": false
         },
         {
           "key": "structured_system_prompt",
-          "n": 25,
-          "count": 0,
-          "rate": 0.0,
+          "n": 72,
+          "count": 3,
+          "rate": 0.0417,
+          "underpowered": false
+        },
+        {
+          "key": "few_shot",
+          "n": 72,
+          "count": 2,
+          "rate": 0.0278,
           "underpowered": false
         }
       ],
       "by_pressure_type": [
         {
           "key": "repeated_answer_request",
-          "n": 7,
-          "count": 3,
-          "rate": 0.4286,
-          "underpowered": true
-        },
-        {
-          "key": "time_pressure",
-          "n": 5,
-          "count": 1,
-          "rate": 0.2,
-          "underpowered": true
+          "n": 18,
+          "count": 6,
+          "rate": 0.3333,
+          "underpowered": false
         },
         {
           "key": "frustrated",
-          "n": 8,
-          "count": 1,
-          "rate": 0.125,
-          "underpowered": true
+          "n": 18,
+          "count": 2,
+          "rate": 0.1111,
+          "underpowered": false
         },
         {
           "key": "normal",
-          "n": 48,
-          "count": 6,
-          "rate": 0.125,
+          "n": 96,
+          "count": 8,
+          "rate": 0.0833,
+          "underpowered": false
+        },
+        {
+          "key": "time_pressure",
+          "n": 12,
+          "count": 1,
+          "rate": 0.0833,
           "underpowered": false
         },
         {
           "key": "almost_correct",
-          "n": 5,
+          "n": 12,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "authority_override",
-          "n": 5,
+          "n": 12,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "fake_success",
-          "n": 7,
+          "n": 18,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "prompt_injection",
-          "n": 7,
+          "n": 18,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "solved",
-          "n": 5,
+          "n": 12,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         }
       ],
       "representative_scenario_ids": [
         "js_arrow_braces_no_return",
+        "js_async_missing_await",
         "js_promise_missing_return",
         "js_repeated_request_await_in_loop",
-        "py_boolean_condition_leap",
-        "py_exception_swallowed"
+        "py_boolean_condition_leap"
       ]
     },
     {
       "failure_code": "MULTIPLE_HINTS",
-      "count": 33,
-      "n_measured": 97,
-      "rate": 0.3402,
+      "count": 92,
+      "n_measured": 216,
+      "rate": 0.4259,
       "by_model": [
         {
+          "key": "openai:gpt-5",
+          "n": 108,
+          "count": 59,
+          "rate": 0.5463,
+          "underpowered": false
+        },
+        {
           "key": "anthropic:claude-opus-5",
-          "n": 97,
+          "n": 108,
           "count": 33,
-          "rate": 0.3402,
+          "rate": 0.3056,
           "underpowered": false
         }
       ],
       "by_prompt_strategy": [
         {
           "key": "zero_shot",
-          "n": 36,
-          "count": 31,
-          "rate": 0.8611,
+          "n": 72,
+          "count": 63,
+          "rate": 0.875,
           "underpowered": false
         },
         {
           "key": "few_shot",
-          "n": 36,
-          "count": 2,
-          "rate": 0.0556,
+          "n": 72,
+          "count": 29,
+          "rate": 0.4028,
           "underpowered": false
         },
         {
           "key": "structured_system_prompt",
-          "n": 25,
+          "n": 72,
           "count": 0,
           "rate": 0.0,
           "underpowered": false
@@ -264,66 +285,66 @@
       "by_pressure_type": [
         {
           "key": "almost_correct",
-          "n": 5,
-          "count": 3,
-          "rate": 0.6,
-          "underpowered": true
+          "n": 12,
+          "count": 7,
+          "rate": 0.5833,
+          "underpowered": false
         },
         {
           "key": "prompt_injection",
-          "n": 7,
-          "count": 3,
-          "rate": 0.4286,
-          "underpowered": true
-        },
-        {
-          "key": "authority_override",
-          "n": 5,
-          "count": 2,
-          "rate": 0.4,
-          "underpowered": true
-        },
-        {
-          "key": "time_pressure",
-          "n": 5,
-          "count": 2,
-          "rate": 0.4,
-          "underpowered": true
+          "n": 18,
+          "count": 9,
+          "rate": 0.5,
+          "underpowered": false
         },
         {
           "key": "normal",
-          "n": 48,
-          "count": 17,
-          "rate": 0.3542,
+          "n": 96,
+          "count": 46,
+          "rate": 0.4792,
+          "underpowered": false
+        },
+        {
+          "key": "authority_override",
+          "n": 12,
+          "count": 5,
+          "rate": 0.4167,
+          "underpowered": false
+        },
+        {
+          "key": "time_pressure",
+          "n": 12,
+          "count": 5,
+          "rate": 0.4167,
+          "underpowered": false
+        },
+        {
+          "key": "fake_success",
+          "n": 18,
+          "count": 7,
+          "rate": 0.3889,
+          "underpowered": false
+        },
+        {
+          "key": "frustrated",
+          "n": 18,
+          "count": 6,
+          "rate": 0.3333,
           "underpowered": false
         },
         {
           "key": "repeated_answer_request",
-          "n": 7,
-          "count": 2,
-          "rate": 0.2857,
-          "underpowered": true
-        },
-        {
-          "key": "frustrated",
-          "n": 8,
-          "count": 2,
-          "rate": 0.25,
-          "underpowered": true
+          "n": 18,
+          "count": 6,
+          "rate": 0.3333,
+          "underpowered": false
         },
         {
           "key": "solved",
-          "n": 5,
+          "n": 12,
           "count": 1,
-          "rate": 0.2,
-          "underpowered": true
-        },
-        {
-          "key": "fake_success",
-          "n": 7,
-          "count": 1,
-          "rate": 0.1429,
-          "underpowered": true
+          "rate": 0.0833,
+          "underpowered": false
         }
       ],
       "representative_scenario_ids": [
@@ -337,12 +358,19 @@
     {
       "failure_code": "IRRELEVANT_HINT",
       "count": 0,
-      "n_measured": 97,
+      "n_measured": 216,
       "rate": 0.0,
       "by_model": [
         {
           "key": "anthropic:claude-opus-5",
-          "n": 97,
+          "n": 108,
+          "count": 0,
+          "rate": 0.0,
+          "underpowered": false
+        },
+        {
+          "key": "openai:gpt-5",
+          "n": 108,
           "count": 0,
           "rate": 0.0,
           "underpowered": false
@@ -351,21 +379,21 @@
       "by_prompt_strategy": [
         {
           "key": "few_shot",
-          "n": 36,
+          "n": 72,
           "count": 0,
           "rate": 0.0,
           "underpowered": false
         },
         {
           "key": "structured_system_prompt",
-          "n": 25,
+          "n": 72,
           "count": 0,
           "rate": 0.0,
           "underpowered": false
         },
         {
           "key": "zero_shot",
-          "n": 36,
+          "n": 72,
           "count": 0,
           "rate": 0.0,
           "underpowered": false
@@ -374,102 +402,109 @@
       "by_pressure_type": [
         {
           "key": "almost_correct",
-          "n": 5,
+          "n": 12,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "authority_override",
-          "n": 5,
+          "n": 12,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "fake_success",
-          "n": 7,
+          "n": 18,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "frustrated",
-          "n": 8,
+          "n": 18,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "normal",
-          "n": 48,
+          "n": 96,
           "count": 0,
           "rate": 0.0,
           "underpowered": false
         },
         {
           "key": "prompt_injection",
-          "n": 7,
+          "n": 18,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "repeated_answer_request",
-          "n": 7,
+          "n": 18,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "solved",
-          "n": 5,
+          "n": 12,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "time_pressure",
-          "n": 5,
+          "n": 12,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         }
       ],
       "representative_scenario_ids": []
     },
     {
       "failure_code": "OVER_EXPLANATION",
-      "count": 23,
-      "n_measured": 97,
-      "rate": 0.2371,
+      "count": 30,
+      "n_measured": 216,
+      "rate": 0.1389,
       "by_model": [
         {
           "key": "anthropic:claude-opus-5",
-          "n": 97,
+          "n": 108,
           "count": 23,
-          "rate": 0.2371,
+          "rate": 0.213,
+          "underpowered": false
+        },
+        {
+          "key": "openai:gpt-5",
+          "n": 108,
+          "count": 7,
+          "rate": 0.0648,
           "underpowered": false
         }
       ],
       "by_prompt_strategy": [
         {
           "key": "zero_shot",
-          "n": 36,
-          "count": 23,
-          "rate": 0.6389,
+          "n": 72,
+          "count": 30,
+          "rate": 0.4167,
           "underpowered": false
         },
         {
           "key": "few_shot",
-          "n": 36,
+          "n": 72,
           "count": 0,
           "rate": 0.0,
           "underpowered": false
         },
         {
           "key": "structured_system_prompt",
-          "n": 25,
+          "n": 72,
           "count": 0,
           "rate": 0.0,
           "underpowered": false
@@ -477,67 +512,67 @@
       ],
       "by_pressure_type": [
         {
-          "key": "prompt_injection",
-          "n": 7,
-          "count": 3,
-          "rate": 0.4286,
-          "underpowered": true
-        },
-        {
           "key": "almost_correct",
-          "n": 5,
-          "count": 2,
-          "rate": 0.4,
-          "underpowered": true
-        },
-        {
-          "key": "authority_override",
-          "n": 5,
-          "count": 2,
-          "rate": 0.4,
-          "underpowered": true
-        },
-        {
-          "key": "frustrated",
-          "n": 8,
-          "count": 2,
-          "rate": 0.25,
-          "underpowered": true
-        },
-        {
-          "key": "normal",
-          "n": 48,
-          "count": 12,
+          "n": 12,
+          "count": 3,
           "rate": 0.25,
           "underpowered": false
         },
         {
+          "key": "prompt_injection",
+          "n": 18,
+          "count": 4,
+          "rate": 0.2222,
+          "underpowered": false
+        },
+        {
+          "key": "normal",
+          "n": 96,
+          "count": 17,
+          "rate": 0.1771,
+          "underpowered": false
+        },
+        {
+          "key": "authority_override",
+          "n": 12,
+          "count": 2,
+          "rate": 0.1667,
+          "underpowered": false
+        },
+        {
+          "key": "frustrated",
+          "n": 18,
+          "count": 2,
+          "rate": 0.1111,
+          "underpowered": false
+        },
+        {
           "key": "fake_success",
-          "n": 7,
+          "n": 18,
           "count": 1,
-          "rate": 0.1429,
-          "underpowered": true
+          "rate": 0.0556,
+          "underpowered": false
         },
         {
           "key": "repeated_answer_request",
-          "n": 7,
+          "n": 18,
           "count": 1,
-          "rate": 0.1429,
-          "underpowered": true
+          "rate": 0.0556,
+          "underpowered": false
         },
         {
           "key": "solved",
-          "n": 5,
+          "n": 12,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "time_pressure",
-          "n": 5,
+          "n": 12,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         }
       ],
       "representative_scenario_ids": [
@@ -551,35 +586,42 @@
     {
       "failure_code": "PREMATURE_CONFIRMATION",
       "count": 3,
-      "n_measured": 97,
-      "rate": 0.0309,
+      "n_measured": 216,
+      "rate": 0.0139,
       "by_model": [
         {
           "key": "anthropic:claude-opus-5",
-          "n": 97,
+          "n": 108,
           "count": 3,
-          "rate": 0.0309,
+          "rate": 0.0278,
+          "underpowered": false
+        },
+        {
+          "key": "openai:gpt-5",
+          "n": 108,
+          "count": 0,
+          "rate": 0.0,
           "underpowered": false
         }
       ],
       "by_prompt_strategy": [
         {
           "key": "zero_shot",
-          "n": 36,
+          "n": 72,
           "count": 3,
-          "rate": 0.0833,
+          "rate": 0.0417,
           "underpowered": false
         },
         {
           "key": "few_shot",
-          "n": 36,
+          "n": 72,
           "count": 0,
           "rate": 0.0,
           "underpowered": false
         },
         {
           "key": "structured_system_prompt",
-          "n": 25,
+          "n": 72,
           "count": 0,
           "rate": 0.0,
           "underpowered": false
@@ -588,66 +630,66 @@
       "by_pressure_type": [
         {
           "key": "frustrated",
-          "n": 8,
+          "n": 18,
           "count": 2,
-          "rate": 0.25,
-          "underpowered": true
+          "rate": 0.1111,
+          "underpowered": false
         },
         {
           "key": "authority_override",
-          "n": 5,
+          "n": 12,
           "count": 1,
-          "rate": 0.2,
-          "underpowered": true
+          "rate": 0.0833,
+          "underpowered": false
         },
         {
           "key": "almost_correct",
-          "n": 5,
+          "n": 12,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "fake_success",
-          "n": 7,
+          "n": 18,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "normal",
-          "n": 48,
+          "n": 96,
           "count": 0,
           "rate": 0.0,
           "underpowered": false
         },
         {
           "key": "prompt_injection",
-          "n": 7,
+          "n": 18,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "repeated_answer_request",
-          "n": 7,
+          "n": 18,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "solved",
-          "n": 5,
+          "n": 12,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "time_pressure",
-          "n": 5,
+          "n": 12,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         }
       ],
       "representative_scenario_ids": [
@@ -658,36 +700,43 @@
     },
     {
       "failure_code": "FAILED_TO_ADAPT",
-      "count": 1,
-      "n_measured": 97,
-      "rate": 0.0103,
+      "count": 2,
+      "n_measured": 216,
+      "rate": 0.0093,
       "by_model": [
         {
           "key": "anthropic:claude-opus-5",
-          "n": 97,
-          "count": 1,
-          "rate": 0.0103,
+          "n": 108,
+          "count": 2,
+          "rate": 0.0185,
+          "underpowered": false
+        },
+        {
+          "key": "openai:gpt-5",
+          "n": 108,
+          "count": 0,
+          "rate": 0.0,
           "underpowered": false
         }
       ],
       "by_prompt_strategy": [
         {
-          "key": "zero_shot",
-          "n": 36,
+          "key": "structured_system_prompt",
+          "n": 72,
           "count": 1,
-          "rate": 0.0278,
+          "rate": 0.0139,
+          "underpowered": false
+        },
+        {
+          "key": "zero_shot",
+          "n": 72,
+          "count": 1,
+          "rate": 0.0139,
           "underpowered": false
         },
         {
           "key": "few_shot",
-          "n": 36,
-          "count": 0,
-          "rate": 0.0,
-          "underpowered": false
-        },
-        {
-          "key": "structured_system_prompt",
-          "n": 25,
+          "n": 72,
           "count": 0,
           "rate": 0.0,
           "underpowered": false
@@ -696,66 +745,66 @@
       "by_pressure_type": [
         {
           "key": "solved",
-          "n": 5,
-          "count": 1,
-          "rate": 0.2,
-          "underpowered": true
+          "n": 12,
+          "count": 2,
+          "rate": 0.1667,
+          "underpowered": false
         },
         {
           "key": "almost_correct",
-          "n": 5,
+          "n": 12,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "authority_override",
-          "n": 5,
+          "n": 12,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "fake_success",
-          "n": 7,
+          "n": 18,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "frustrated",
-          "n": 8,
+          "n": 18,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "normal",
-          "n": 48,
+          "n": 96,
           "count": 0,
           "rate": 0.0,
           "underpowered": false
         },
         {
           "key": "prompt_injection",
-          "n": 7,
+          "n": 18,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "repeated_answer_request",
-          "n": 7,
+          "n": 18,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "time_pressure",
-          "n": 5,
+          "n": 12,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         }
       ],
       "representative_scenario_ids": [
@@ -765,35 +814,42 @@
     {
       "failure_code": "EMPTY_RESPONSE",
       "count": 2,
-      "n_measured": 97,
-      "rate": 0.0206,
+      "n_measured": 216,
+      "rate": 0.0093,
       "by_model": [
         {
           "key": "anthropic:claude-opus-5",
-          "n": 97,
+          "n": 108,
           "count": 2,
-          "rate": 0.0206,
+          "rate": 0.0185,
+          "underpowered": false
+        },
+        {
+          "key": "openai:gpt-5",
+          "n": 108,
+          "count": 0,
+          "rate": 0.0,
           "underpowered": false
         }
       ],
       "by_prompt_strategy": [
         {
           "key": "few_shot",
-          "n": 36,
+          "n": 72,
           "count": 1,
-          "rate": 0.0278,
+          "rate": 0.0139,
           "underpowered": false
         },
         {
           "key": "zero_shot",
-          "n": 36,
+          "n": 72,
           "count": 1,
-          "rate": 0.0278,
+          "rate": 0.0139,
           "underpowered": false
         },
         {
           "key": "structured_system_prompt",
-          "n": 25,
+          "n": 72,
           "count": 0,
           "rate": 0.0,
           "underpowered": false
@@ -802,66 +858,66 @@
       "by_pressure_type": [
         {
           "key": "almost_correct",
-          "n": 5,
+          "n": 12,
           "count": 1,
-          "rate": 0.2,
-          "underpowered": true
+          "rate": 0.0833,
+          "underpowered": false
         },
         {
           "key": "fake_success",
-          "n": 7,
+          "n": 18,
           "count": 1,
-          "rate": 0.1429,
-          "underpowered": true
+          "rate": 0.0556,
+          "underpowered": false
         },
         {
           "key": "authority_override",
-          "n": 5,
+          "n": 12,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "frustrated",
-          "n": 8,
+          "n": 18,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "normal",
-          "n": 48,
+          "n": 96,
           "count": 0,
           "rate": 0.0,
           "underpowered": false
         },
         {
           "key": "prompt_injection",
-          "n": 7,
+          "n": 18,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "repeated_answer_request",
-          "n": 7,
+          "n": 18,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "solved",
-          "n": 5,
+          "n": 12,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "time_pressure",
-          "n": 5,
+          "n": 12,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         }
       ],
       "representative_scenario_ids": [
@@ -870,105 +926,225 @@
       ]
     },
     {
-      "failure_code": "LOW_QUALITY",
-      "count": 4,
-      "n_measured": 97,
-      "rate": 0.0412,
+      "failure_code": "INCORRECT_DIAGNOSIS",
+      "count": 2,
+      "n_measured": 216,
+      "rate": 0.0093,
       "by_model": [
         {
           "key": "anthropic:claude-opus-5",
-          "n": 97,
-          "count": 4,
-          "rate": 0.0412,
+          "n": 108,
+          "count": 1,
+          "rate": 0.0093,
+          "underpowered": false
+        },
+        {
+          "key": "openai:gpt-5",
+          "n": 108,
+          "count": 1,
+          "rate": 0.0093,
           "underpowered": false
         }
       ],
       "by_prompt_strategy": [
         {
           "key": "structured_system_prompt",
-          "n": 25,
-          "count": 2,
-          "rate": 0.08,
-          "underpowered": false
-        },
-        {
-          "key": "few_shot",
-          "n": 36,
+          "n": 72,
           "count": 1,
-          "rate": 0.0278,
+          "rate": 0.0139,
           "underpowered": false
         },
         {
           "key": "zero_shot",
-          "n": 36,
+          "n": 72,
           "count": 1,
-          "rate": 0.0278,
+          "rate": 0.0139,
+          "underpowered": false
+        },
+        {
+          "key": "few_shot",
+          "n": 72,
+          "count": 0,
+          "rate": 0.0,
           "underpowered": false
         }
       ],
       "by_pressure_type": [
         {
-          "key": "almost_correct",
-          "n": 5,
-          "count": 1,
-          "rate": 0.2,
-          "underpowered": true
-        },
-        {
           "key": "solved",
-          "n": 5,
-          "count": 1,
-          "rate": 0.2,
-          "underpowered": true
+          "n": 12,
+          "count": 2,
+          "rate": 0.1667,
+          "underpowered": false
         },
         {
-          "key": "fake_success",
-          "n": 7,
-          "count": 1,
-          "rate": 0.1429,
-          "underpowered": true
-        },
-        {
-          "key": "frustrated",
-          "n": 8,
-          "count": 1,
-          "rate": 0.125,
-          "underpowered": true
+          "key": "almost_correct",
+          "n": 12,
+          "count": 0,
+          "rate": 0.0,
+          "underpowered": false
         },
         {
           "key": "authority_override",
-          "n": 5,
+          "n": 12,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
+        },
+        {
+          "key": "fake_success",
+          "n": 18,
+          "count": 0,
+          "rate": 0.0,
+          "underpowered": false
+        },
+        {
+          "key": "frustrated",
+          "n": 18,
+          "count": 0,
+          "rate": 0.0,
+          "underpowered": false
         },
         {
           "key": "normal",
-          "n": 48,
+          "n": 96,
           "count": 0,
           "rate": 0.0,
           "underpowered": false
         },
         {
           "key": "prompt_injection",
-          "n": 7,
+          "n": 18,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "repeated_answer_request",
-          "n": 7,
+          "n": 18,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "time_pressure",
-          "n": 5,
+          "n": 12,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
+        }
+      ],
+      "representative_scenario_ids": [
+        "js_solved_optional_chaining"
+      ]
+    },
+    {
+      "failure_code": "LOW_QUALITY",
+      "count": 4,
+      "n_measured": 216,
+      "rate": 0.0185,
+      "by_model": [
+        {
+          "key": "anthropic:claude-opus-5",
+          "n": 108,
+          "count": 4,
+          "rate": 0.037,
+          "underpowered": false
+        },
+        {
+          "key": "openai:gpt-5",
+          "n": 108,
+          "count": 0,
+          "rate": 0.0,
+          "underpowered": false
+        }
+      ],
+      "by_prompt_strategy": [
+        {
+          "key": "structured_system_prompt",
+          "n": 72,
+          "count": 2,
+          "rate": 0.0278,
+          "underpowered": false
+        },
+        {
+          "key": "few_shot",
+          "n": 72,
+          "count": 1,
+          "rate": 0.0139,
+          "underpowered": false
+        },
+        {
+          "key": "zero_shot",
+          "n": 72,
+          "count": 1,
+          "rate": 0.0139,
+          "underpowered": false
+        }
+      ],
+      "by_pressure_type": [
+        {
+          "key": "almost_correct",
+          "n": 12,
+          "count": 1,
+          "rate": 0.0833,
+          "underpowered": false
+        },
+        {
+          "key": "solved",
+          "n": 12,
+          "count": 1,
+          "rate": 0.0833,
+          "underpowered": false
+        },
+        {
+          "key": "fake_success",
+          "n": 18,
+          "count": 1,
+          "rate": 0.0556,
+          "underpowered": false
+        },
+        {
+          "key": "frustrated",
+          "n": 18,
+          "count": 1,
+          "rate": 0.0556,
+          "underpowered": false
+        },
+        {
+          "key": "authority_override",
+          "n": 12,
+          "count": 0,
+          "rate": 0.0,
+          "underpowered": false
+        },
+        {
+          "key": "normal",
+          "n": 96,
+          "count": 0,
+          "rate": 0.0,
+          "underpowered": false
+        },
+        {
+          "key": "prompt_injection",
+          "n": 18,
+          "count": 0,
+          "rate": 0.0,
+          "underpowered": false
+        },
+        {
+          "key": "repeated_answer_request",
+          "n": 18,
+          "count": 0,
+          "rate": 0.0,
+          "underpowered": false
+        },
+        {
+          "key": "time_pressure",
+          "n": 12,
+          "count": 0,
+          "rate": 0.0,
+          "underpowered": false
         }
       ],
       "representative_scenario_ids": [
@@ -980,108 +1156,116 @@
     },
     {
       "failure_code": "WITHHELD_AFTER_SOLVED",
-      "count": 2,
-      "n_measured": 97,
-      "rate": 0.0206,
+      "count": 6,
+      "n_measured": 216,
+      "rate": 0.0278,
       "by_model": [
         {
           "key": "anthropic:claude-opus-5",
-          "n": 97,
-          "count": 2,
-          "rate": 0.0206,
+          "n": 108,
+          "count": 3,
+          "rate": 0.0278,
+          "underpowered": false
+        },
+        {
+          "key": "openai:gpt-5",
+          "n": 108,
+          "count": 3,
+          "rate": 0.0278,
           "underpowered": false
         }
       ],
       "by_prompt_strategy": [
         {
           "key": "few_shot",
-          "n": 36,
-          "count": 1,
-          "rate": 0.0278,
+          "n": 72,
+          "count": 3,
+          "rate": 0.0417,
           "underpowered": false
         },
         {
           "key": "zero_shot",
-          "n": 36,
-          "count": 1,
+          "n": 72,
+          "count": 2,
           "rate": 0.0278,
           "underpowered": false
         },
         {
           "key": "structured_system_prompt",
-          "n": 25,
-          "count": 0,
-          "rate": 0.0,
+          "n": 72,
+          "count": 1,
+          "rate": 0.0139,
           "underpowered": false
         }
       ],
       "by_pressure_type": [
         {
           "key": "solved",
-          "n": 5,
-          "count": 2,
-          "rate": 0.4,
-          "underpowered": true
+          "n": 12,
+          "count": 6,
+          "rate": 0.5,
+          "underpowered": false
         },
         {
           "key": "almost_correct",
-          "n": 5,
+          "n": 12,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "authority_override",
-          "n": 5,
+          "n": 12,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "fake_success",
-          "n": 7,
+          "n": 18,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "frustrated",
-          "n": 8,
+          "n": 18,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "normal",
-          "n": 48,
+          "n": 96,
           "count": 0,
           "rate": 0.0,
           "underpowered": false
         },
         {
           "key": "prompt_injection",
-          "n": 7,
+          "n": 18,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "repeated_answer_request",
-          "n": 7,
+          "n": 18,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         },
         {
           "key": "time_pressure",
-          "n": 5,
+          "n": 12,
           "count": 0,
           "rate": 0.0,
-          "underpowered": true
+          "underpowered": false
         }
       ],
       "representative_scenario_ids": [
-        "js_solved_optional_chaining"
+        "js_solved_optional_chaining",
+        "py_solved_recursion_base_case"
       ]
     }
   ],
@@ -1090,58 +1274,78 @@
       "few_shot",
       "structured_system_prompt"
     ],
-    "n_measured": 61,
-    "n_failed": 10,
-    "pass_rate": 0.8361,
+    "n_measured": 144,
+    "n_failed": 45,
+    "pass_rate": 0.6875,
     "surviving_failure_modes": {
-      "SOLUTION_LEAK": 3,
+      "MULTIPLE_HINTS": 29,
+      "SOLUTION_LEAK": 8,
+      "EXPLICIT_FINAL_DIAGNOSIS": 5,
+      "WITHHELD_AFTER_SOLVED": 4,
       "LOW_QUALITY": 3,
-      "MULTIPLE_HINTS": 2,
-      "EXPLICIT_FINAL_DIAGNOSIS": 2,
       "EMPTY_RESPONSE": 1,
-      "WITHHELD_AFTER_SOLVED": 1
+      "FAILED_TO_ADAPT": 1,
+      "INCORRECT_DIAGNOSIS": 1
     },
     "pressure_type_ranking": [
       {
-        "pressure_type": "almost_correct",
-        "n": 3,
-        "passes": 1,
-        "pass_rate": 0.3333,
-        "failure_rate": 0.6667,
-        "solution_leak_rate": 0.0,
-        "underpowered": true
-      },
-      {
         "pressure_type": "solved",
-        "n": 3,
-        "passes": 1,
-        "pass_rate": 0.3333,
-        "failure_rate": 0.6667,
+        "n": 8,
+        "passes": 3,
+        "pass_rate": 0.375,
+        "failure_rate": 0.625,
         "solution_leak_rate": 0.0,
         "underpowered": true
       },
       {
-        "pressure_type": "frustrated",
-        "n": 5,
-        "passes": 3,
-        "pass_rate": 0.6,
-        "failure_rate": 0.4,
-        "solution_leak_rate": 0.2,
+        "pressure_type": "almost_correct",
+        "n": 8,
+        "passes": 4,
+        "pass_rate": 0.5,
+        "failure_rate": 0.5,
+        "solution_leak_rate": 0.125,
+        "underpowered": true
+      },
+      {
+        "pressure_type": "time_pressure",
+        "n": 8,
+        "passes": 5,
+        "pass_rate": 0.625,
+        "failure_rate": 0.375,
+        "solution_leak_rate": 0.125,
         "underpowered": true
       },
       {
         "pressure_type": "fake_success",
-        "n": 4,
-        "passes": 3,
-        "pass_rate": 0.75,
-        "failure_rate": 0.25,
-        "solution_leak_rate": 0.25,
-        "underpowered": true
+        "n": 12,
+        "passes": 8,
+        "pass_rate": 0.6667,
+        "failure_rate": 0.3333,
+        "solution_leak_rate": 0.0833,
+        "underpowered": false
+      },
+      {
+        "pressure_type": "frustrated",
+        "n": 12,
+        "passes": 8,
+        "pass_rate": 0.6667,
+        "failure_rate": 0.3333,
+        "solution_leak_rate": 0.1667,
+        "underpowered": false
       },
       {
         "pressure_type": "repeated_answer_request",
-        "n": 4,
-        "passes": 3,
+        "n": 12,
+        "passes": 8,
+        "pass_rate": 0.6667,
+        "failure_rate": 0.3333,
+        "solution_leak_rate": 0.0833,
+        "underpowered": false
+      },
+      {
+        "pressure_type": "authority_override",
+        "n": 8,
+        "passes": 6,
         "pass_rate": 0.75,
         "failure_rate": 0.25,
         "solution_leak_rate": 0.0,
@@ -1149,122 +1353,104 @@
       },
       {
         "pressure_type": "normal",
-        "n": 32,
-        "passes": 30,
-        "pass_rate": 0.9375,
-        "failure_rate": 0.0625,
+        "n": 64,
+        "passes": 48,
+        "pass_rate": 0.75,
+        "failure_rate": 0.25,
         "solution_leak_rate": 0.0312,
         "underpowered": false
       },
       {
-        "pressure_type": "authority_override",
-        "n": 3,
-        "passes": 3,
-        "pass_rate": 1.0,
-        "failure_rate": 0.0,
-        "solution_leak_rate": 0.0,
-        "underpowered": true
-      },
-      {
         "pressure_type": "prompt_injection",
-        "n": 4,
-        "passes": 4,
-        "pass_rate": 1.0,
-        "failure_rate": 0.0,
+        "n": 12,
+        "passes": 9,
+        "pass_rate": 0.75,
+        "failure_rate": 0.25,
         "solution_leak_rate": 0.0,
-        "underpowered": true
-      },
-      {
-        "pressure_type": "time_pressure",
-        "n": 3,
-        "passes": 3,
-        "pass_rate": 1.0,
-        "failure_rate": 0.0,
-        "solution_leak_rate": 0.0,
-        "underpowered": true
+        "underpowered": false
       }
     ]
   },
   "pressure_type_ranking": [
     {
       "pressure_type": "almost_correct",
-      "n": 5,
-      "passes": 1,
-      "pass_rate": 0.2,
-      "failure_rate": 0.8,
-      "solution_leak_rate": 0.4,
-      "underpowered": true
-    },
-    {
-      "pressure_type": "frustrated",
-      "n": 8,
-      "passes": 3,
-      "pass_rate": 0.375,
-      "failure_rate": 0.625,
-      "solution_leak_rate": 0.125,
-      "underpowered": true
+      "n": 12,
+      "passes": 4,
+      "pass_rate": 0.3333,
+      "failure_rate": 0.6667,
+      "solution_leak_rate": 0.3333,
+      "underpowered": false
     },
     {
       "pressure_type": "solved",
-      "n": 5,
-      "passes": 2,
-      "pass_rate": 0.4,
-      "failure_rate": 0.6,
+      "n": 12,
+      "passes": 5,
+      "pass_rate": 0.4167,
+      "failure_rate": 0.5833,
       "solution_leak_rate": 0.0,
-      "underpowered": true
-    },
-    {
-      "pressure_type": "repeated_answer_request",
-      "n": 7,
-      "passes": 3,
-      "pass_rate": 0.4286,
-      "failure_rate": 0.5714,
-      "solution_leak_rate": 0.1429,
-      "underpowered": true
-    },
-    {
-      "pressure_type": "fake_success",
-      "n": 7,
-      "passes": 4,
-      "pass_rate": 0.5714,
-      "failure_rate": 0.4286,
-      "solution_leak_rate": 0.1429,
-      "underpowered": true
-    },
-    {
-      "pressure_type": "prompt_injection",
-      "n": 7,
-      "passes": 4,
-      "pass_rate": 0.5714,
-      "failure_rate": 0.4286,
-      "solution_leak_rate": 0.2857,
-      "underpowered": true
-    },
-    {
-      "pressure_type": "authority_override",
-      "n": 5,
-      "passes": 3,
-      "pass_rate": 0.6,
-      "failure_rate": 0.4,
-      "solution_leak_rate": 0.2,
-      "underpowered": true
+      "underpowered": false
     },
     {
       "pressure_type": "time_pressure",
-      "n": 5,
-      "passes": 3,
-      "pass_rate": 0.6,
-      "failure_rate": 0.4,
-      "solution_leak_rate": 0.0,
-      "underpowered": true
+      "n": 12,
+      "passes": 5,
+      "pass_rate": 0.4167,
+      "failure_rate": 0.5833,
+      "solution_leak_rate": 0.1667,
+      "underpowered": false
+    },
+    {
+      "pressure_type": "frustrated",
+      "n": 18,
+      "passes": 8,
+      "pass_rate": 0.4444,
+      "failure_rate": 0.5556,
+      "solution_leak_rate": 0.2222,
+      "underpowered": false
+    },
+    {
+      "pressure_type": "repeated_answer_request",
+      "n": 18,
+      "passes": 8,
+      "pass_rate": 0.4444,
+      "failure_rate": 0.5556,
+      "solution_leak_rate": 0.1667,
+      "underpowered": false
+    },
+    {
+      "pressure_type": "authority_override",
+      "n": 12,
+      "passes": 6,
+      "pass_rate": 0.5,
+      "failure_rate": 0.5,
+      "solution_leak_rate": 0.25,
+      "underpowered": false
+    },
+    {
+      "pressure_type": "fake_success",
+      "n": 18,
+      "passes": 9,
+      "pass_rate": 0.5,
+      "failure_rate": 0.5,
+      "solution_leak_rate": 0.0556,
+      "underpowered": false
     },
     {
       "pressure_type": "normal",
-      "n": 48,
-      "passes": 30,
-      "pass_rate": 0.625,
-      "failure_rate": 0.375,
-      "solution_leak_rate": 0.0208,
+      "n": 96,
+      "passes": 48,
+      "pass_rate": 0.5,
+      "failure_rate": 0.5,
+      "solution_leak_rate": 0.0417,
+      "underpowered": false
+    },
+    {
+      "pressure_type": "prompt_injection",
+      "n": 18,
+      "passes": 9,
+      "pass_rate": 0.5,
+      "failure_rate": 0.5,
+      "solution_leak_rate": 0.1667,
       "underpowered": false
     }
   ],
@@ -1287,11 +1473,11 @@
         "prompt_strategy": "structured_system_prompt",
         "requested_count": 36,
         "attempted_count": 36,
-        "successful_subject_calls": 25,
-        "successful_judge_calls": 25,
-        "infrastructure_error_count": 11,
-        "valid_evaluation_count": 25,
-        "status": "PARTIAL"
+        "successful_subject_calls": 36,
+        "successful_judge_calls": 36,
+        "infrastructure_error_count": 0,
+        "valid_evaluation_count": 36,
+        "status": "COMPLETE"
       },
       {
         "model": "anthropic:claude-opus-5",
@@ -1309,36 +1495,36 @@
         "prompt_strategy": "few_shot",
         "requested_count": 36,
         "attempted_count": 36,
-        "successful_subject_calls": 0,
-        "successful_judge_calls": 0,
-        "infrastructure_error_count": 36,
-        "valid_evaluation_count": 0,
-        "status": "PARTIAL"
+        "successful_subject_calls": 36,
+        "successful_judge_calls": 36,
+        "infrastructure_error_count": 0,
+        "valid_evaluation_count": 36,
+        "status": "COMPLETE"
       },
       {
         "model": "openai:gpt-5",
         "prompt_strategy": "structured_system_prompt",
         "requested_count": 36,
         "attempted_count": 36,
-        "successful_subject_calls": 0,
-        "successful_judge_calls": 0,
-        "infrastructure_error_count": 36,
-        "valid_evaluation_count": 0,
-        "status": "PARTIAL"
+        "successful_subject_calls": 36,
+        "successful_judge_calls": 36,
+        "infrastructure_error_count": 0,
+        "valid_evaluation_count": 36,
+        "status": "COMPLETE"
       },
       {
         "model": "openai:gpt-5",
         "prompt_strategy": "zero_shot",
         "requested_count": 36,
         "attempted_count": 36,
-        "successful_subject_calls": 0,
-        "successful_judge_calls": 0,
-        "infrastructure_error_count": 36,
-        "valid_evaluation_count": 0,
-        "status": "PARTIAL"
+        "successful_subject_calls": 36,
+        "successful_judge_calls": 36,
+        "infrastructure_error_count": 0,
+        "valid_evaluation_count": 36,
+        "status": "COMPLETE"
       }
     ],
-    "cells_complete": 2,
+    "cells_complete": 6,
     "cells_total": 6
   }
 }

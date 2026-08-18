@@ -1,0 +1,211 @@
+{
+  "dataset_version": "v1",
+  "status": "PLAN ONLY \u2014 no candidate has been generated",
+  "derived_from": {
+    "experiment": "results/prompt_ceiling",
+    "experiment_status": "REAL_EXPERIMENT_RESULT, 216/216 evaluations, 6/6 cells complete",
+    "gate_decision": "FINE-TUNING JUSTIFIED",
+    "git_commit": "2ec9644d82d1483f8cef2f8b97a3082518324251"
+  },
+  "target_accepted_count": 600,
+  "estimated_candidate_count": {
+    "strategy": "two tranches \u2014 measure the real acceptance rate, then top up",
+    "tranche_1_candidates": 1200,
+    "expected_accepted_from_tranche_1": {
+      "at_measured_mock_rate_0.33": 396,
+      "at_optimistic_rate_0.45": 540
+    },
+    "single_pass_equivalent": {
+      "conservative_at_0.33": 1819,
+      "optimistic_at_0.45": 1334
+    },
+    "top_up_rule": "after tranche 1, accepted_shortfall / observed_acceptance_rate, rounded up to the next 50. Generation is seeded and resumable, so a top-up extends the plan rather than regenerating it.",
+    "why_not_a_single_number": "The only measured acceptance rate (0.33) came from a deliberately repetitive mock teacher whose rejections were dominated by dedupe. Committing ~1800 candidates up front on that number risks overspending by ~450 candidates if the real rate is nearer 0.45."
+  },
+  "distributions": {
+    "pressure_type": {
+      "target": {
+        "normal": 0.1908,
+        "solved": 0.1419,
+        "almost_correct": 0.1215,
+        "time_pressure": 0.1012,
+        "frustrated": 0.0944,
+        "repeated_answer_request": 0.0944,
+        "fake_success": 0.0944,
+        "prompt_injection": 0.0808,
+        "authority_override": 0.0808
+      },
+      "realized_in_plan": {
+        "normal": 0.1858,
+        "solved": 0.1367,
+        "almost_correct": 0.1217,
+        "time_pressure": 0.1058,
+        "fake_success": 0.105,
+        "frustrated": 0.0975,
+        "repeated_answer_request": 0.0975,
+        "prompt_injection": 0.0758,
+        "authority_override": 0.0742
+      },
+      "source": "measured failure rate under strong prompts, floored and capped"
+    },
+    "language": {
+      "python": 0.5,
+      "javascript": 0.5
+    },
+    "bug_category": {
+      "scope": 0.0783,
+      "shadowed_builtin": 0.05,
+      "incorrect_condition": 0.0458,
+      "integer_division": 0.045,
+      "type_coercion": 0.0433,
+      "this_binding": 0.0408,
+      "map_vs_foreach": 0.04,
+      "async_await": 0.04,
+      "exception_handling": 0.04,
+      "boolean_condition": 0.0392,
+      "closure_behavior": 0.0375,
+      "return_placement": 0.0375,
+      "list_mutation": 0.0358,
+      "dictionary_access": 0.035,
+      "string_immutability": 0.0342,
+      "undefined_properties": 0.0342,
+      "callback_ordering": 0.0333,
+      "generator_exhaustion": 0.0325,
+      "mutable_default": 0.0325,
+      "promise_handling": 0.0308,
+      "missing_return": 0.0308,
+      "hoisting": 0.03,
+      "comparison_identity": 0.0292,
+      "shallow_copy": 0.0292,
+      "array_mutation": 0.0267,
+      "none_handling": 0.0242,
+      "loop_boundary": 0.0242
+    },
+    "difficulty": {
+      "medium": 0.35,
+      "easy": 0.33,
+      "hard": 0.32
+    },
+    "conversation_turns": {
+      "1": 0.3567,
+      "2": 0.28,
+      "0": 0.2017,
+      "3": 0.1617
+    },
+    "learner_competence": {
+      "beginner": 0.3375,
+      "intermediate": 0.3325,
+      "advanced": 0.33
+    },
+    "hint_strength": {
+      "narrow": 0.42,
+      "nudge": 0.3317,
+      "pointed": 0.2483
+    },
+    "student_progress": {
+      "close": 0.3333,
+      "stuck": 0.3208,
+      "partial": 0.2092,
+      "solved": 0.1367
+    }
+  },
+  "allocation_rule": {
+    "floor_share_per_dimension": 0.04,
+    "floor_share_normal": 0.15,
+    "cap_share_per_dimension": 0.22,
+    "allocation": "floor + proportional to measured failure rate",
+    "why_normal_has_a_higher_floor": "Every adversarial dimension is a perturbation of the normal case, and these failure rates were measured on frontier models under strong prompts. The student is a 1.7B model that will fail far more broadly, so frontier difficulty guides relative emphasis among hard cases; it is not evidence that the base case is already solved."
+  },
+  "target_failure_modes": {
+    "basis": "failures that survived strong prompting in the completed ablation (45 of 144 strong-prompt evaluations failed)",
+    "surviving_failure_modes": {
+      "MULTIPLE_HINTS": 29,
+      "SOLUTION_LEAK": 8,
+      "EXPLICIT_FINAL_DIAGNOSIS": 5,
+      "WITHHELD_AFTER_SOLVED": 4,
+      "LOW_QUALITY": 3,
+      "EMPTY_RESPONSE": 1,
+      "FAILED_TO_ADAPT": 1,
+      "INCORRECT_DIAGNOSIS": 1
+    },
+    "primary_target": "SOLUTION_LEAK",
+    "why_primary": "Every one of the 4 failures in the strongest cell (openai:gpt-5 + structured_system_prompt) was a SOLUTION_LEAK, and they cluster under answer-seeking pressure (time_pressure, frustrated, repeated_answer_request). MULTIPLE_HINTS is more frequent overall but is largely prompt-fixable, so it is a secondary target.",
+    "secondary_targets": [
+      "MULTIPLE_HINTS",
+      "EXPLICIT_FINAL_DIAGNOSIS",
+      "WITHHELD_AFTER_SOLVED"
+    ],
+    "hardest_pressure_types_under_strong_prompts": [
+      {
+        "pressure_type": "solved",
+        "n": 8,
+        "pass_rate": 0.375,
+        "underpowered": true
+      },
+      {
+        "pressure_type": "almost_correct",
+        "n": 8,
+        "pass_rate": 0.5,
+        "underpowered": true
+      },
+      {
+        "pressure_type": "time_pressure",
+        "n": 8,
+        "pass_rate": 0.625,
+        "underpowered": true
+      }
+    ]
+  },
+  "teacher_model": "anthropic:claude-opus-5",
+  "generation_prompt_version": "1.0.0",
+  "generation_prompt_sha256": "6dc7c82da5780f612653a7957a27a33f8af1b8359ed68ec9a74ec26e2bf81ed5",
+  "base_seed": 20240101,
+  "pressure_weights_per_mille": {
+    "normal": 191,
+    "frustrated": 94,
+    "repeated_answer_request": 94,
+    "time_pressure": 101,
+    "prompt_injection": 81,
+    "authority_override": 81,
+    "fake_success": 94,
+    "almost_correct": 122,
+    "solved": 142
+  },
+  "quality_gate": {
+    "stages": [
+      "schema",
+      "static_checks",
+      "llm_judge",
+      "dedupe",
+      "contamination",
+      "balance"
+    ],
+    "judge_model": "anthropic:claude-opus-5",
+    "min_judge_spec_adherence": 0.9,
+    "min_judge_hint_relevance": 0.75,
+    "min_judge_robustness": 0.9,
+    "allow_any_deterministic_violation": false,
+    "dedupe_jaccard_threshold": 0.72,
+    "rejected_examples_retained": "data/rejected/v1.jsonl"
+  },
+  "data_efficiency_sweep": {
+    "sizes": [
+      125,
+      250,
+      500,
+      600
+    ],
+    "nested": true,
+    "nesting_guarantee": "training.dataset.nested_subsets() sorts accepted examples by content_hash, applies a seeded shuffle (seed=13), then takes prefixes. Prefixes of one fixed ordering are nested by construction: 125 subset-of 250 subset-of 500 subset-of 600. Because the ordering is a uniform shuffle of the whole accepted set, each prefix is a simple random sample and reproduces the dataset distribution up to sampling error \u2014 it is not stratified, so small-N shares will wobble.",
+    "ordering_is_generation_order_independent": "sorting on content_hash before shuffling means concurrency, retries and top-up tranches cannot change which examples land in the N=125 subset.",
+    "command": "python -m ablations.data_efficiency --train --sizes 125 250 500 600",
+    "status": "NOT RUN \u2014 awaiting authorization"
+  },
+  "not_yet_done": [
+    "no candidates generated",
+    "no quality gate run",
+    "no dataset built",
+    "no training run",
+    "no evaluation run"
+  ]
+}

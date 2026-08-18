@@ -2,16 +2,27 @@
   "experiment": "prompt_ceiling",
   "manifest_version": "1.0.0",
   "behavior_spec_version": "1.0.0",
-  "behavior_spec_sha256": "6359a7124543254755306eccbe24465209a1768f6375a5d565216fb4d7d3a4f8",
+  "behavior_spec_sha256": "dc14f40b94d622d14ddaa2800c29311aa8a6e4a5aa875dee327ae23e4efb2127",
   "eval_set_paths": [
     "scenarios/clean.jsonl",
     "scenarios/adversarial.jsonl"
   ],
   "eval_set_hash": "5799e5e2ead79bfe12ed2c59991dde93956ab4bba542b628c42dda2f52e0aa63",
   "eval_set_size": 36,
-  "models": [],
+  "models": [
+    {
+      "model": "anthropic:claude-opus-5",
+      "family": "anthropic",
+      "revision": "claude-opus-5"
+    },
+    {
+      "model": "openai:gpt-5",
+      "family": "openai",
+      "revision": "gpt-5"
+    }
+  ],
   "judge_model": "anthropic:claude-opus-5",
-  "judge_prompt_version": "recorded",
+  "judge_prompt_version": "1.0.0",
   "judge_prompt_sha256": "a34b7a2b508d31e6eb6a7d9e3361e8ba909be39d4a88ebb22b7c10f11fe1aba6",
   "prompt_versions": [
     {
@@ -46,10 +57,10 @@
     "seed": 1234,
     "stop": []
   },
-  "git_commit": "949e2713dff876b389f90d6ea5b760b1a10691bf",
+  "git_commit": "2ec9644d82d1483f8cef2f8b97a3082518324251",
   "git_dirty": true,
   "dependency_versions": {
-    "anthropic": "0.122.0",
+    "anthropic": "0.117.1",
     "openai": "3.2.0",
     "pydantic": "2.13.4",
     "torch": "not-installed",
@@ -60,10 +71,10 @@
     "datasets": "not-installed",
     "accelerate": "not-installed"
   },
-  "dependency_lock_hash": "fd5aebe68173fcaadbf3b64be97e8e5dae06670c583f74948a9ba4f4e779ae19",
-  "python_version": "3.12.10",
-  "platform": "Windows-10-10.0.19045-SP0",
-  "experiment_timestamp": "2026-08-18T01:29:15.007046+00:00",
-  "result_status": "PARTIAL",
+  "dependency_lock_hash": "394e3e903e2bdfaeb81497b006d2c81ff6ab3a78331443a1360e64d06f03b70c",
+  "python_version": "3.13.7",
+  "platform": "Windows-11-10.0.26100-SP0",
+  "experiment_timestamp": "2026-08-18T14:54:17.556748+00:00",
+  "result_status": "REAL_EXPERIMENT_RESULT",
   "notes": ""
 }

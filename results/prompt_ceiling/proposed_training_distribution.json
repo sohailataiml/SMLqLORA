@@ -1,6 +1,6 @@
 {
   "basis": "failure rate under strong prompts (few_shot, structured_system_prompt)",
-  "n_records_in_basis": 61,
+  "n_records_in_basis": 144,
   "rule": {
     "floor_share_per_dimension": 0.04,
     "floor_share_normal": 0.15,
@@ -10,79 +10,79 @@
   },
   "measured_inputs": {
     "normal": {
-      "n_observed": 32,
-      "failures": 2,
-      "failure_rate": 0.0625,
+      "n_observed": 64,
+      "failures": 16,
+      "failure_rate": 0.25,
       "underpowered": false,
       "observed": true
     },
     "frustrated": {
-      "n_observed": 5,
-      "failures": 2,
-      "failure_rate": 0.4,
-      "underpowered": true,
+      "n_observed": 12,
+      "failures": 4,
+      "failure_rate": 0.3333,
+      "underpowered": false,
       "observed": true
     },
     "repeated_answer_request": {
-      "n_observed": 4,
-      "failures": 1,
-      "failure_rate": 0.25,
-      "underpowered": true,
+      "n_observed": 12,
+      "failures": 4,
+      "failure_rate": 0.3333,
+      "underpowered": false,
       "observed": true
     },
     "time_pressure": {
-      "n_observed": 3,
-      "failures": 0,
-      "failure_rate": 0.0,
+      "n_observed": 8,
+      "failures": 3,
+      "failure_rate": 0.375,
       "underpowered": true,
       "observed": true
     },
     "prompt_injection": {
-      "n_observed": 4,
-      "failures": 0,
-      "failure_rate": 0.0,
-      "underpowered": true,
+      "n_observed": 12,
+      "failures": 3,
+      "failure_rate": 0.25,
+      "underpowered": false,
       "observed": true
     },
     "authority_override": {
-      "n_observed": 3,
-      "failures": 0,
-      "failure_rate": 0.0,
-      "underpowered": true,
-      "observed": true
-    },
-    "fake_success": {
-      "n_observed": 4,
-      "failures": 1,
+      "n_observed": 8,
+      "failures": 2,
       "failure_rate": 0.25,
       "underpowered": true,
       "observed": true
     },
+    "fake_success": {
+      "n_observed": 12,
+      "failures": 4,
+      "failure_rate": 0.3333,
+      "underpowered": false,
+      "observed": true
+    },
     "almost_correct": {
-      "n_observed": 3,
-      "failures": 2,
-      "failure_rate": 0.6667,
+      "n_observed": 8,
+      "failures": 4,
+      "failure_rate": 0.5,
       "underpowered": true,
       "observed": true
     },
     "solved": {
-      "n_observed": 3,
-      "failures": 2,
-      "failure_rate": 0.6667,
+      "n_observed": 8,
+      "failures": 5,
+      "failure_rate": 0.625,
       "underpowered": true,
       "observed": true
     }
   },
   "distribution": {
-    "almost_correct": 0.1939,
-    "solved": 0.1939,
-    "normal": 0.1644,
-    "frustrated": 0.1323,
-    "repeated_answer_request": 0.0977,
-    "fake_success": 0.0977,
-    "time_pressure": 0.04,
-    "prompt_injection": 0.04,
-    "authority_override": 0.04
+    "normal": 0.1908,
+    "solved": 0.1419,
+    "almost_correct": 0.1215,
+    "time_pressure": 0.1012,
+    "frustrated": 0.0944,
+    "repeated_answer_request": 0.0944,
+    "fake_success": 0.0944,
+    "prompt_injection": 0.0808,
+    "authority_override": 0.0808
   },
   "distribution_sums_to": 1.0
 }

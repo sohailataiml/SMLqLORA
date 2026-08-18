@@ -12,12 +12,12 @@ DATASET_VERSION ?= v1
 BASE_MODEL ?= Qwen/Qwen3-1.7B
 JUDGE ?= anthropic:claude-opus-5
 MODELS ?= anthropic:claude-opus-5 openai:gpt-5
-CANDIDATES ?= 1400
+CANDIDATES ?= 1200
 RUN ?= socratic-$(DATASET_VERSION)
 EVAL_SET ?= scenarios/heldout.jsonl
 
 .PHONY: help setup test lint scenarios eval-smoke smoke-data prompt-ceiling \
-        prompt-ceiling-mock reanalyze analyze plan agreement preflight \
+        prompt-ceiling-mock reanalyze analyze dataset-plan plan agreement preflight \
         generate-data filter-data train train-dry \
         evaluate data-efficiency data-efficiency-plan manifest clean-demo
 
@@ -32,6 +32,7 @@ help:
 	@echo "  make train-dry             validate training config and build the dataset"
 	@echo "  make reanalyze             re-render reports from saved transcripts"
 	@echo "  make analyze               failure modes, training distribution, plots"
+	@echo "  make dataset-plan          rebuild the Dataset V1 generation plan"
 	@echo "  make plan                  show which calls a run would purchase"
 	@echo "  make agreement             score human-vs-judge agreement (needs grading)"
 	@echo ""
@@ -75,6 +76,9 @@ reanalyze:
 
 analyze:
 	$(PYTHON) scripts/analyze_prompt_ceiling.py
+
+dataset-plan:
+	$(PYTHON) scripts/build_dataset_plan.py
 
 plan:
 	$(PYTHON) -m ablations.prompt_ceiling --plan --models $(MODELS)

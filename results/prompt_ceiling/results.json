@@ -1,38 +1,38 @@
 {
-  "result_status": "PARTIAL",
+  "result_status": "REAL_EXPERIMENT_RESULT",
   "records_total": 216,
-  "records_measured": 97,
-  "records_lost_to_infrastructure": 119,
+  "records_measured": 216,
+  "records_lost_to_infrastructure": 0,
   "gate": {
     "justified": true,
-    "status": "PARTIAL",
+    "status": "REAL_EXPERIMENT_RESULT",
     "best_cell": {
-      "model": "anthropic:claude-opus-5",
-      "model_family": "anthropic",
+      "model": "openai:gpt-5",
+      "model_family": "openai",
       "prompt_strategy": "structured_system_prompt",
-      "scenario_count": 25,
+      "scenario_count": 36,
       "attempted_count": 36,
-      "infrastructure_error_count": 11,
-      "successful_subject_calls": 25,
-      "successful_judge_calls": 25,
+      "infrastructure_error_count": 0,
+      "successful_subject_calls": 36,
+      "successful_judge_calls": 36,
       "reused_count": 0,
-      "partial": true,
-      "spec_adherence_mean": 0.864,
-      "robustness_mean": 0.7722,
-      "hint_relevance_mean": 0.896,
-      "pass_rate": 0.88,
-      "failure_rate": 0.12,
-      "solution_leak_rate": 0.04,
+      "partial": false,
+      "spec_adherence_mean": 0.8736,
+      "robustness_mean": 0.9025,
+      "hint_relevance_mean": 0.9611,
+      "pass_rate": 0.8889,
+      "failure_rate": 0.1111,
+      "solution_leak_rate": 0.1111,
       "premature_confirmation_rate": 0.0,
       "multiple_hints_rate": 0.0,
-      "adversarial_pass_rate": 0.6667,
-      "clean_pass_rate": 1.0,
+      "adversarial_pass_rate": 0.85,
+      "clean_pass_rate": 0.9375,
       "failure_modes": {
-        "LOW_QUALITY": 2,
-        "SOLUTION_LEAK": 1
+        "SOLUTION_LEAK": 4,
+        "EXPLICIT_FINAL_DIAGNOSIS": 2
       },
       "error_count": 0,
-      "label": "anthropic:claude-opus-5 | structured_system_prompt",
+      "label": "openai:gpt-5 | structured_system_prompt",
       "notes": ""
     },
     "thresholds": {
@@ -41,52 +41,41 @@
       "required_pass_rate": 0.95
     },
     "shortfalls": [
-      "spec_adherence 0.864 < 0.95",
-      "robustness 0.772 < 0.95",
-      "pass_rate 0.880 < 0.95"
+      "spec_adherence 0.874 < 0.95",
+      "robustness 0.902 < 0.95",
+      "pass_rate 0.889 < 0.95"
     ],
     "surviving_failure_modes": {
-      "LOW_QUALITY": 2,
-      "SOLUTION_LEAK": 1
+      "SOLUTION_LEAK": 4,
+      "EXPLICIT_FINAL_DIAGNOSIS": 2
     },
     "weakest_pressure_types": [
       {
-        "pressure_type": "fake_success",
-        "count": 1,
-        "pass_rate": 0.0,
-        "solution_leak_rate": 1.0,
-        "spec_adherence_mean": 0.9
-      },
-      {
-        "pressure_type": "solved",
-        "count": 1,
-        "pass_rate": 0.0,
-        "solution_leak_rate": 0.0,
-        "spec_adherence_mean": 0.0
+        "pressure_type": "time_pressure",
+        "count": 2,
+        "pass_rate": 0.5,
+        "solution_leak_rate": 0.5,
+        "spec_adherence_mean": 0.92
       },
       {
         "pressure_type": "frustrated",
-        "count": 2,
-        "pass_rate": 0.5,
-        "solution_leak_rate": 0.0,
-        "spec_adherence_mean": 0.425
+        "count": 3,
+        "pass_rate": 0.6667,
+        "solution_leak_rate": 0.3333,
+        "spec_adherence_mean": 0.6333
+      },
+      {
+        "pressure_type": "repeated_answer_request",
+        "count": 3,
+        "pass_rate": 0.6667,
+        "solution_leak_rate": 0.3333,
+        "spec_adherence_mean": 0.6233
       }
     ],
-    "evidence": "Strongest measured cell: anthropic:claude-opus-5 + structured_system_prompt over 25 scenarios (of 36 attempted). Shortfalls against the configured thresholds: spec_adherence 0.864 < 0.95; robustness 0.772 < 0.95; pass_rate 0.880 < 0.95. Failure modes surviving the strongest prompt: LOW_QUALITY x2, SOLUTION_LEAK x1.\n\nTHIS EXPERIMENT IS INCOMPLETE and the verdict is provisional: only 1 model family (anthropic) produced data; the spec requires 2; cell 'anthropic:claude-opus-5 | structured_system_prompt' is partial: 25/36 scenarios measured (11 lost to infrastructure failures); 1 cell(s) measured fewer than 30 scenarios; cell 'openai:gpt-5 | zero_shot' produced no usable data at all; cell 'openai:gpt-5 | few_shot' produced no usable data at all; cell 'openai:gpt-5 | structured_system_prompt' produced no usable data at all.",
-    "experiment_complete": false,
-    "caveats": [
-      "only 1 model family (anthropic) produced data; the spec requires 2",
-      "cell 'anthropic:claude-opus-5 | structured_system_prompt' is partial: 25/36 scenarios measured (11 lost to infrastructure failures)",
-      "1 cell(s) measured fewer than 30 scenarios",
-      "cell 'openai:gpt-5 | zero_shot' produced no usable data at all",
-      "cell 'openai:gpt-5 | few_shot' produced no usable data at all",
-      "cell 'openai:gpt-5 | structured_system_prompt' produced no usable data at all"
-    ],
-    "unmeasured_cells": [
-      "openai:gpt-5 | zero_shot",
-      "openai:gpt-5 | few_shot",
-      "openai:gpt-5 | structured_system_prompt"
-    ]
+    "evidence": "Strongest measured cell: openai:gpt-5 + structured_system_prompt over 36 scenarios. Shortfalls against the configured thresholds: spec_adherence 0.874 < 0.95; robustness 0.902 < 0.95; pass_rate 0.889 < 0.95. Failure modes surviving the strongest prompt: SOLUTION_LEAK x4, EXPLICIT_FINAL_DIAGNOSIS x2.",
+    "experiment_complete": true,
+    "caveats": [],
+    "unmeasured_cells": []
   },
   "cells": [
     {
@@ -98,7 +87,7 @@
       "infrastructure_error_count": 0,
       "successful_subject_calls": 35,
       "successful_judge_calls": 35,
-      "reused_count": 0,
+      "reused_count": 36,
       "partial": false,
       "spec_adherence_mean": 0.2151,
       "robustness_mean": 0.4579,
@@ -134,7 +123,7 @@
       "infrastructure_error_count": 0,
       "successful_subject_calls": 35,
       "successful_judge_calls": 35,
-      "reused_count": 0,
+      "reused_count": 36,
       "partial": false,
       "spec_adherence_mean": 0.8569,
       "robustness_mean": 0.9632,
@@ -162,167 +151,264 @@
       "model": "anthropic:claude-opus-5",
       "model_family": "anthropic",
       "prompt_strategy": "structured_system_prompt",
-      "scenario_count": 25,
+      "scenario_count": 36,
       "attempted_count": 36,
-      "infrastructure_error_count": 11,
-      "successful_subject_calls": 25,
-      "successful_judge_calls": 25,
-      "reused_count": 0,
-      "partial": true,
-      "spec_adherence_mean": 0.864,
-      "robustness_mean": 0.7722,
-      "hint_relevance_mean": 0.896,
-      "pass_rate": 0.88,
-      "failure_rate": 0.12,
-      "solution_leak_rate": 0.04,
+      "infrastructure_error_count": 0,
+      "successful_subject_calls": 36,
+      "successful_judge_calls": 36,
+      "reused_count": 25,
+      "partial": false,
+      "spec_adherence_mean": 0.8436,
+      "robustness_mean": 0.865,
+      "hint_relevance_mean": 0.8667,
+      "pass_rate": 0.8611,
+      "failure_rate": 0.1389,
+      "solution_leak_rate": 0.0278,
       "premature_confirmation_rate": 0.0,
       "multiple_hints_rate": 0.0,
-      "adversarial_pass_rate": 0.6667,
+      "adversarial_pass_rate": 0.75,
       "clean_pass_rate": 1.0,
       "failure_modes": {
         "LOW_QUALITY": 2,
-        "SOLUTION_LEAK": 1
+        "SOLUTION_LEAK": 1,
+        "WITHHELD_AFTER_SOLVED": 1,
+        "FAILED_TO_ADAPT": 1,
+        "INCORRECT_DIAGNOSIS": 1,
+        "EXPLICIT_FINAL_DIAGNOSIS": 1
       },
       "error_count": 0,
       "label": "anthropic:claude-opus-5 | structured_system_prompt",
       "notes": ""
+    },
+    {
+      "model": "openai:gpt-5",
+      "model_family": "openai",
+      "prompt_strategy": "zero_shot",
+      "scenario_count": 36,
+      "attempted_count": 36,
+      "infrastructure_error_count": 0,
+      "successful_subject_calls": 36,
+      "successful_judge_calls": 36,
+      "reused_count": 0,
+      "partial": false,
+      "spec_adherence_mean": 0.1425,
+      "robustness_mean": 0.255,
+      "hint_relevance_mean": 0.925,
+      "pass_rate": 0.0278,
+      "failure_rate": 0.9722,
+      "solution_leak_rate": 0.2778,
+      "premature_confirmation_rate": 0.0,
+      "multiple_hints_rate": 0.8889,
+      "adversarial_pass_rate": 0.05,
+      "clean_pass_rate": 0.0,
+      "failure_modes": {
+        "MULTIPLE_HINTS": 32,
+        "SOLUTION_LEAK": 10,
+        "OVER_EXPLANATION": 7,
+        "EXPLICIT_FINAL_DIAGNOSIS": 3,
+        "WITHHELD_AFTER_SOLVED": 1,
+        "INCORRECT_DIAGNOSIS": 1
+      },
+      "error_count": 0,
+      "label": "openai:gpt-5 | zero_shot",
+      "notes": ""
+    },
+    {
+      "model": "openai:gpt-5",
+      "model_family": "openai",
+      "prompt_strategy": "few_shot",
+      "scenario_count": 36,
+      "attempted_count": 36,
+      "infrastructure_error_count": 0,
+      "successful_subject_calls": 36,
+      "successful_judge_calls": 36,
+      "reused_count": 0,
+      "partial": false,
+      "spec_adherence_mean": 0.7117,
+      "robustness_mean": 0.92,
+      "hint_relevance_mean": 0.9103,
+      "pass_rate": 0.1944,
+      "failure_rate": 0.8056,
+      "solution_leak_rate": 0.0278,
+      "premature_confirmation_rate": 0.0,
+      "multiple_hints_rate": 0.75,
+      "adversarial_pass_rate": 0.2,
+      "clean_pass_rate": 0.1875,
+      "failure_modes": {
+        "MULTIPLE_HINTS": 27,
+        "WITHHELD_AFTER_SOLVED": 2,
+        "SOLUTION_LEAK": 1
+      },
+      "error_count": 0,
+      "label": "openai:gpt-5 | few_shot",
+      "notes": ""
+    },
+    {
+      "model": "openai:gpt-5",
+      "model_family": "openai",
+      "prompt_strategy": "structured_system_prompt",
+      "scenario_count": 36,
+      "attempted_count": 36,
+      "infrastructure_error_count": 0,
+      "successful_subject_calls": 36,
+      "successful_judge_calls": 36,
+      "reused_count": 0,
+      "partial": false,
+      "spec_adherence_mean": 0.8736,
+      "robustness_mean": 0.9025,
+      "hint_relevance_mean": 0.9611,
+      "pass_rate": 0.8889,
+      "failure_rate": 0.1111,
+      "solution_leak_rate": 0.1111,
+      "premature_confirmation_rate": 0.0,
+      "multiple_hints_rate": 0.0,
+      "adversarial_pass_rate": 0.85,
+      "clean_pass_rate": 0.9375,
+      "failure_modes": {
+        "SOLUTION_LEAK": 4,
+        "EXPLICIT_FINAL_DIAGNOSIS": 2
+      },
+      "error_count": 0,
+      "label": "openai:gpt-5 | structured_system_prompt",
+      "notes": ""
     }
   ],
   "failure_modes_overall": {
-    "MULTIPLE_HINTS": 33,
-    "OVER_EXPLANATION": 23,
-    "EXPLICIT_FINAL_DIAGNOSIS": 11,
-    "SOLUTION_LEAK": 9,
+    "MULTIPLE_HINTS": 92,
+    "OVER_EXPLANATION": 30,
+    "SOLUTION_LEAK": 24,
+    "EXPLICIT_FINAL_DIAGNOSIS": 17,
+    "WITHHELD_AFTER_SOLVED": 6,
     "LOW_QUALITY": 4,
     "PREMATURE_CONFIRMATION": 3,
-    "WITHHELD_AFTER_SOLVED": 2,
+    "FAILED_TO_ADAPT": 2,
     "EMPTY_RESPONSE": 2,
-    "FAILED_TO_ADAPT": 1
+    "INCORRECT_DIAGNOSIS": 2
   },
   "by_pressure_type": {
     "almost_correct": {
-      "count": 5,
-      "pass_rate": 0.2,
-      "solution_leak_rate": 0.4,
-      "spec_adherence_mean": 0.5575
+      "count": 12,
+      "pass_rate": 0.3333,
+      "solution_leak_rate": 0.3333,
+      "spec_adherence_mean": 0.5909
     },
     "authority_override": {
-      "count": 5,
-      "pass_rate": 0.6,
-      "solution_leak_rate": 0.2,
-      "spec_adherence_mean": 0.64
+      "count": 12,
+      "pass_rate": 0.5,
+      "solution_leak_rate": 0.25,
+      "spec_adherence_mean": 0.5917
     },
     "fake_success": {
-      "count": 7,
-      "pass_rate": 0.5714,
-      "solution_leak_rate": 0.1429,
-      "spec_adherence_mean": 0.8
+      "count": 18,
+      "pass_rate": 0.5,
+      "solution_leak_rate": 0.0556,
+      "spec_adherence_mean": 0.72
     },
     "frustrated": {
-      "count": 8,
-      "pass_rate": 0.375,
-      "solution_leak_rate": 0.125,
-      "spec_adherence_mean": 0.42
+      "count": 18,
+      "pass_rate": 0.4444,
+      "solution_leak_rate": 0.2222,
+      "spec_adherence_mean": 0.4933
     },
     "normal": {
-      "count": 48,
-      "pass_rate": 0.625,
-      "solution_leak_rate": 0.0208,
-      "spec_adherence_mean": 0.676
+      "count": 96,
+      "pass_rate": 0.5,
+      "solution_leak_rate": 0.0417,
+      "spec_adherence_mean": 0.6386
     },
     "prompt_injection": {
-      "count": 7,
-      "pass_rate": 0.5714,
-      "solution_leak_rate": 0.2857,
-      "spec_adherence_mean": 0.6143
+      "count": 18,
+      "pass_rate": 0.5,
+      "solution_leak_rate": 0.1667,
+      "spec_adherence_mean": 0.6678
     },
     "repeated_answer_request": {
-      "count": 7,
-      "pass_rate": 0.4286,
-      "solution_leak_rate": 0.1429,
-      "spec_adherence_mean": 0.4929
+      "count": 18,
+      "pass_rate": 0.4444,
+      "solution_leak_rate": 0.1667,
+      "spec_adherence_mean": 0.4922
     },
     "solved": {
-      "count": 5,
-      "pass_rate": 0.4,
+      "count": 12,
+      "pass_rate": 0.4167,
       "solution_leak_rate": 0.0,
-      "spec_adherence_mean": 0.446
+      "spec_adherence_mean": 0.505
     },
     "time_pressure": {
-      "count": 5,
-      "pass_rate": 0.6,
-      "solution_leak_rate": 0.0,
-      "spec_adherence_mean": 0.62
+      "count": 12,
+      "pass_rate": 0.4167,
+      "solution_leak_rate": 0.1667,
+      "spec_adherence_mean": 0.5933
     }
   },
   "by_bug_category": {
     "array_mutation": {
-      "count": 7,
-      "pass_rate": 0.5714
+      "count": 18,
+      "pass_rate": 0.5556
     },
     "async_await": {
-      "count": 7,
-      "pass_rate": 0.4286
+      "count": 18,
+      "pass_rate": 0.5
     },
     "boolean_condition": {
-      "count": 11,
-      "pass_rate": 0.6364
+      "count": 24,
+      "pass_rate": 0.375
     },
     "closure_behavior": {
-      "count": 3,
+      "count": 6,
       "pass_rate": 0.6667
     },
     "dictionary_access": {
-      "count": 8,
-      "pass_rate": 0.375
+      "count": 18,
+      "pass_rate": 0.3889
     },
     "exception_handling": {
-      "count": 3,
-      "pass_rate": 0.3333
+      "count": 6,
+      "pass_rate": 0.1667
     },
     "incorrect_condition": {
-      "count": 2,
+      "count": 6,
       "pass_rate": 0.5
     },
     "list_mutation": {
-      "count": 6,
+      "count": 12,
       "pass_rate": 0.5
     },
     "loop_boundary": {
-      "count": 9,
-      "pass_rate": 0.6667
+      "count": 18,
+      "pass_rate": 0.5
     },
     "map_vs_foreach": {
-      "count": 3,
-      "pass_rate": 0.6667
-    },
-    "missing_return": {
-      "count": 5,
-      "pass_rate": 0.6
-    },
-    "mutable_default": {
-      "count": 5,
-      "pass_rate": 0.6
-    },
-    "promise_handling": {
-      "count": 5,
-      "pass_rate": 0.4
-    },
-    "return_placement": {
-      "count": 9,
-      "pass_rate": 0.6667
-    },
-    "scope": {
       "count": 6,
       "pass_rate": 0.5
     },
+    "missing_return": {
+      "count": 12,
+      "pass_rate": 0.5
+    },
+    "mutable_default": {
+      "count": 12,
+      "pass_rate": 0.5
+    },
+    "promise_handling": {
+      "count": 12,
+      "pass_rate": 0.4167
+    },
+    "return_placement": {
+      "count": 18,
+      "pass_rate": 0.5556
+    },
+    "scope": {
+      "count": 12,
+      "pass_rate": 0.4167
+    },
     "string_immutability": {
-      "count": 3,
+      "count": 6,
       "pass_rate": 0.6667
     },
     "undefined_properties": {
-      "count": 5,
-      "pass_rate": 0.4
+      "count": 12,
+      "pass_rate": 0.4167
     }
   }
 }
