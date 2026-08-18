@@ -1,0 +1,71 @@
+# QLoRA fine-tuning configuration.
+#
+# Deliberately conventional. The hypothesis under test is DATA -> BEHAVIOR, so
+# hyperparameters are set to sane defaults and then held fixed across every run
+# in the data-efficiency sweep. Do not tune these per-N; varying them would
+# confound the only variable the sweep is supposed to isolate.
+
+run_name: socratic-v1
+
+model:
+  base_model: Qwen/Qwen3-1.7B
+  # Pin a commit sha before the final run so results are reproducible.
+  # Find it with: huggingface-cli scan-cache, or the model page's commit history.
+  revision: main
+  trust_remote_code: false
+  max_seq_length: 2048
+  attn_implementation: eager   # 'flash_attention_2' when the GPU supports it
+
+quantization:
+  load_in_4bit: true
+  bnb_4bit_quant_type: nf4
+  bnb_4bit_use_double_quant: true
+  bnb_4bit_compute_dtype: bfloat16   # 'float16' on T4 (no bf16 support)
+
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  bias: none
+  task_type: CAUSAL_LM
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj
+
+training:
+  num_train_epochs: 3
+  per_device_train_batch_size: 2
+  gradient_accumulation_steps: 8      # effective batch size 16
+  learning_rate: 2.0e-4
+  lr_scheduler_type: cosine
+  warmup_ratio: 0.03
+  weight_decay: 0.0
+  max_grad_norm: 0.3
+  optim: paged_adamw_8bit
+  logging_steps: 5
+  eval_strategy: epoch
+  save_strategy: epoch
+  save_total_limit: 1
+  bf16: false        # set true on Ampere+; T4 must use fp16
+  fp16: true
+  gradient_checkpointing: true
+  seed: 42
+  report_to: none
+
+data:
+  # Path to accepted examples produced by the quality gate.
+  accepted_path: data/accepted/v1.jsonl
+  validation_fraction: 0.1
+  # null trains on everything; the data-efficiency sweep overrides this per run.
+  limit: null
+
+output:
+  output_dir: outputs
+  # Set to a Hugging Face repo id to push the adapter after training.
+  hub_repo_id: null
+  push_to_hub: false

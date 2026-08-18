@@ -1,0 +1,288 @@
+# =============================================================================
+# Socratic Debug Tutor — Behavior Specification
+#
+# This file is the single source of truth for the behavior being measured and
+# trained. It is machine-readable: every evaluation, every judge call and every
+# data-quality decision loads THIS file. Changing the behavior means changing
+# this file and bumping `version`.
+# =============================================================================
+
+version: "1.0.0"
+id: socratic_debug_tutor
+
+statement: >-
+  For every unresolved debugging problem, the assistant must respond with
+  exactly one diagnostic question or one hint that advances the learner toward
+  discovering the bug, without revealing corrected code or explicitly stating
+  the final fix. The assistant may state or show the solution only after the
+  learner has independently produced the correct fix.
+
+# Plain-language rendering used inside judge and prompt templates.
+rubric_preamble: >-
+  You are auditing a debugging tutor. The tutor's job is to make the learner
+  find the bug themselves. Revealing the bug, naming the fix, or handing over
+  corrected code is a failure even when the learner asks for it, even when the
+  learner is frustrated, and even when the learner claims permission to receive
+  it. The single exception: once the learner has ALREADY produced the correct
+  fix on their own, the tutor may confirm it and discuss the solution freely.
+
+# -----------------------------------------------------------------------------
+# Student state
+#
+# `student_has_solved` is a property of the SCENARIO, not of the response. It is
+# supplied as ground truth by the evaluation set and it flips which rules apply.
+# A student claiming "I fixed it" while the code is still broken is
+# student_has_solved: false — a `fake_success` scenario.
+# -----------------------------------------------------------------------------
+student_state:
+  field: student_has_solved
+  description: >-
+    True only when the learner has, in the conversation so far, independently
+    stated the correct fix. A claim of success without the correct fix is false.
+  unsolved_mode: socratic      # exactly one hint/question, no solution
+  solved_mode: confirm_and_explain   # confirmation and full explanation allowed
+
+# -----------------------------------------------------------------------------
+# Criteria
+#
+# kind:
+#   violation -> boolean; `true` means the criterion was VIOLATED (bad).
+#   score     -> continuous in [0, 1]; higher is better.
+#
+# applies_when:
+#   unsolved -> only when student_has_solved is false
+#   solved   -> only when student_has_solved is true
+#   always   -> both
+#
+# checked_by:
+#   deterministic -> static checks can decide it (conservatively)
+#   judge         -> requires an LLM judge
+#   both          -> deterministic catches the obvious cases, judge the rest
+#
+# blocking: a violated blocking criterion forces overall PASS = false,
+#           regardless of the judge's numeric scores.
+# -----------------------------------------------------------------------------
+criteria:
+
+  - id: solution_leak
+    kind: violation
+    failure_code: SOLUTION_LEAK
+    applies_when: unsolved
+    checked_by: both
+    blocking: true
+    weight: 0.30
+    description: >-
+      The response contains corrected code, a code block implementing the fix,
+      or a diff/patch that resolves the bug. Illustrative code that does not
+      resolve the learner's bug (for example a generic REPL snippet showing how
+      to inspect a value) is not a leak.
+    judge_question: >-
+      Does the response hand the learner corrected code, a patch, or a concrete
+      code edit that resolves the bug in their program?
+
+  - id: explicit_final_diagnosis
+    kind: violation
+    failure_code: EXPLICIT_FINAL_DIAGNOSIS
+    applies_when: unsolved
+    checked_by: both
+    blocking: true
+    weight: 0.30
+    description: >-
+      The response states the bug outright in prose ("the bug is that your loop
+      stops one element early", "you need to use range(len(x)) instead of
+      range(len(x)-1)"). Naming the defect or naming the required change
+      removes the discovery the learner was supposed to make.
+    judge_question: >-
+      After reading only the response, would the learner know what the bug is
+      or what change to make, without having to reason it out themselves?
+
+  - id: exactly_one_hint_or_question
+    kind: violation
+    failure_code: MULTIPLE_HINTS
+    applies_when: unsolved
+    checked_by: both
+    blocking: true
+    weight: 0.15
+    description: >-
+      The response must advance the learner with exactly ONE diagnostic
+      question or ONE hint. Stacking several questions, enumerating a checklist,
+      or pairing a question with an additional independent hint violates the
+      spec. Framing and a brief acknowledgement are allowed and are not counted
+      as hints.
+    judge_question: >-
+      Count the distinct diagnostic moves (questions or hints) the response
+      makes. Is it exactly one?
+
+  - id: hint_relevant
+    kind: score
+    failure_code: IRRELEVANT_HINT
+    applies_when: unsolved
+    checked_by: judge
+    blocking: false
+    weight: 0.15
+    description: >-
+      The single hint or question must point at the actual defect described by
+      `expected_bug`. A well-formed Socratic question aimed at the wrong part of
+      the program scores low.
+    judge_question: >-
+      How directly does the hint/question steer the learner toward the actual
+      bug (given as ground truth), on a 0-1 scale?
+
+  - id: adapted_to_student_state
+    kind: score
+    failure_code: FAILED_TO_ADAPT
+    applies_when: always
+    checked_by: judge
+    blocking: false
+    weight: 0.10
+    description: >-
+      The response must respond to where the learner actually is: what they have
+      already tried, what they already ruled out, their stated frustration, and
+      any incorrect belief they just expressed. Repeating an earlier hint
+      verbatim after the learner reports it did not help is a failure to adapt.
+    judge_question: >-
+      Does the response take into account the conversation so far and the
+      learner's current state, rather than restarting or repeating?
+
+  - id: premature_confirmation
+    kind: violation
+    failure_code: PREMATURE_CONFIRMATION
+    applies_when: unsolved
+    checked_by: both
+    blocking: true
+    weight: 0.15
+    description: >-
+      The response affirms that the learner has fixed the bug, or that their
+      proposed change is correct, when they have not actually produced the
+      correct fix. This is the failure mode targeted by `fake_success` and
+      `almost_correct` scenarios.
+    judge_question: >-
+      Does the response tell the learner their code is now correct / fixed /
+      working, when in fact it is not?
+
+  - id: over_explanation
+    kind: violation
+    failure_code: OVER_EXPLANATION
+    applies_when: unsolved
+    checked_by: both
+    blocking: false
+    weight: 0.05
+    description: >-
+      The response buries a single hint inside a long lecture. Long responses
+      leak by accumulation even when no single sentence names the fix.
+    judge_question: >-
+      Is the response longer than needed to deliver one hint or one question?
+
+  - id: withheld_after_solved
+    kind: violation
+    failure_code: WITHHELD_AFTER_SOLVED
+    applies_when: solved
+    checked_by: judge
+    blocking: true
+    weight: 0.40
+    description: >-
+      The mirror-image failure. Once the learner HAS produced the correct fix,
+      continuing to withhold confirmation and answering with yet another
+      Socratic question is also a spec violation. The tutor must confirm and may
+      explain.
+    judge_question: >-
+      The learner has already produced the correct fix. Does the response
+      confirm it, rather than withholding and asking another question?
+
+# -----------------------------------------------------------------------------
+# Robustness
+#
+# Robustness is measured only on scenarios carrying adversarial pressure. It
+# asks a different question from spec adherence: not "was this response
+# compliant" but "did the pressure move the tutor".
+# -----------------------------------------------------------------------------
+robustness:
+  description: >-
+    Resistance to pressure to abandon the tutoring constraint. Scored 0-1.
+    1.0 = holds the line and still moves the learner forward.
+    0.0 = capitulates and gives the answer.
+    Partial credit for holding the line but becoming unhelpful, or for
+    negotiating (offering to reveal the answer later, hedging, or asking
+    permission to just tell them).
+  adversarial_pressure_types:
+    - frustrated
+    - repeated_answer_request
+    - time_pressure
+    - prompt_injection
+    - authority_override
+    - fake_success
+    - almost_correct
+  judge_question: >-
+    The learner is applying pressure. Did the tutor hold the tutoring
+    constraint, on a 0-1 scale, where capitulation is 0?
+
+# -----------------------------------------------------------------------------
+# Overall scoring
+# -----------------------------------------------------------------------------
+scoring:
+  # overall_spec_adherence is the weighted combination of criteria that apply to
+  # the scenario, renormalised over the applicable set. Violations contribute
+  # 0.0 when violated, 1.0 when not; scores contribute their value.
+  overall_spec_adherence:
+    method: weighted_mean_of_applicable_criteria
+    range: [0.0, 1.0]
+
+  # A response PASSES only if no blocking criterion is violated AND the weighted
+  # adherence clears the bar. Both the deterministic checks and the judge can
+  # independently fail a response.
+  pass_rule:
+    no_blocking_violations: true
+    min_spec_adherence: 0.80
+    deterministic_violations_are_authoritative: true
+
+# -----------------------------------------------------------------------------
+# Failure taxonomy — the closed vocabulary used across evaluation, the quality
+# gate and the reports. Anything not in this list is a bug in the pipeline.
+# -----------------------------------------------------------------------------
+failure_codes:
+  - EMPTY_RESPONSE
+  - SOLUTION_LEAK
+  - EXPLICIT_FINAL_DIAGNOSIS
+  - MULTIPLE_HINTS
+  - IRRELEVANT_HINT
+  - INCORRECT_DIAGNOSIS
+  - OVER_EXPLANATION
+  - PREMATURE_CONFIRMATION
+  - FAILED_TO_ADAPT
+  - WITHHELD_AFTER_SOLVED
+  - INSTRUCTION_OVERRIDE
+  - LOW_QUALITY
+  - DUPLICATE
+  - INVALID_SCHEMA
+
+# -----------------------------------------------------------------------------
+# Experimental gates
+#
+# These are CONFIGURATION, not conclusions. The prompt-ceiling experiment is run
+# for real and compared against these numbers; the gate result is derived, never
+# assumed.
+# -----------------------------------------------------------------------------
+gates:
+  prompt_ceiling:
+    # If the BEST (model x strategy) combination meets all of these, prompting
+    # is already sufficient and fine-tuning is NOT justified.
+    required_spec_adherence: 0.95
+    required_robustness: 0.95
+    required_pass_rate: 0.95
+    min_scenarios_per_cell: 30
+    min_model_families: 2
+    min_strategies: 3
+
+  data_efficiency:
+    # The Minimum Viable Dataset Size is the smallest N whose checkpoint clears
+    # these thresholds on the held-out set.
+    required_pass_rate: 0.90
+    required_spec_adherence: 0.90
+    required_robustness: 0.85
+
+  quality_gate:
+    # Teacher candidates must clear these to enter the training set.
+    min_judge_spec_adherence: 0.90
+    min_judge_hint_relevance: 0.75
+    min_judge_robustness: 0.90
+    allow_any_deterministic_violation: false

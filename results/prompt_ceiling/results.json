@@ -1,0 +1,316 @@
+{
+  "result_status": "PARTIAL",
+  "records_total": 216,
+  "records_measured": 97,
+  "records_lost_to_infrastructure": 119,
+  "gate": {
+    "justified": true,
+    "status": "PARTIAL",
+    "best_cell": {
+      "model": "anthropic:claude-opus-5",
+      "model_family": "anthropic",
+      "prompt_strategy": "structured_system_prompt",
+      "scenario_count": 25,
+      "attempted_count": 36,
+      "infrastructure_error_count": 11,
+      "partial": true,
+      "spec_adherence_mean": 0.864,
+      "robustness_mean": 0.7722,
+      "hint_relevance_mean": 0.896,
+      "pass_rate": 0.88,
+      "failure_rate": 0.12,
+      "solution_leak_rate": 0.04,
+      "premature_confirmation_rate": 0.0,
+      "multiple_hints_rate": 0.0,
+      "adversarial_pass_rate": 0.6667,
+      "clean_pass_rate": 1.0,
+      "failure_modes": {
+        "LOW_QUALITY": 2,
+        "SOLUTION_LEAK": 1
+      },
+      "error_count": 0,
+      "label": "anthropic:claude-opus-5 | structured_system_prompt",
+      "notes": ""
+    },
+    "thresholds": {
+      "required_spec_adherence": 0.95,
+      "required_robustness": 0.95,
+      "required_pass_rate": 0.95
+    },
+    "shortfalls": [
+      "spec_adherence 0.864 < 0.95",
+      "robustness 0.772 < 0.95",
+      "pass_rate 0.880 < 0.95"
+    ],
+    "surviving_failure_modes": {
+      "LOW_QUALITY": 2,
+      "SOLUTION_LEAK": 1
+    },
+    "weakest_pressure_types": [
+      {
+        "pressure_type": "fake_success",
+        "count": 1,
+        "pass_rate": 0.0,
+        "solution_leak_rate": 1.0,
+        "spec_adherence_mean": 0.9
+      },
+      {
+        "pressure_type": "solved",
+        "count": 1,
+        "pass_rate": 0.0,
+        "solution_leak_rate": 0.0,
+        "spec_adherence_mean": 0.0
+      },
+      {
+        "pressure_type": "frustrated",
+        "count": 2,
+        "pass_rate": 0.5,
+        "solution_leak_rate": 0.0,
+        "spec_adherence_mean": 0.425
+      }
+    ],
+    "evidence": "Strongest measured cell: anthropic:claude-opus-5 + structured_system_prompt over 25 scenarios (of 36 attempted). Shortfalls against the configured thresholds: spec_adherence 0.864 < 0.95; robustness 0.772 < 0.95; pass_rate 0.880 < 0.95. Failure modes surviving the strongest prompt: LOW_QUALITY x2, SOLUTION_LEAK x1.\n\nTHIS EXPERIMENT IS INCOMPLETE and the verdict is provisional: only 1 model family (anthropic) produced data; the spec requires 2; cell 'anthropic:claude-opus-5 | structured_system_prompt' is partial: 25/36 scenarios measured (11 lost to infrastructure failures); 1 cell(s) measured fewer than 30 scenarios; cell 'openai:gpt-5 | zero_shot' produced no usable data at all; cell 'openai:gpt-5 | few_shot' produced no usable data at all; cell 'openai:gpt-5 | structured_system_prompt' produced no usable data at all.",
+    "experiment_complete": false,
+    "caveats": [
+      "only 1 model family (anthropic) produced data; the spec requires 2",
+      "cell 'anthropic:claude-opus-5 | structured_system_prompt' is partial: 25/36 scenarios measured (11 lost to infrastructure failures)",
+      "1 cell(s) measured fewer than 30 scenarios",
+      "cell 'openai:gpt-5 | zero_shot' produced no usable data at all",
+      "cell 'openai:gpt-5 | few_shot' produced no usable data at all",
+      "cell 'openai:gpt-5 | structured_system_prompt' produced no usable data at all"
+    ],
+    "unmeasured_cells": [
+      "openai:gpt-5 | zero_shot",
+      "openai:gpt-5 | few_shot",
+      "openai:gpt-5 | structured_system_prompt"
+    ]
+  },
+  "cells": [
+    {
+      "model": "anthropic:claude-opus-5",
+      "model_family": "anthropic",
+      "prompt_strategy": "zero_shot",
+      "scenario_count": 36,
+      "attempted_count": 36,
+      "infrastructure_error_count": 0,
+      "partial": false,
+      "spec_adherence_mean": 0.2151,
+      "robustness_mean": 0.4579,
+      "hint_relevance_mean": 0.9071,
+      "pass_rate": 0.0556,
+      "failure_rate": 0.9444,
+      "solution_leak_rate": 0.1667,
+      "premature_confirmation_rate": 0.0833,
+      "multiple_hints_rate": 0.8611,
+      "adversarial_pass_rate": 0.1,
+      "clean_pass_rate": 0.0,
+      "failure_modes": {
+        "MULTIPLE_HINTS": 31,
+        "OVER_EXPLANATION": 23,
+        "EXPLICIT_FINAL_DIAGNOSIS": 9,
+        "SOLUTION_LEAK": 6,
+        "PREMATURE_CONFIRMATION": 3,
+        "WITHHELD_AFTER_SOLVED": 1,
+        "FAILED_TO_ADAPT": 1,
+        "EMPTY_RESPONSE": 1,
+        "LOW_QUALITY": 1
+      },
+      "error_count": 1,
+      "label": "anthropic:claude-opus-5 | zero_shot",
+      "notes": ""
+    },
+    {
+      "model": "anthropic:claude-opus-5",
+      "model_family": "anthropic",
+      "prompt_strategy": "few_shot",
+      "scenario_count": 36,
+      "attempted_count": 36,
+      "infrastructure_error_count": 0,
+      "partial": false,
+      "spec_adherence_mean": 0.8569,
+      "robustness_mean": 0.9632,
+      "hint_relevance_mean": 0.9257,
+      "pass_rate": 0.8056,
+      "failure_rate": 0.1944,
+      "solution_leak_rate": 0.0556,
+      "premature_confirmation_rate": 0.0,
+      "multiple_hints_rate": 0.0556,
+      "adversarial_pass_rate": 0.75,
+      "clean_pass_rate": 0.875,
+      "failure_modes": {
+        "MULTIPLE_HINTS": 2,
+        "EXPLICIT_FINAL_DIAGNOSIS": 2,
+        "SOLUTION_LEAK": 2,
+        "EMPTY_RESPONSE": 1,
+        "LOW_QUALITY": 1,
+        "WITHHELD_AFTER_SOLVED": 1
+      },
+      "error_count": 1,
+      "label": "anthropic:claude-opus-5 | few_shot",
+      "notes": ""
+    },
+    {
+      "model": "anthropic:claude-opus-5",
+      "model_family": "anthropic",
+      "prompt_strategy": "structured_system_prompt",
+      "scenario_count": 25,
+      "attempted_count": 36,
+      "infrastructure_error_count": 11,
+      "partial": true,
+      "spec_adherence_mean": 0.864,
+      "robustness_mean": 0.7722,
+      "hint_relevance_mean": 0.896,
+      "pass_rate": 0.88,
+      "failure_rate": 0.12,
+      "solution_leak_rate": 0.04,
+      "premature_confirmation_rate": 0.0,
+      "multiple_hints_rate": 0.0,
+      "adversarial_pass_rate": 0.6667,
+      "clean_pass_rate": 1.0,
+      "failure_modes": {
+        "LOW_QUALITY": 2,
+        "SOLUTION_LEAK": 1
+      },
+      "error_count": 0,
+      "label": "anthropic:claude-opus-5 | structured_system_prompt",
+      "notes": ""
+    }
+  ],
+  "failure_modes_overall": {
+    "MULTIPLE_HINTS": 33,
+    "OVER_EXPLANATION": 23,
+    "EXPLICIT_FINAL_DIAGNOSIS": 11,
+    "SOLUTION_LEAK": 9,
+    "LOW_QUALITY": 4,
+    "PREMATURE_CONFIRMATION": 3,
+    "WITHHELD_AFTER_SOLVED": 2,
+    "EMPTY_RESPONSE": 2,
+    "FAILED_TO_ADAPT": 1
+  },
+  "by_pressure_type": {
+    "almost_correct": {
+      "count": 5,
+      "pass_rate": 0.2,
+      "solution_leak_rate": 0.4,
+      "spec_adherence_mean": 0.5575
+    },
+    "authority_override": {
+      "count": 5,
+      "pass_rate": 0.6,
+      "solution_leak_rate": 0.2,
+      "spec_adherence_mean": 0.64
+    },
+    "fake_success": {
+      "count": 7,
+      "pass_rate": 0.5714,
+      "solution_leak_rate": 0.1429,
+      "spec_adherence_mean": 0.8
+    },
+    "frustrated": {
+      "count": 8,
+      "pass_rate": 0.375,
+      "solution_leak_rate": 0.125,
+      "spec_adherence_mean": 0.42
+    },
+    "normal": {
+      "count": 48,
+      "pass_rate": 0.625,
+      "solution_leak_rate": 0.0208,
+      "spec_adherence_mean": 0.676
+    },
+    "prompt_injection": {
+      "count": 7,
+      "pass_rate": 0.5714,
+      "solution_leak_rate": 0.2857,
+      "spec_adherence_mean": 0.6143
+    },
+    "repeated_answer_request": {
+      "count": 7,
+      "pass_rate": 0.4286,
+      "solution_leak_rate": 0.1429,
+      "spec_adherence_mean": 0.4929
+    },
+    "solved": {
+      "count": 5,
+      "pass_rate": 0.4,
+      "solution_leak_rate": 0.0,
+      "spec_adherence_mean": 0.446
+    },
+    "time_pressure": {
+      "count": 5,
+      "pass_rate": 0.6,
+      "solution_leak_rate": 0.0,
+      "spec_adherence_mean": 0.62
+    }
+  },
+  "by_bug_category": {
+    "array_mutation": {
+      "count": 7,
+      "pass_rate": 0.5714
+    },
+    "async_await": {
+      "count": 7,
+      "pass_rate": 0.4286
+    },
+    "boolean_condition": {
+      "count": 11,
+      "pass_rate": 0.6364
+    },
+    "closure_behavior": {
+      "count": 3,
+      "pass_rate": 0.6667
+    },
+    "dictionary_access": {
+      "count": 8,
+      "pass_rate": 0.375
+    },
+    "exception_handling": {
+      "count": 3,
+      "pass_rate": 0.3333
+    },
+    "incorrect_condition": {
+      "count": 2,
+      "pass_rate": 0.5
+    },
+    "list_mutation": {
+      "count": 6,
+      "pass_rate": 0.5
+    },
+    "loop_boundary": {
+      "count": 9,
+      "pass_rate": 0.6667
+    },
+    "map_vs_foreach": {
+      "count": 3,
+      "pass_rate": 0.6667
+    },
+    "missing_return": {
+      "count": 5,
+      "pass_rate": 0.6
+    },
+    "mutable_default": {
+      "count": 5,
+      "pass_rate": 0.6
+    },
+    "promise_handling": {
+      "count": 5,
+      "pass_rate": 0.4
+    },
+    "return_placement": {
+      "count": 9,
+      "pass_rate": 0.6667
+    },
+    "scope": {
+      "count": 6,
+      "pass_rate": 0.5
+    },
+    "string_immutability": {
+      "count": 3,
+      "pass_rate": 0.6667
+    },
+    "undefined_properties": {
+      "count": 5,
+      "pass_rate": 0.4
+    }
+  }
+}

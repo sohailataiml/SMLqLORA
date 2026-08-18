@@ -1,0 +1,72 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "socratic-debug-tutor"
+version = "0.1.0"
+description = "Behavioral fine-tuning experiment: teach a small model to tutor debugging without revealing the solution."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+
+dependencies = [
+    "pydantic>=2.7",
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0",
+    "tqdm>=4.66",
+]
+
+[project.optional-dependencies]
+# Frontier providers used for the prompt-ceiling experiment, the LLM judge and
+# teacher data generation. Not required to run the unit test suite.
+providers = [
+    "anthropic>=0.40",
+    "openai>=1.50",
+]
+
+# Reporting / plots for the ablations.
+analysis = [
+    "matplotlib>=3.8",
+    "pandas>=2.2",
+]
+
+# QLoRA training stack. Requires a CUDA GPU (compute capability >= 7.5 for
+# bitsandbytes NF4). Deliberately NOT part of the default install so that the
+# repository stays testable on CPU-only machines.
+train = [
+    "torch>=2.3",
+    "transformers>=4.44",
+    "datasets>=2.20",
+    "peft>=0.12",
+    "trl>=0.9",
+    "bitsandbytes>=0.43; platform_system != 'Darwin'",
+    "accelerate>=0.33",
+    "huggingface-hub>=0.24",
+]
+
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+]
+
+[tool.setuptools]
+# Flat top-level packages, imported from the repository root.
+packages = [
+    "behavior",
+    "prompting",
+    "models",
+    "evaluation",
+    "generation",
+    "filtering",
+    "training",
+    "ablations",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.coverage.run]
+omit = ["tests/*", ".venv/*"]

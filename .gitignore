@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Secrets
+.env
+
+# Model artifacts — checkpoints are large; publish adapters to the Hub instead.
+outputs/
+*.safetensors
+*.bin
+
+# Local scratch
+.ipynb_checkpoints/
+scratch/
+
+# --- Provenance hardening (added when the repo was placed under version control) ---
+
+# Secrets: never commit any real environment file. `.env.example` is the template
+# and is deliberately re-included below.
+.env
+.env.*
+*.env
+!.env.example
+secrets/
+*.key
+*.pem
+credentials.json
+service-account*.json
+
+# Model weights and caches. Adapters are small but still belong on the Hub.
+*.pt
+*.pth
+*.ckpt
+*.gguf
+*.onnx
+*.h5
+*.msgpack
+.cache/
+hf_cache/
+huggingface/
+transformers_cache/
+wandb/
+mlruns/
+
+# Raw provider responses can embed request headers; keep them local.
+data/raw_api/
+*.raw.json
+
+# Demo/scratch experiment output that is not evidence.
+results/prompt_ceiling_mock/
+data/candidates/vdemo.*
+data/accepted/vdemo.jsonl
+data/rejected/vdemo.jsonl
+data/versions/vdemo/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

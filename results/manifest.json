@@ -1,0 +1,98 @@
+{
+  "project": "socratic-debug-tutor",
+  "manifest_version": "1.0.0",
+  "experiment_timestamp": "2026-08-17T22:23:19.946707+00:00",
+  "behavior_spec_version": "1.0.0",
+  "behavior_spec_sha256": "6359a7124543254755306eccbe24465209a1768f6375a5d565216fb4d7d3a4f8",
+  "eval_sets": {
+    "clean": {
+      "count": 16,
+      "hash": "1671e8c6afa77fc07ce6fc08b3c160606da34dd4560faed950ccc27ac903f880"
+    },
+    "adversarial": {
+      "count": 20,
+      "hash": "315a1d5de4e59e48677976c4334aba99f3ddd755a472be5c6d4fe8dd972d59dd"
+    },
+    "heldout": {
+      "count": 20,
+      "hash": "a30abe2a9be7df5420e01197ba700b9e582fefb06fa3d0a0855351c1fbb5f048"
+    }
+  },
+  "eval_set_hash": "a30abe2a9be7df5420e01197ba700b9e582fefb06fa3d0a0855351c1fbb5f048",
+  "eval_scenarios_total": 56,
+  "prompt_versions": [
+    {
+      "strategy": "zero_shot",
+      "version": "1.0.0",
+      "description": "One sentence of intent. The prompt a developer writes first.",
+      "sha256": "d0f3aa521c5e2bb0"
+    },
+    {
+      "strategy": "few_shot",
+      "version": "1.0.0",
+      "description": "Instruction plus six curated exemplars spanning normal, adversarial and solved cases.",
+      "sha256": "9a7bdc4b03506b45"
+    },
+    {
+      "strategy": "structured_system_prompt",
+      "version": "1.0.0",
+      "description": "Full behavior spec, an explicit response contract, and named counter-pressure policies. The ceiling this experiment measures.",
+      "sha256": "9e86828b04ca1ad2"
+    }
+  ],
+  "judge_prompt_version": "1.0.0",
+  "judge_prompt_sha256": "a34b7a2b508d31e6eb6a7d9e3361e8ba909be39d4a88ebb22b7c10f11fe1aba6",
+  "generation_prompt_version": "1.0.0",
+  "generation_prompt_sha256": "6dc7c82da5780f612653a7957a27a33f8af1b8359ed68ec9a74ec26e2bf81ed5",
+  "datasets": [],
+  "dataset_version": null,
+  "dataset_hash": null,
+  "base_model": "Qwen/Qwen3-1.7B",
+  "base_model_revision": "main (pin a commit sha before final runs)",
+  "tuned_model": null,
+  "tuned_model_revision": null,
+  "checkpoints": [],
+  "experiments": [
+    {
+      "experiment": "prompt_ceiling",
+      "status": "PARTIAL",
+      "artifacts": "results\\prompt_ceiling",
+      "gate_justified": true,
+      "gate_complete": false,
+      "gate_caveats": [
+        "only 1 model family (anthropic) produced data; the spec requires 2",
+        "cell 'anthropic:claude-opus-5 | structured_system_prompt' is partial: 25/36 scenarios measured (11 lost to infrastructure failures)",
+        "1 cell(s) measured fewer than 30 scenarios",
+        "cell 'openai:gpt-5 | zero_shot' produced no usable data at all",
+        "cell 'openai:gpt-5 | few_shot' produced no usable data at all",
+        "cell 'openai:gpt-5 | structured_system_prompt' produced no usable data at all"
+      ]
+    },
+    {
+      "experiment": "base_vs_tuned",
+      "status": "NOT_RUN",
+      "note": "no artifacts at results\\base_vs_tuned\\results.json"
+    },
+    {
+      "experiment": "data_efficiency",
+      "status": "NOT_RUN",
+      "note": "no artifacts at results\\data_efficiency\\results.json"
+    }
+  ],
+  "git_commit": "unavailable:not-a-git-repository",
+  "git_dirty": null,
+  "dependency_versions": {
+    "anthropic": "0.122.0",
+    "openai": "3.2.0",
+    "pydantic": "2.13.4",
+    "torch": "not-installed",
+    "transformers": "not-installed",
+    "peft": "not-installed",
+    "trl": "not-installed",
+    "bitsandbytes": "not-installed",
+    "datasets": "not-installed",
+    "accelerate": "not-installed"
+  },
+  "dependency_lock_hash": "fd5aebe68173fcaadbf3b64be97e8e5dae06670c583f74948a9ba4f4e779ae19",
+  "python_version": "3.12.10"
+}
