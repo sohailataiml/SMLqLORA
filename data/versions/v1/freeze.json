@@ -20,6 +20,7 @@
   "teacher_revision": "claude-opus-5",
   "generation_prompt_version": "1.0.0",
   "generation_prompt_sha256": "6dc7c82da5780f612653a7957a27a33f8af1b8359ed68ec9a74ec26e2bf81ed5",
-  "git_commit": "963290efc078f0f704833b7cd8e93d045fb7db21",
-  "policy": "Frozen. Any later correction becomes v2 rather than mutating v1, so a training result can always be traced to the exact data that produced it."
+  "git_commit": "c0217b92b5ff35cf7d93dcc383e301907e4c1e34",
+  "policy": "Frozen. Any later correction becomes v2 rather than mutating v1, so a training result can always be traced to the exact data that produced it.",
+  "git_commit_note": "commit that stores the frozen dataset"
 }
