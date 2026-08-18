@@ -66,3 +66,6 @@ data/versions/vdemo/
 Thumbs.db
 .idea/
 .vscode/
+
+# Generation run logs are progress output, not evidence.
+data/candidates/*.genlog.txt
