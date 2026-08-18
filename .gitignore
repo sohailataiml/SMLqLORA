@@ -69,3 +69,7 @@ Thumbs.db
 
 # Generation run logs are progress output, not evidence.
 data/candidates/*.genlog.txt
+
+# Judge verdict journal is a resume cache; verdicts land in accepted/rejected.
+data/versions/*/judge_journal.jsonl
+data/candidates/*.filterlog*.txt
