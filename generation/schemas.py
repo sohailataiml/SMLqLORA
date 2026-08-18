@@ -216,6 +216,12 @@ class GenerationBatchStats(BaseModel):
     parse_failures: int = 0
     schema_failures: int = 0
     provider_errors: int = 0
+    #: Candidates reused from a prior interrupted run rather than re-purchased.
+    reused: int = 0
+    #: Candidates actually bought during this invocation.
+    generated_this_run: int = 0
+    #: Provider token accounting, when the run was metered.
+    usage: dict[str, Any] = Field(default_factory=dict)
     dataset_version: str = ""
     teacher_model: str = ""
     elapsed_s: float = 0.0

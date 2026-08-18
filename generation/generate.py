@@ -27,10 +27,24 @@ if str(REPO_ROOT) not in sys.path:
 
 from behavior.spec import load_spec  # noqa: E402
 from evaluation.schemas import write_jsonl  # noqa: E402
-from generation.prompts import plan_summary, sample_plan  # noqa: E402
+from generation.prompts import (  # noqa: E402
+    GENERATION_PROMPT_VERSION,
+    generation_prompt_hash,
+    plan_summary,
+    sample_plan,
+)
+from generation.resume import (  # noqa: E402
+    CandidateWriter,
+    check_run_config,
+    completed_indices,
+    pending_indices,
+    read_candidates,
+    write_run_config,
+)
 from generation.schemas import GeneratedExample, GenerationBatchStats  # noqa: E402
 from generation.teacher import Teacher, TeacherError  # noqa: E402
 from models.adapters import ModelAdapter, ScriptedAdapter, resolve_model  # noqa: E402
+from models.usage import MeteredAdapter, UsageMeter  # noqa: E402
 
 DEFAULT_TEACHER = "anthropic:claude-opus-5"
 
@@ -132,7 +146,8 @@ def mock_payload_for(prompt: str) -> dict:
     }
 
 
-def build_teacher(spec_string: str, *, mock: bool, dataset_version: str) -> Teacher:
+def build_teacher(spec_string: str, *, mock: bool, dataset_version: str,
+                  meter: UsageMeter | None = None) -> Teacher:
     spec = load_spec()
     model: ModelAdapter
     if mock:
@@ -144,6 +159,8 @@ def build_teacher(spec_string: str, *, mock: bool, dataset_version: str) -> Teac
         )
     else:
         model = resolve_model(spec_string)
+    if meter is not None:
+        model = MeteredAdapter(model, meter)
     return Teacher(model, spec=spec, dataset_version=dataset_version)
 
 
@@ -154,17 +171,43 @@ def generate(
     base_seed: int = 20240101,
     max_workers: int = 4,
     verbose: bool = True,
+    candidates_path: str | Path | None = None,
+    resume: bool = True,
 ) -> tuple[list[GeneratedExample], GenerationBatchStats, list[str]]:
-    """Run the plan. Returns (candidates, stats, failure messages)."""
+    """Run the plan. Returns (candidates, stats, failure messages).
+
+    When `candidates_path` is given the run is **resumable**: completed
+    candidates are appended to that file as they arrive, and a restart skips
+    plan indices already present. Because a candidate's plan index fixes its
+    dimension draw, resuming cannot shift the distribution, and a retried
+    infrastructure failure cannot create a second record for one plan point.
+    """
     plan = sample_plan(count, base_seed=base_seed)
     stats = GenerationBatchStats(
         requested=count,
         dataset_version=teacher.dataset_version,
         teacher_model=teacher.model.name,
     )
-    candidates: list[GeneratedExample | None] = [None] * count
     failures: list[str] = []
     started = time.perf_counter()
+
+    prior: list[GeneratedExample] = []
+    if candidates_path is not None and resume:
+        prior, malformed = read_candidates(candidates_path)
+        if malformed and verbose:
+            print(f"  skipped {malformed} unreadable line(s) from a prior run")
+    done_indices = completed_indices(prior)
+    # Never reuse a row outside the current plan; a shorter --count must not
+    # inherit candidates from a longer earlier run.
+    prior = [e for e in prior if (idx := _index_of(e)) is not None and idx < count]
+    done_indices = {i for i in done_indices if i < count}
+    todo = pending_indices(count, done_indices)
+
+    if verbose and done_indices:
+        print(f"  resuming: {len(done_indices)} prior candidate(s) reused, "
+              f"{len(todo)} to generate")
+
+    stats.reused = len(done_indices)
 
     def work(index: int) -> tuple[int, GeneratedExample | None, str | None]:
         seed, dimensions = plan[index]
@@ -173,35 +216,63 @@ def generate(
         except TeacherError as exc:
             return index, None, f"[{exc.code}] {exc}"
 
-    with ThreadPoolExecutor(max_workers=max_workers) as pool:
-        futures = [pool.submit(work, i) for i in range(count)]
-        done = 0
-        for future in as_completed(futures):
-            index, example, error = future.result()
-            done += 1
-            if example is not None:
-                candidates[index] = example
-            else:
-                failures.append(error or "unknown failure")
-                if error and "INVALID_SCHEMA" in error:
-                    stats.schema_failures += 1
-                elif error and "unparseable JSON" in error:
-                    stats.parse_failures += 1
+    fresh: list[GeneratedExample] = []
+    writer_cm = (
+        CandidateWriter(candidates_path) if candidates_path is not None
+        else _NullWriter()
+    )
+    with writer_cm as writer:
+        with ThreadPoolExecutor(max_workers=max_workers) as pool:
+            futures = [pool.submit(work, i) for i in todo]
+            done = 0
+            for future in as_completed(futures):
+                index, example, error = future.result()
+                done += 1
+                if example is not None:
+                    fresh.append(example)
+                    writer.write(example)
                 else:
-                    stats.provider_errors += 1
-            if verbose and (done % 10 == 0 or done == count):
-                ok = sum(1 for c in candidates if c is not None)
-                print(
-                    f"  {done}/{count} attempted, {ok} valid, {len(failures)} failed",
-                    end="\r" if done != count else "\n",
-                    flush=True,
-                )
+                    failures.append(error or "unknown failure")
+                    if error and "INVALID_SCHEMA" in error:
+                        stats.schema_failures += 1
+                    elif error and "unparseable JSON" in error:
+                        stats.parse_failures += 1
+                    else:
+                        stats.provider_errors += 1
+                if verbose and (done % 10 == 0 or done == len(todo)):
+                    print(
+                        f"  {done}/{len(todo)} attempted, {len(fresh)} valid, "
+                        f"{len(failures)} failed",
+                        end="\r" if done != len(todo) else "\n",
+                    )
 
-    produced = [c for c in candidates if c is not None]
+    produced = sorted(
+        prior + fresh, key=lambda e: (_index_of(e) if _index_of(e) is not None else 0)
+    )
     stats.returned = len(produced)
+    stats.generated_this_run = len(fresh)
     stats.elapsed_s = round(time.perf_counter() - started, 2)
     stats.failure_examples = failures[:20]
     return produced, stats, failures
+
+
+def _index_of(example: GeneratedExample) -> int | None:
+    from generation.resume import index_of
+
+    return index_of(example.id)
+
+
+class _NullWriter:
+    """Stand-in when no candidates path is given (tests, --plan-only)."""
+
+    def __enter__(self) -> "_NullWriter":
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        return None
+
+    def write(self, example: GeneratedExample) -> None:
+        return None
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -215,6 +286,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--output-dir", default="data/candidates")
     parser.add_argument("--mock", action="store_true",
                         help="scripted teacher; produces clearly-labelled mock candidates")
+    parser.add_argument("--no-resume", action="store_true",
+                        help="ignore prior candidates and re-purchase every call")
     parser.add_argument("--plan-only", action="store_true",
                         help="print the dimension distribution and exit without calling a model")
     args = parser.parse_args(argv)
@@ -224,8 +297,32 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(json.dumps(plan_summary(plan), indent=2))
         return 0
 
+    meter = UsageMeter()
     teacher = build_teacher(args.teacher, mock=args.mock,
-                            dataset_version=args.dataset_version)
+                            dataset_version=args.dataset_version, meter=meter)
+
+    out_dir = REPO_ROOT / args.output_dir
+    candidates_path = out_dir / f"{args.dataset_version}.jsonl"
+
+    # Reusing rows generated under a different seed or prompt would silently mix
+    # two dimension spaces, so a mismatch stops the run instead.
+    run_config = {
+        "base_seed": args.base_seed,
+        "dataset_version": args.dataset_version,
+        "generation_prompt_version": GENERATION_PROMPT_VERSION,
+        "generation_prompt_sha256": generation_prompt_hash(load_spec()),
+        "teacher_model": teacher.model.name,
+    }
+    if not args.no_resume:
+        problems = check_run_config(candidates_path, run_config)
+        if problems:
+            print("Cannot resume — the cached candidates came from a different run:")
+            for problem in problems:
+                print(f"  - {problem}")
+            print("Re-run with --no-resume to start fresh (this re-purchases "
+                  "every candidate), or restore the original settings.")
+            return 1
+
     print(f"Teacher: {teacher.model.name} (dataset {args.dataset_version})")
     print(f"Attempting {args.count} candidates with {args.max_workers} workers...")
 
@@ -234,11 +331,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         teacher=teacher,
         base_seed=args.base_seed,
         max_workers=args.max_workers,
+        candidates_path=candidates_path,
+        resume=not args.no_resume,
     )
 
-    out_dir = REPO_ROOT / args.output_dir
-    candidates_path = out_dir / f"{args.dataset_version}.jsonl"
-    write_jsonl(candidates_path, candidates)
+    stats.usage = meter.totals()
+    write_run_config(candidates_path, run_config)
 
     stats_path = out_dir / f"{args.dataset_version}.stats.json"
     stats_path.parent.mkdir(parents=True, exist_ok=True)
@@ -246,9 +344,16 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     print()
     print(f"valid candidates : {stats.returned}/{stats.requested}")
+    print(f"reused (resume)  : {stats.reused}")
+    print(f"bought this run  : {stats.generated_this_run}")
     print(f"parse failures   : {stats.parse_failures}")
     print(f"schema failures  : {stats.schema_failures}")
     print(f"provider errors  : {stats.provider_errors}")
+    tokens = stats.usage.get("totals", {})
+    if tokens.get("requests"):
+        print(f"tokens           : {tokens.get('input_tokens', 0):,} in / "
+              f"{tokens.get('output_tokens', 0):,} out "
+              f"over {tokens.get('requests', 0)} request(s)")
     print(f"elapsed          : {stats.elapsed_s}s")
     print(f"written          : {candidates_path.relative_to(REPO_ROOT)}")
     if failures:

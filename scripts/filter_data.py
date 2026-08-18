@@ -10,6 +10,7 @@ Reads `data/candidates/<version>.jsonl`, writes `data/accepted/`,
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 from typing import Sequence
@@ -22,7 +23,9 @@ from evaluation.judge import DeterministicJudge, LLMJudge  # noqa: E402
 from evaluation.schemas import iter_jsonl, load_scenario_files  # noqa: E402
 from filtering.quality_gate import run_quality_gate, write_dataset_version  # noqa: E402
 from generation.schemas import GeneratedExample  # noqa: E402
+from generation.topup import plan_topup  # noqa: E402
 from models.adapters import resolve_model  # noqa: E402
+from models.usage import MeteredAdapter, UsageMeter  # noqa: E402
 
 EVAL_SETS = ("scenarios/clean.jsonl", "scenarios/adversarial.jsonl",
              "scenarios/heldout.jsonl")
@@ -61,6 +64,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--mock", action="store_true",
                         help="use the offline deterministic judge (no API calls)")
     parser.add_argument("--notes", default="")
+    parser.add_argument("--target-accepted", type=int, default=600,
+                        help="target size; used only to size a top-up tranche")
     args = parser.parse_args(argv)
 
     spec = load_spec()
@@ -70,10 +75,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     candidates = load_candidates(candidates_path)
     eval_scenarios = load_scenario_files([REPO_ROOT / p for p in EVAL_SETS])
 
+    meter = UsageMeter()
     judge = (
         DeterministicJudge(spec)
         if args.mock
-        else LLMJudge(resolve_model(args.judge), spec)
+        else LLMJudge(MeteredAdapter(resolve_model(args.judge), meter), spec)
     )
 
     print(f"Candidates      : {len(candidates)}")
@@ -115,6 +121,38 @@ def main(argv: Sequence[str] | None = None) -> int:
     print("top rejection reasons:")
     for reason, count in list(report.rejections_by_reason.items())[:8]:
         print(f"  {reason:<28} {count}")
+    tokens = meter.totals()
+    if tokens["totals"]["requests"]:
+        t = tokens["totals"]
+        print()
+        print(f"judge tokens    : {t['input_tokens']:,} in / "
+              f"{t['output_tokens']:,} out over {t['requests']} request(s)")
+        usage_path = (REPO_ROOT / "data" / "versions" / args.dataset_version
+                      / "judge_usage.json")
+        usage_path.parent.mkdir(parents=True, exist_ok=True)
+        usage_path.write_text(json.dumps(tokens, indent=2) + "\n", encoding="utf-8")
+
+    # Size the next tranche from what the gate actually accepted, rather than
+    # from an assumed rate. Reported only; generation stays a separate command.
+    print()
+    if report.accepted_count >= args.target_accepted:
+        print(f"top-up          : not needed "
+              f"({report.accepted_count} >= {args.target_accepted})")
+    elif report.acceptance_rate > 0:
+        topup = plan_topup(target=args.target_accepted,
+                           accepted=report.accepted_count,
+                           observed_rate=report.acceptance_rate)
+        print(f"top-up          : {topup.additional_candidates} more candidate(s)")
+        print(f"                  {topup.reason}")
+        topup_path = (REPO_ROOT / "data" / "versions" / args.dataset_version
+                      / "topup.json")
+        topup_path.parent.mkdir(parents=True, exist_ok=True)
+        topup_path.write_text(json.dumps(topup.to_dict(), indent=2) + "\n",
+                              encoding="utf-8")
+    else:
+        print("top-up          : NOT SIZED — acceptance rate is 0; "
+              "investigate the gate before spending again")
+
     print()
     for name, path in paths.items():
         print(f"  {name:<18} {Path(path).relative_to(REPO_ROOT)}")
