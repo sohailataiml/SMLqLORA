@@ -1,7 +1,7 @@
 {
   "project": "socratic-debug-tutor",
   "manifest_version": "1.0.0",
-  "experiment_timestamp": "2026-08-18T15:05:40.324838+00:00",
+  "experiment_timestamp": "2026-08-18T15:07:24.209175+00:00",
   "behavior_spec_version": "1.0.0",
   "behavior_spec_sha256": "dc14f40b94d622d14ddaa2800c29311aa8a6e4a5aa875dee327ae23e4efb2127",
   "eval_sets": {
@@ -72,8 +72,8 @@
       "note": "no artifacts at results\\data_efficiency\\results.json"
     }
   ],
-  "git_commit": "2ec9644d82d1483f8cef2f8b97a3082518324251",
-  "git_dirty": true,
+  "git_commit": "bd9186667dc7a43579f682789ea6d7e3d263fa3e",
+  "git_dirty": false,
   "dependency_versions": {
     "anthropic": "0.117.1",
     "openai": "3.2.0",
