@@ -93,6 +93,17 @@ _INFRASTRUCTURE_MARKERS = (
     # run reports pass_rate 0.0 with infrastructure_error_count 0 - a broken
     # install reads as a model that failed every scenario.
     "missingdependency",
+    # Local inference that crashed is the same story: an OOM, a device-side
+    # assert or a decode failure means no response was ever produced, so there
+    # is no behavior to grade. Scoring these as behavioral failures made a
+    # 16 GiB T4 running out of memory look like a model that answered nothing.
+    "inferenceerror",
+    "out of memory",
+    "outofmemoryerror",
+    "cuda error",
+    "cuda out of memory",
+    "device-side assert",
+    "no kernel image is available",
 )
 
 

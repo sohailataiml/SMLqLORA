@@ -15,6 +15,7 @@ from typing import Any, Sequence
 
 from models.adapters import (
     GenerationParams,
+    InferenceError,
     MissingDependencyError,
     ModelAdapter,
     ModelError,
@@ -38,6 +39,25 @@ def _messages_to_chat(
     for msg in messages:
         chat.append({"role": msg.role.value, "content": msg.content})
     return chat
+
+
+def _resolve_dtype(dtype: str) -> Any:
+    """Pick a load dtype the current GPU can actually compute in.
+
+    `"auto"` follows the checkpoint, which for Qwen3 is bfloat16 - and a T4 is
+    Turing, which has no bfloat16 unit. Loading bf16 there is either very slow or
+    raises from kernels that have no bf16 implementation. On such a GPU this
+    resolves to float16 instead, which Turing does support natively.
+    """
+    if dtype != "auto":
+        return dtype
+    try:
+        import torch
+    except ImportError:
+        return "auto"
+    if torch.cuda.is_available() and not torch.cuda.is_bf16_supported():
+        return torch.float16
+    return "auto"
 
 
 def _guess_param_billions(model_id: str) -> float | None:
@@ -103,8 +123,10 @@ class LocalHFAdapter(ModelAdapter):
             "trust_remote_code": self.trust_remote_code,
             "revision": self.revision,
         }
-        if self.dtype != "auto":
-            kwargs["torch_dtype"] = self.dtype
+        # Skipping torch_dtype does NOT mean "auto" - it means float32, which is
+        # 4x the memory of Qwen3's bfloat16 checkpoint (8.1 GiB instead of 2.0)
+        # and enough to exhaust a 16 GiB T4 partway through a run.
+        kwargs["torch_dtype"] = _resolve_dtype(self.dtype)
 
         if self.load_in_4bit:
             try:
@@ -180,21 +202,50 @@ class LocalHFAdapter(ModelAdapter):
         if params.seed is not None:
             torch.manual_seed(params.seed)
 
-        with torch.no_grad():
-            output = self._model.generate(**inputs, **gen_kwargs)
+        try:
+            with torch.no_grad():
+                output = self._model.generate(**inputs, **gen_kwargs)
+        except Exception as exc:
+            # An OOM or a device-side assert means no response exists. Raising a
+            # typed error keeps it out of the behavioral denominator instead of
+            # scoring the model as having answered nothing.
+            raise InferenceError(
+                f"generation failed for {self.name}: {type(exc).__name__}: {exc}"
+            ) from exc
 
-        generated = output[0][inputs["input_ids"].shape[-1]:]
-        text = self._tokenizer.decode(generated, skip_special_tokens=True)
+        input_length = int(inputs["input_ids"].shape[-1])
+        generated = output[0][input_length:]
+        generated_length = int(generated.shape[-1])
 
+        try:
+            text = self._tokenizer.decode(generated, skip_special_tokens=True)
+            raw_text = self._tokenizer.decode(generated, skip_special_tokens=False)
+        except Exception as exc:
+            raise InferenceError(
+                f"decode failed for {self.name}: {type(exc).__name__}: {exc}"
+            ) from exc
+
+        # Keep enough evidence in the transcript to tell "the model generated
+        # nothing" apart from "the model generated text that post-processing
+        # threw away". Without these fields both look identical downstream.
         return ModelResponse(
             text=text.strip(),
             model=self.name,
             revision=self.revision,
             usage={
-                "input_tokens": int(inputs["input_ids"].shape[-1]),
-                "output_tokens": int(generated.shape[-1]),
+                "input_tokens": input_length,
+                "output_tokens": generated_length,
             },
-            raw={"generation_kwargs": {k: str(v) for k, v in gen_kwargs.items()}},
+            raw={
+                "generation_kwargs": {k: str(v) for k, v in gen_kwargs.items()},
+                "input_length": input_length,
+                "output_length": int(output[0].shape[-1]),
+                "generated_length": generated_length,
+                "first_generated_token_ids": [int(t) for t in generated[:8]],
+                "decoded_with_special_tokens": raw_text[:600],
+                "decoded_chars": len(text),
+                "stripped_to_empty": bool(raw_text.strip() and not text.strip()),
+            },
         )
 
 

@@ -43,6 +43,15 @@ class MissingCredentialsError(ModelError):
         self.env_var = env_var
 
 
+class InferenceError(ModelError):
+    """A local model failed while generating - OOM, device assert, decode error.
+
+    Distinct from a bad response: no response exists at all. The evaluator must
+    treat this as infrastructure, because scoring it as behavior lets a GPU
+    problem masquerade as a model that answered nothing.
+    """
+
+
 class MissingDependencyError(ModelError):
     def __init__(self, package: str, extra: str):
         super().__init__(
@@ -320,6 +329,7 @@ __all__ = [
     "EVAL_PARAMS",
     "FailingAdapter",
     "GenerationParams",
+    "InferenceError",
     "MissingCredentialsError",
     "MissingDependencyError",
     "ModelAdapter",

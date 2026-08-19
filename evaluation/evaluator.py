@@ -55,6 +55,13 @@ class Evaluator:
         self.spec = spec or load_spec()
         self.params = params or EVAL_PARAMS
         self.check_config = check_config
+        # A local GPU model is one set of weights on one device. Running two
+        # threads through it does not halve wall-clock - it doubles peak
+        # activation memory on a card that is already nearly full, and races the
+        # per-call torch.manual_seed that is supposed to make runs deterministic.
+        # Concurrency helps for API-backed models, where the wait is network.
+        if getattr(model, "family", "") == "local-hf":
+            max_workers = 1
         self.max_workers = max(1, max_workers)
 
     # ------------------------------------------------------------------ single
@@ -115,9 +122,11 @@ class Evaluator:
         reasons: list[str] = list(deterministic.violations)
 
         if error is not None:
-            if "MODEL_ERROR" not in reasons:
-                reasons.append("LOW_QUALITY")
-            return False, tuple(dict.fromkeys(reasons))
+            # The call never produced a response, so the deterministic checks ran
+            # on an empty string and "found" EMPTY_RESPONSE. Attributing that to
+            # the model is how a CUDA OOM came to look like a tutor that answered
+            # nothing 20 times. A failed call gets one code: MODEL_ERROR.
+            return False, ("MODEL_ERROR",)
 
         blocking = deterministic.details.get("blocking_violations", [])
         if blocking and self.spec.scoring.pass_rule.deterministic_violations_are_authoritative:

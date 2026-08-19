@@ -180,10 +180,41 @@ def _render(base, tuned, deltas, records, eval_set, strategy_name) -> str:
         [
             "# Base vs Tuned",
             "",
-            "> **STATUS: REAL EXPERIMENT RESULT.**",
+            "> **STATUS: REAL EXPERIMENT RESULT.**"
+            if not (base.partial or tuned.partial)
+            else (
+                "> **STATUS: PARTIAL — at least one model could not be measured on "
+                "every scenario.** Infrastructure failures are excluded from the "
+                "rates below, so the two models have DIFFERENT denominators. Read "
+                "the counts table before comparing anything."
+            ),
             "",
-            f"Held-out set: `{eval_set}` ({base.scenario_count} scenarios)  ",
+            f"Held-out set: `{eval_set}`  ",
             f"Prompt strategy: `{strategy_name}` (the weak prompt both models see)  ",
+            "",
+            "## Counts",
+            "",
+            "Every rate below is over `measured`, not over the scenario file. A "
+            "single number cannot describe both models when one of them errored, "
+            "so both denominators are stated. Failure-mode codes are multi-label: "
+            "one response can carry several, so a code count may legitimately "
+            "exceed `measured`.",
+            "",
+            markdown_table(
+                [
+                    {
+                        "model": cell.label,
+                        "attempted": cell.attempted_count,
+                        "measured": cell.scenario_count,
+                        "infrastructure_errors": cell.infrastructure_error_count,
+                        "subject_calls_ok": cell.successful_subject_calls,
+                        "judge_calls_ok": cell.successful_judge_calls,
+                    }
+                    for cell in (base, tuned)
+                ],
+                ["model", "attempted", "measured", "infrastructure_errors",
+                 "subject_calls_ok", "judge_calls_ok"],
+            ),
             "",
             "## Headline",
             "",
