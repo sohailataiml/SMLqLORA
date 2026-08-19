@@ -325,3 +325,31 @@ def test_hf_factory_still_loads_a_full_model_normally(tmp_path):
     assert adapter.model_id == "Qwen/Qwen3-1.7B"
     assert adapter.adapter_path is None
     assert adapter.revision == "abc123"
+
+
+# ------------------ every entry point accepts the id printed on the Hub page
+
+
+def test_resolve_model_accepts_a_bare_hf_repo_id():
+    """THE BUG: eval.py normalised bare repo ids, the ablation runners did not,
+    so the base_vs_tuned command in the submission document would have failed
+    for a grader with 'Unsupported model provider'."""
+    from models.adapters import resolve_model
+
+    adapter = resolve_model("sohailataimleng/socratic-debug-tutor-qwen3-1.7b-n600")
+    assert adapter.family == "local-hf"
+
+
+def test_prefixed_specs_are_unaffected():
+    from models.adapters import resolve_model
+
+    assert resolve_model("mock:demo").family == "mock"
+    assert resolve_model("hf:Qwen/Qwen3-1.7B").family == "local-hf"
+
+
+def test_a_local_path_is_not_mistaken_for_a_repo_id():
+    from models.adapters import UnsupportedProviderError, resolve_model
+
+    for spec in ("./outputs/run", "/tmp/run", "nonsense"):
+        with pytest.raises(UnsupportedProviderError):
+            resolve_model(spec)

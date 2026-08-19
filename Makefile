@@ -18,7 +18,7 @@ EVAL_SET ?= scenarios/heldout.jsonl
 
 .PHONY: help setup test lint scenarios eval-smoke smoke-data prompt-ceiling \
         prompt-ceiling-mock reanalyze analyze dataset-plan plan agreement preflight \
-        verify-training-data \
+        verify-training-data grader-dry-run \
         generate-data filter-data train train-dry \
         evaluate data-efficiency data-efficiency-plan manifest clean-demo
 
@@ -32,6 +32,7 @@ help:
 	@echo "  make prompt-ceiling-mock   ablation pipeline on mocks (labelled MOCKED)"
 	@echo "  make train-dry             validate training config and build the dataset"
 	@echo "  make verify-training-data  offline gate: hash, format, contamination"
+	@echo "  make grader-dry-run        run what a grader runs, report PASS/FAIL"
 	@echo "  make reanalyze             re-render reports from saved transcripts"
 	@echo "  make analyze               failure modes, training distribution, plots"
 	@echo "  make dataset-plan          rebuild the Dataset V1 generation plan"
@@ -75,6 +76,9 @@ train-dry:
 
 verify-training-data:
 	$(PYTHON) scripts/verify_training_data.py --expect-count 600
+
+grader-dry-run:
+	$(PYTHON) scripts/grader_dry_run.py
 
 reanalyze:
 	$(PYTHON) scripts/reanalyze.py --results-dir results/prompt_ceiling

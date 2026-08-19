@@ -289,6 +289,12 @@ def resolve_model(spec: str, **kwargs: Any) -> ModelAdapter:
         raise UnsupportedProviderError(str(spec), known_providers())
 
     spec = spec.strip()
+    # A bare Hugging Face repo id is the spelling a grader is handed - it is what
+    # the submission document and the Hub page both show. Accepting it only in
+    # eval.py meant the same id failed in the ablation runners, so normalization
+    # belongs here, where every entry point goes through it.
+    if ":" not in spec and "/" in spec and not spec.startswith((".", "/", "\\")):
+        spec = f"hf:{spec}"
     if ":" not in spec:
         raise UnsupportedProviderError(spec, known_providers())
 

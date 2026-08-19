@@ -69,6 +69,20 @@ python -m ablations.base_vs_tuned \
 
 Add `--offline-judge` to `eval.py` to run the harness with no API access at all.
 
+### Verifying these commands actually work
+
+```bash
+python scripts/grader_dry_run.py          # 12 checks, no GPU, no credentials
+python scripts/grader_dry_run.py --live   # adds the real Hub pull, needs a GPU
+```
+
+This runs what a grader runs and reports PASS/FAIL per promise: that every hash
+in this document matches the artifact it names, that the published repo id
+resolves without a prefix, that `eval.py` produces a results table and fails with
+an explanation rather than a stack trace on bad input, that the harness works on
+a scenario file it has never seen, and that the published metrics recompute from
+the raw transcripts.
+
 ---
 
 ## Ablation 1 — Prompt-Ceiling: **FINE-TUNING JUSTIFIED**
