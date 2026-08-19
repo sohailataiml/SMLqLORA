@@ -286,3 +286,108 @@ def test_a_complete_checkpoint_passes(tmp_path):
     (run_dir / "adapter_model.safetensors").write_bytes(b"\x00" * 1024)
 
     assert verify_adapter_written(run_dir).name == "adapter_config.json"
+
+
+# ------------------------------ trainer arguments must survive a TRL version bump
+
+
+class _ModernSFTConfig:
+    """Signature of a TRL that renamed things but keeps warmup_ratio."""
+
+    def __init__(self, output_dir=None, num_train_epochs=3,
+                 per_device_train_batch_size=2, gradient_accumulation_steps=8,
+                 learning_rate=2e-4, lr_scheduler_type="cosine", warmup_ratio=0.03,
+                 weight_decay=0.0, max_grad_norm=0.3, optim="adamw", logging_steps=5,
+                 save_strategy="epoch", save_total_limit=1, bf16=False, fp16=True,
+                 gradient_checkpointing=True, seed=42, report_to="none",
+                 max_length=2048, eval_strategy="epoch"):
+        pass
+
+
+class _NoWarmupRatioSFTConfig:
+    """THE BUG: a TRL whose SFTConfig has warmup_steps but not warmup_ratio."""
+
+    def __init__(self, output_dir=None, num_train_epochs=3,
+                 per_device_train_batch_size=2, gradient_accumulation_steps=8,
+                 learning_rate=2e-4, lr_scheduler_type="cosine", warmup_steps=0,
+                 weight_decay=0.0, max_grad_norm=0.3, optim="adamw", logging_steps=5,
+                 save_strategy="epoch", save_total_limit=1, bf16=False, fp16=True,
+                 gradient_checkpointing=True, seed=42, report_to="none",
+                 max_seq_length=2048, evaluation_strategy="epoch"):
+        pass
+
+
+class _HopelessSFTConfig:
+    """No way to express warmup at all."""
+
+    def __init__(self, output_dir=None, num_train_epochs=3, learning_rate=2e-4,
+                 per_device_train_batch_size=2, gradient_accumulation_steps=8,
+                 lr_scheduler_type="cosine", weight_decay=0.0, max_grad_norm=0.3,
+                 seed=42, max_length=2048):
+        pass
+
+
+def _requested(config):
+    from training.train import requested_trainer_arguments
+
+    return requested_trainer_arguments(
+        config.section("training"), config.section("model"),
+        Path("outputs/run"), has_eval=True,
+    )
+
+
+def test_modern_signature_passes_through_unchanged(t4_config):
+    from training.train import adapt_trainer_arguments
+
+    resolved, notes = adapt_trainer_arguments(
+        _ModernSFTConfig, _requested(t4_config), 102)
+    assert resolved["warmup_ratio"] == 0.03
+    assert resolved["max_length"] == 2048
+    assert resolved["eval_strategy"] == "epoch"
+    assert not [n for n in notes if "dropped" in n]
+    _ModernSFTConfig(**resolved)
+
+
+def test_warmup_ratio_is_translated_not_dropped(t4_config):
+    """The crash that cost a T4 session: warmup_ratio rejected by SFTConfig."""
+    from training.train import adapt_trainer_arguments
+
+    resolved, notes = adapt_trainer_arguments(
+        _NoWarmupRatioSFTConfig, _requested(t4_config), 102)
+
+    assert "warmup_ratio" not in resolved
+    assert resolved["warmup_steps"] == 3          # round(0.03 * 102)
+    assert resolved["max_seq_length"] == 2048     # renamed
+    assert resolved["evaluation_strategy"] == "epoch"
+    assert any("warmup_steps" in n for n in notes)
+    _NoWarmupRatioSFTConfig(**resolved)           # must actually construct
+
+
+def test_an_inexpressible_hyperparameter_raises_rather_than_silently_changing_the_run(
+    t4_config,
+):
+    from training.train import TrainerArgumentError, adapt_trainer_arguments
+
+    with pytest.raises(TrainerArgumentError, match="warmup_ratio"):
+        adapt_trainer_arguments(_HopelessSFTConfig, _requested(t4_config), 102)
+
+
+def test_cosmetic_arguments_may_be_dropped(t4_config):
+    """report_to/logging are not the experiment; losing them is a note."""
+    from training.train import adapt_trainer_arguments
+
+    resolved, notes = adapt_trainer_arguments(
+        _HopelessSFTConfig,
+        {k: v for k, v in _requested(t4_config).items()
+         if k not in ("warmup_ratio",)},
+        102,
+    )
+    assert any("report_to" in n and "dropped" in n for n in notes)
+    assert "learning_rate" in resolved
+
+
+def test_total_train_steps_matches_the_configured_recipe(t4_config):
+    from training.train import total_train_steps
+
+    # 540 examples, batch 2 x accum 8 = 16 per step -> 34 per epoch, 3 epochs.
+    assert total_train_steps(t4_config.section("training"), 540) == 102

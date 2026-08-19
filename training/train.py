@@ -122,6 +122,160 @@ def verify_adapter_written(output_dir: Path) -> Path:
     return config_file
 
 
+class TrainerArgumentError(RuntimeError):
+    """Raised when a hyperparameter cannot be expressed in the installed TRL."""
+
+
+#: Arguments TRL/transformers have renamed across versions. First name that the
+#: installed SFTConfig accepts wins.
+TRAINER_ARG_ALIASES: dict[str, tuple[str, ...]] = {
+    "eval_strategy": ("eval_strategy", "evaluation_strategy"),
+    "max_length": ("max_length", "max_seq_length"),
+    "warmup_ratio": ("warmup_ratio",),
+    "optim": ("optim", "optimizer"),
+}
+
+#: Dropping one of these silently would change the experiment, so a version that
+#: cannot express them is an error rather than a warning.
+EXPERIMENTALLY_SIGNIFICANT = frozenset({
+    "num_train_epochs", "per_device_train_batch_size", "gradient_accumulation_steps",
+    "learning_rate", "lr_scheduler_type", "weight_decay", "max_grad_norm",
+    "seed", "max_length", "warmup_ratio",
+})
+
+
+def total_train_steps(train_cfg: dict[str, Any], train_examples: int) -> int:
+    """Optimizer steps for the whole run, for translating ratios into counts."""
+    batch = max(1, int(train_cfg.get("per_device_train_batch_size", 2)))
+    accum = max(1, int(train_cfg.get("gradient_accumulation_steps", 8)))
+    epochs = float(train_cfg.get("num_train_epochs", 3))
+    per_epoch = max(1, -(-train_examples // (batch * accum)))  # ceil
+    return max(1, int(per_epoch * epochs))
+
+
+def requested_trainer_arguments(
+    train_cfg: dict[str, Any],
+    model_cfg: dict[str, Any],
+    output_dir: Path,
+    *,
+    has_eval: bool,
+) -> dict[str, Any]:
+    """The training arguments this experiment wants, before version translation."""
+    return {
+        "output_dir": str(output_dir),
+        "num_train_epochs": float(train_cfg.get("num_train_epochs", 3)),
+        "per_device_train_batch_size": int(
+            train_cfg.get("per_device_train_batch_size", 2)),
+        "gradient_accumulation_steps": int(
+            train_cfg.get("gradient_accumulation_steps", 8)),
+        "learning_rate": float(train_cfg.get("learning_rate", 2e-4)),
+        "lr_scheduler_type": str(train_cfg.get("lr_scheduler_type", "cosine")),
+        "warmup_ratio": float(train_cfg.get("warmup_ratio", 0.03)),
+        "weight_decay": float(train_cfg.get("weight_decay", 0.0)),
+        "max_grad_norm": float(train_cfg.get("max_grad_norm", 0.3)),
+        "optim": str(train_cfg.get("optim", "paged_adamw_8bit")),
+        "logging_steps": int(train_cfg.get("logging_steps", 5)),
+        "save_strategy": str(train_cfg.get("save_strategy", "epoch")),
+        "save_total_limit": int(train_cfg.get("save_total_limit", 1)),
+        "bf16": bool(train_cfg.get("bf16", False)),
+        "fp16": bool(train_cfg.get("fp16", True)),
+        "gradient_checkpointing": bool(train_cfg.get("gradient_checkpointing", True)),
+        "seed": int(train_cfg.get("seed", 42)),
+        "report_to": str(train_cfg.get("report_to", "none")),
+        "max_length": int(model_cfg.get("max_seq_length", 2048)),
+        "eval_strategy": (
+            str(train_cfg.get("eval_strategy", "epoch")) if has_eval else "no"
+        ),
+    }
+
+
+def adapt_trainer_arguments(
+    config_class: Any, requested: dict[str, Any], total_steps: int
+) -> tuple[dict[str, Any], list[str]]:
+    """Fit the requested arguments to whatever the installed SFTConfig accepts.
+
+    TRL and transformers rename training arguments between releases. Passing one
+    the installed version does not know raises a bare TypeError partway into a
+    run - which is how `warmup_ratio` cost a T4 session after the model, the
+    quantization and the LoRA adapter had all loaded successfully.
+
+    Pinning a version would only move the problem. Instead the signature is read
+    and the arguments translated, with two rules:
+
+    * a rename is followed (`eval_strategy` -> `evaluation_strategy`);
+    * anything that would change the experiment and has no home raises, rather
+      than being dropped into a silently different recipe.
+
+    Cosmetic arguments (logging, reporting) may be dropped with a note.
+    """
+    import inspect
+
+    try:
+        accepted = set(inspect.signature(config_class.__init__).parameters)
+    except (TypeError, ValueError):  # pragma: no cover - exotic config classes
+        return dict(requested), ["could not introspect SFTConfig; passing as-is"]
+    accepted.discard("self")
+    accepted.discard("kwargs")
+
+    resolved: dict[str, Any] = {}
+    notes: list[str] = []
+
+    for key, value in requested.items():
+        candidates = TRAINER_ARG_ALIASES.get(key, (key,))
+        target = next((name for name in candidates if name in accepted), None)
+
+        if target is not None:
+            if target != key:
+                notes.append(f"{key} -> {target} (renamed in this version)")
+            resolved[target] = value
+            continue
+
+        # warmup_ratio has an exact equivalent when only step counts survive.
+        if key == "warmup_ratio" and "warmup_steps" in accepted:
+            steps = int(round(float(value) * total_steps))
+            resolved["warmup_steps"] = steps
+            notes.append(
+                f"warmup_ratio={value} -> warmup_steps={steps} "
+                f"({total_steps} total steps); same schedule, different spelling"
+            )
+            continue
+
+        if key in EXPERIMENTALLY_SIGNIFICANT:
+            raise TrainerArgumentError(
+                f"The installed TRL's SFTConfig does not accept {key!r}, and it "
+                f"cannot be translated. Dropping it would silently change the "
+                f"experiment, so this is an error.\n"
+                f"  tried: {candidates}\n"
+                f"  install a TRL that supports it, or express it differently.\n"
+                f"  accepted arguments include: "
+                f"{sorted(a for a in accepted if 'warm' in a or 'lr' in a or 'epoch' in a)}"
+            )
+
+        notes.append(f"{key} dropped - not accepted by this version (cosmetic)")
+
+    return resolved, notes
+
+
+def check_trainer_api(train_cfg: dict[str, Any], model_cfg: dict[str, Any],
+                      train_examples: int) -> list[str]:
+    """Validate the trainer arguments before any GPU time is spent.
+
+    Returns notes, or raises. A no-op when TRL is not installed, so `--dry-run`
+    still works on a laptop.
+    """
+    try:
+        from trl import SFTConfig
+    except ImportError:
+        return ["trl not installed - trainer arguments not checked"]
+    requested = requested_trainer_arguments(
+        train_cfg, model_cfg, Path("."), has_eval=True
+    )
+    _, notes = adapt_trainer_arguments(
+        SFTConfig, requested, total_train_steps(train_cfg, train_examples)
+    )
+    return notes
+
+
 @dataclass
 class TrainingConfig:
     raw: dict[str, Any]
@@ -326,6 +480,16 @@ def train(
     print(f"output           : {output_dir}")
 
     environment = check_environment(require_gpu=not dry_run)
+
+    # Validate the trainer arguments against the INSTALLED TRL before loading a
+    # model. A rejected argument used to surface as a TypeError after the weights,
+    # the quantization and the LoRA adapter had all loaded - minutes of GPU time,
+    # and an output directory that looked like a checkpoint but held nothing.
+    for note in check_trainer_api(
+        config.section("training"), config.section("model"), len(train_rows)
+    ):
+        print(f"  trainer-arg: {note}")
+
     metadata = build_checkpoint_metadata(
         config,
         run_name=run,
@@ -441,28 +605,15 @@ def _run_training(
         else None
     )
 
-    sft_config = SFTConfig(
-        output_dir=str(output_dir),
-        num_train_epochs=float(train_cfg.get("num_train_epochs", 3)),
-        per_device_train_batch_size=int(train_cfg.get("per_device_train_batch_size", 2)),
-        gradient_accumulation_steps=int(train_cfg.get("gradient_accumulation_steps", 8)),
-        learning_rate=float(train_cfg.get("learning_rate", 2e-4)),
-        lr_scheduler_type=str(train_cfg.get("lr_scheduler_type", "cosine")),
-        warmup_ratio=float(train_cfg.get("warmup_ratio", 0.03)),
-        weight_decay=float(train_cfg.get("weight_decay", 0.0)),
-        max_grad_norm=float(train_cfg.get("max_grad_norm", 0.3)),
-        optim=str(train_cfg.get("optim", "paged_adamw_8bit")),
-        logging_steps=int(train_cfg.get("logging_steps", 5)),
-        save_strategy=str(train_cfg.get("save_strategy", "epoch")),
-        save_total_limit=int(train_cfg.get("save_total_limit", 1)),
-        bf16=bool(train_cfg.get("bf16", False)),
-        fp16=bool(train_cfg.get("fp16", True)),
-        gradient_checkpointing=bool(train_cfg.get("gradient_checkpointing", True)),
-        seed=int(train_cfg.get("seed", 42)),
-        report_to=str(train_cfg.get("report_to", "none")),
-        max_length=int(model_cfg.get("max_seq_length", 2048)),
-        eval_strategy=str(train_cfg.get("eval_strategy", "epoch")) if eval_dataset else "no",
+    requested = requested_trainer_arguments(
+        train_cfg, model_cfg, output_dir, has_eval=eval_dataset is not None
     )
+    resolved, notes = adapt_trainer_arguments(
+        SFTConfig, requested, total_train_steps(train_cfg, len(train_rows))
+    )
+    for note in notes:
+        print(f"  trainer-arg: {note}")
+    sft_config = SFTConfig(**resolved)
 
     trainer = SFTTrainer(
         model=model,
