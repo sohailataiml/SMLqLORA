@@ -72,6 +72,11 @@ packages = [
 testpaths = ["tests"]
 addopts = "-q"
 filterwarnings = ["ignore::DeprecationWarning"]
+# Put the repository root on sys.path explicitly. Without it, whether
+# `from tests.test_filtering import ...` resolves depends on the pytest version
+# and how it was invoked - it passed locally and failed on a fresh Colab clone,
+# which is the machine a grader most resembles.
+pythonpath = ["."]
 
 [tool.coverage.run]
 omit = ["tests/*", ".venv/*"]

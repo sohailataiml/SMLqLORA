@@ -39,6 +39,11 @@ tqdm>=4.66
 # Needed only by the evaluation cells at the end — the LLM judge.
 anthropic>=0.40
 
+# Needed to run the test suite, including scripts/grader_dry_run.py. Colab
+# preinstalls a pytest, but not necessarily one that resolves this repository's
+# imports the same way - pin it rather than inherit it.
+pytest>=8.0
+
 # Needed only for the base-vs-tuned comparison plot.
 matplotlib>=3.8
 pandas>=2.2
