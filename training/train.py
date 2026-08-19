@@ -152,6 +152,83 @@ def model_load_dtype(train_cfg: dict[str, Any]) -> str:
     return "auto"
 
 
+def dtype_kwarg_name(loader: Any) -> str:
+    """Whichever of `dtype` / `torch_dtype` the installed transformers accepts.
+
+    transformers renamed this. Passing the retired spelling is a deprecation
+    warning on one version and a silently ignored argument on another - and
+    "silently ignored" means the checkpoint's own dtype wins, which is exactly
+    the failure this whole function exists to prevent.
+    """
+    import inspect
+
+    try:
+        params = inspect.signature(loader).parameters
+    except (TypeError, ValueError):  # pragma: no cover
+        return "dtype"
+    if "dtype" in params:
+        return "dtype"
+    if "torch_dtype" in params:
+        return "torch_dtype"
+    # Both absent means the loader takes **kwargs; prefer the current name.
+    return "dtype"
+
+
+def describe_parameter_dtypes(model: Any, *, trainable_only: bool = False) -> str:
+    """A dtype histogram, so the log records what loaded rather than what was asked."""
+    from collections import Counter
+
+    counts: Counter[str] = Counter()
+    for _, param in model.named_parameters():
+        if trainable_only and not getattr(param, "requires_grad", False):
+            continue
+        counts[str(getattr(param, "dtype", "?")).replace("torch.", "")] += 1
+    return ", ".join(f"{name}x{n}" for name, n in counts.most_common()) or "none"
+
+
+def cast_trainable_parameters_to_fp32(model: Any, train_cfg: dict[str, Any]) -> int:
+    """Put every trainable parameter in fp32 when fp16 mixed precision is on.
+
+    This is the standard QLoRA arrangement - frozen 4-bit base, fp32 adapters -
+    and it is what makes the GradScaler's job well defined. Relying on the
+    loader to have produced the right dtype was not enough: the argument that
+    controls it has been renamed, and a version that ignores it leaves the
+    adapter in the checkpoint's bfloat16, which the fp16 unscale kernel cannot
+    handle. Returns how many tensors were recast.
+    """
+    targets = trainable_tensors_needing_fp32(model.named_parameters(), train_cfg)
+    if not targets:
+        return 0
+    try:
+        import torch
+    except ImportError:  # pragma: no cover
+        return 0
+    wanted = set(targets)
+    recast = 0
+    for name, param in model.named_parameters():
+        if name in wanted:
+            param.data = param.data.to(torch.float32)
+            recast += 1
+    return recast
+
+
+def trainable_tensors_needing_fp32(
+    named_parameters: Any, train_cfg: dict[str, Any]
+) -> list[str]:
+    """Which trainable tensors must be recast, decided without importing torch.
+
+    Split out from the cast itself so the rule is testable on a machine with no
+    training stack, which is where this repository's suite runs.
+    """
+    if not train_cfg.get("fp16") or train_cfg.get("bf16"):
+        return []
+    return sorted(
+        name for name, param in named_parameters
+        if getattr(param, "requires_grad", False)
+        and str(getattr(param, "dtype", "")) != "torch.float32"
+    )
+
+
 def bf16_trainable_parameters(named_parameters: Any) -> list[str]:
     """Names of trainable parameters held in bfloat16.
 
@@ -632,17 +709,24 @@ def _run_training(
     print(f"  model dtype      : {load_dtype} (mixed precision: "
           f"{'bf16' if train_cfg.get('bf16') else 'fp16'})")
 
-    model = AutoModelForCausalLM.from_pretrained(
-        model_cfg["base_model"],
+    load_kwargs: dict[str, Any] = dict(
         revision=model_cfg.get("revision", "main"),
         quantization_config=bnb_config,
         device_map="auto",
         trust_remote_code=bool(model_cfg.get("trust_remote_code", False)),
         attn_implementation=str(model_cfg.get("attn_implementation", "eager")),
-        torch_dtype=(
-            load_dtype if load_dtype == "auto" else getattr(torch, load_dtype)
-        ),
     )
+    # transformers renamed torch_dtype -> dtype. Passing the wrong one is either
+    # a deprecation warning or a silently ignored argument depending on version,
+    # and "silently ignored" means the checkpoint's bfloat16 wins.
+    load_kwargs[dtype_kwarg_name(AutoModelForCausalLM.from_pretrained)] = (
+        load_dtype if load_dtype == "auto" else getattr(torch, load_dtype)
+    )
+
+    model = AutoModelForCausalLM.from_pretrained(
+        model_cfg["base_model"], **load_kwargs
+    )
+    print(f"  loaded dtypes    : {describe_parameter_dtypes(model)}")
     model.config.use_cache = False
     model = prepare_model_for_kbit_training(
         model, use_gradient_checkpointing=bool(train_cfg.get("gradient_checkpointing", True))
@@ -658,6 +742,17 @@ def _run_training(
     )
     model = get_peft_model(model, peft_config)
     model.print_trainable_parameters()
+
+    # The standard QLoRA arrangement: 4-bit frozen base, fp32 trainable adapters.
+    # fp16 mixed precision drives a GradScaler, and its CUDA unscale kernel is
+    # implemented for fp16 and fp32 but NOT bfloat16 - so a bfloat16 trainable
+    # parameter kills the run at the first gradient clip, after everything else
+    # has already succeeded. Casting removes the whole class of failure rather
+    # than depending on what the loader decided.
+    recast = cast_trainable_parameters_to_fp32(model, train_cfg)
+    if recast:
+        print(f"  recast to fp32   : {recast} trainable tensors")
+    print(f"  trainable dtypes : {describe_parameter_dtypes(model, trainable_only=True)}")
     assert_precision_is_trainable(model, train_cfg)
 
     train_dataset = Dataset.from_list([{"messages": r["messages"]} for r in train_rows])

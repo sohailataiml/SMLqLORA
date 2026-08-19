@@ -478,3 +478,121 @@ def test_precision_guard_ignores_frozen_bf16_weights():
         ("lora_B.weight", _P("torch.float32", True)),
     ]
     assert bf16_trainable_parameters(params) == []
+
+
+# ------------------------------------- the dtype kwarg has been renamed upstream
+
+
+def test_dtype_kwarg_prefers_the_current_spelling():
+    from training.train import dtype_kwarg_name
+
+    def modern(path, *, dtype=None, revision=None):
+        pass
+
+    assert dtype_kwarg_name(modern) == "dtype"
+
+
+def test_dtype_kwarg_falls_back_to_the_retired_spelling():
+    """Older transformers only knows torch_dtype; passing `dtype` is ignored."""
+    from training.train import dtype_kwarg_name
+
+    def legacy(path, *, torch_dtype=None, revision=None):
+        pass
+
+    assert dtype_kwarg_name(legacy) == "torch_dtype"
+
+
+def test_dtype_kwarg_handles_a_kwargs_only_loader():
+    from training.train import dtype_kwarg_name
+
+    def opaque(path, **kwargs):
+        pass
+
+    assert dtype_kwarg_name(opaque) == "dtype"
+
+
+# --------------------------- trainable parameters are forced to fp32 under fp16
+
+
+class _FakeParam:
+    def __init__(self, dtype, requires_grad=True):
+        self.dtype = dtype
+        self.requires_grad = requires_grad
+        self.data = self
+
+    def to(self, dtype):
+        self.dtype = dtype
+        return self
+
+
+class _FakeModel:
+    def __init__(self, params):
+        self._params = params
+
+    def parameters(self):
+        return [p for _, p in self._params]
+
+    def named_parameters(self):
+        return list(self._params)
+
+
+def test_bf16_adapters_are_selected_for_recast_under_fp16():
+    """THE BUG: a bfloat16 LoRA parameter kills the fp16 GradScaler at the first
+    gradient clip, after loading, tokenization and a forward pass all succeed."""
+    from training.train import trainable_tensors_needing_fp32
+
+    params = [
+        ("lora_A.weight", _FakeParam("torch.bfloat16")),
+        ("lora_B.weight", _FakeParam("torch.bfloat16")),
+        ("frozen.weight", _FakeParam("torch.bfloat16", requires_grad=False)),
+        ("already.fp32", _FakeParam("torch.float32")),
+    ]
+    targets = trainable_tensors_needing_fp32(params, {"fp16": True, "bf16": False})
+
+    assert targets == ["lora_A.weight", "lora_B.weight"]
+    # The frozen base is left alone - recasting it would defeat quantization.
+    assert "frozen.weight" not in targets
+    # And an already-correct tensor is not touched.
+    assert "already.fp32" not in targets
+
+
+def test_fp16_adapters_are_also_recast():
+    """GradScaler tolerates fp16 grads, but fp32 adapters are the QLoRA norm."""
+    from training.train import trainable_tensors_needing_fp32
+
+    params = [("lora_A.weight", _FakeParam("torch.float16"))]
+    assert trainable_tensors_needing_fp32(
+        params, {"fp16": True, "bf16": False}) == ["lora_A.weight"]
+
+
+def test_bf16_training_leaves_dtypes_alone():
+    """bf16 mode uses no GradScaler, so recasting would only waste memory."""
+    from training.train import trainable_tensors_needing_fp32
+
+    params = [("lora_A.weight", _FakeParam("torch.bfloat16"))]
+    assert trainable_tensors_needing_fp32(params, {"fp16": False, "bf16": True}) == []
+
+
+def test_recast_then_guard_passes():
+    """After recasting, the precision guard must be satisfied."""
+    from training.train import (
+        assert_precision_is_trainable,
+        trainable_tensors_needing_fp32,
+    )
+
+    params = [("lora_A.weight", _FakeParam("torch.bfloat16"))]
+    for name in trainable_tensors_needing_fp32(params, {"fp16": True, "bf16": False}):
+        dict(params)[name].dtype = "torch.float32"
+    assert_precision_is_trainable(_FakeModel(params), {"fp16": True, "bf16": False})
+
+
+def test_dtype_histogram_reports_what_actually_loaded():
+    from training.train import describe_parameter_dtypes
+
+    model = _FakeModel([
+        ("a", _FakeParam("torch.float32")),
+        ("b", _FakeParam("torch.float32")),
+        ("c", _FakeParam("torch.uint8", requires_grad=False)),
+    ])
+    assert describe_parameter_dtypes(model) == "float32x2, uint8x1"
+    assert describe_parameter_dtypes(model, trainable_only=True) == "float32x2"
