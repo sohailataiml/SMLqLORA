@@ -222,3 +222,57 @@ def test_generation_diagnostics_are_recorded(spec, unsolved_scenario):
     # The real adapter records token counts; the contract is that a successful
     # record always carries generation params so a post-mortem has something.
     assert record.generation_params
+
+
+# ------------------- a model that fails to load must not be cached as "loaded"
+
+
+def test_a_failed_load_is_reported_not_silently_retried():
+    """Symptom: 'Loading weights' printed once PER PROMPT.
+
+    `_ensure_loaded` sets `self._model` only on success, so an adapter that
+    fails to attach leaves the adapter object un-cached: every call reloads the
+    base model, raises again, and returns empty text. Three prompts, three
+    reloads, three blank answers, and no error visible anywhere.
+    """
+    from models.adapters import ModelAdapter, ModelResponse
+
+    class _FailsToLoad(ModelAdapter):
+        def __init__(self):
+            super().__init__(name="peft:broken", family="local-hf", revision="main")
+            self.load_attempts = 0
+
+        def _generate(self, messages, system, params) -> ModelResponse:
+            self.load_attempts += 1
+            raise RuntimeError("Can't find 'adapter_config.json' at 'outputs/x'")
+
+    adapter = _FailsToLoad()
+    from evaluation.schemas import Message, Role
+
+    messages = [Message(role=Role.USER, content="help")]
+    for _ in range(3):
+        response = adapter.generate(messages)
+        assert response.text == ""
+        assert response.error is not None
+        assert "adapter_config" in response.error
+
+    # The repeated reload is the observable symptom, and it is preserved:
+    # the point of the test is that `error` is populated every time, so a
+    # caller printing only `.text` is the bug, not the adapter.
+    assert adapter.load_attempts == 3
+
+
+def test_raise_on_error_surfaces_the_real_exception():
+    """The escape hatch that turns a blank answer back into a traceback."""
+    from evaluation.schemas import Message, Role
+    from models.adapters import ModelAdapter, ModelResponse
+
+    class _Boom(ModelAdapter):
+        def __init__(self):
+            super().__init__(name="peft:boom", family="local-hf", revision="main")
+
+        def _generate(self, messages, system, params) -> ModelResponse:
+            raise RuntimeError("adapter load failed")
+
+    with pytest.raises(RuntimeError, match="adapter load failed"):
+        _Boom().generate([Message(role=Role.USER, content="hi")], raise_on_error=True)
