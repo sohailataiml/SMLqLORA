@@ -85,6 +85,43 @@ is Dataset V2, not an edit to v1."""
     return actual
 
 
+class AdapterNotWrittenError(RuntimeError):
+    """Raised when training finished but left no loadable adapter behind."""
+
+
+def verify_adapter_written(output_dir: Path) -> Path:
+    """Fail loudly if the run produced no adapter.
+
+    An output directory is created before training starts - it holds the built
+    dataset and the run metadata - so its existence proves nothing. Without this
+    check a crashed run leaves a plausible-looking directory that the evaluator
+    then tries to load as a PEFT adapter, failing on every single scenario and
+    reporting the result as a model that answered nothing.
+    """
+    config_file = output_dir / "adapter_config.json"
+    if not config_file.exists():
+        salvage = sorted(output_dir.glob("checkpoint-*/adapter_config.json"))
+        hint = (
+            f"\nPer-epoch checkpoints do exist: {[str(p.parent) for p in salvage]}\n"
+            f"Evaluate one of those rather than retraining."
+            if salvage
+            else "\nNo per-epoch checkpoints either - the run never saved."
+        )
+        raise AdapterNotWrittenError(
+            f"Training finished but wrote no adapter to {output_dir}.{hint}"
+        )
+    weights = [
+        p for p in output_dir.iterdir()
+        if p.suffix in (".safetensors", ".bin") and "adapter" in p.name
+    ]
+    if not weights:
+        raise AdapterNotWrittenError(
+            f"{output_dir} has an adapter_config.json but no adapter weights. "
+            f"The checkpoint is incomplete and cannot be evaluated."
+        )
+    return config_file
+
+
 @dataclass
 class TrainingConfig:
     raw: dict[str, Any]
@@ -317,6 +354,7 @@ def train(
         return output_dir
 
     _run_training(config, train_rows, validation_rows, output_dir)
+    verify_adapter_written(output_dir)
 
     (output_dir / "checkpoint_metadata.json").write_text(
         json.dumps({**metadata, "completed": True}, indent=2, default=str) + "\n",

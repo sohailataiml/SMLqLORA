@@ -234,3 +234,55 @@ def test_config_is_valid_yaml_with_the_sections_the_trainer_reads(config):
     raw = yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8"))
     for section in ("model", "quantization", "lora", "training", "data", "output"):
         assert section in raw, f"config is missing the {section!r} section"
+
+
+# ------------------------------- a run that saved nothing is not a finished run
+
+
+def test_missing_adapter_is_detected_rather_than_reported_as_success(tmp_path):
+    """THE BUG: outputs/<run>/ exists before training starts, so its presence
+    proved nothing. A crashed run left a plausible directory that the evaluator
+    then loaded as an adapter, failing every scenario as 'answered nothing'."""
+    from training.train import AdapterNotWrittenError, verify_adapter_written
+
+    run_dir = tmp_path / "socratic-v1-n600"
+    (run_dir / "data").mkdir(parents=True)
+    (run_dir / "data" / "train.jsonl").write_text("{}\n", encoding="utf-8")
+    (run_dir / "checkpoint_metadata.json").write_text("{}", encoding="utf-8")
+
+    with pytest.raises(AdapterNotWrittenError, match="never saved"):
+        verify_adapter_written(run_dir)
+
+
+def test_per_epoch_checkpoints_are_offered_instead_of_a_retrain(tmp_path):
+    """A session that died after an epoch still has a usable adapter."""
+    from training.train import AdapterNotWrittenError, verify_adapter_written
+
+    run_dir = tmp_path / "run"
+    (run_dir / "checkpoint-102").mkdir(parents=True)
+    (run_dir / "checkpoint-102" / "adapter_config.json").write_text("{}", encoding="utf-8")
+
+    with pytest.raises(AdapterNotWrittenError, match="checkpoint-102"):
+        verify_adapter_written(run_dir)
+
+
+def test_config_without_weights_is_incomplete(tmp_path):
+    from training.train import AdapterNotWrittenError, verify_adapter_written
+
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "adapter_config.json").write_text("{}", encoding="utf-8")
+
+    with pytest.raises(AdapterNotWrittenError, match="no adapter weights"):
+        verify_adapter_written(run_dir)
+
+
+def test_a_complete_checkpoint_passes(tmp_path):
+    from training.train import verify_adapter_written
+
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "adapter_config.json").write_text("{}", encoding="utf-8")
+    (run_dir / "adapter_model.safetensors").write_bytes(b"\x00" * 1024)
+
+    assert verify_adapter_written(run_dir).name == "adapter_config.json"
