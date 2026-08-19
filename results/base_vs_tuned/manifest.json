@@ -1,0 +1,67 @@
+{
+  "experiment": "base_vs_tuned",
+  "manifest_version": "1.0.0",
+  "behavior_spec_version": "1.0.0",
+  "behavior_spec_sha256": "dc14f40b94d622d14ddaa2800c29311aa8a6e4a5aa875dee327ae23e4efb2127",
+  "eval_set_paths": [
+    "scenarios/heldout.jsonl"
+  ],
+  "eval_set_hash": "a30abe2a9be7df5420e01197ba700b9e582fefb06fa3d0a0855351c1fbb5f048",
+  "eval_set_size": 20,
+  "models": [
+    {
+      "model": "hf:Qwen/Qwen3-1.7B",
+      "family": "local-hf",
+      "revision": "main"
+    },
+    {
+      "model": "peft:Qwen/Qwen3-1.7B+outputs/socratic-v1-n600",
+      "family": "local-hf",
+      "revision": "main"
+    }
+  ],
+  "judge_model": "anthropic:claude-opus-5",
+  "judge_prompt_version": "1.0.0",
+  "judge_prompt_sha256": "a34b7a2b508d31e6eb6a7d9e3361e8ba909be39d4a88ebb22b7c10f11fe1aba6",
+  "prompt_versions": [
+    {
+      "strategy": "zero_shot",
+      "version": "1.0.0",
+      "description": "One sentence of intent. The prompt a developer writes first.",
+      "sha256": "d0f3aa521c5e2bb0"
+    }
+  ],
+  "dataset_version": null,
+  "dataset_hash": null,
+  "base_model": "hf:Qwen/Qwen3-1.7B",
+  "base_model_revision": null,
+  "tuned_model": "peft:Qwen/Qwen3-1.7B+outputs/socratic-v1-n600",
+  "tuned_model_revision": null,
+  "generation_params": {
+    "max_tokens": 800,
+    "temperature": 0.0,
+    "top_p": null,
+    "seed": 1234,
+    "stop": []
+  },
+  "git_commit": "af4efcbe00c99f853487938ec5f8a98ab28a6d61",
+  "git_dirty": true,
+  "dependency_versions": {
+    "anthropic": "0.122.0",
+    "openai": "2.54.0",
+    "pydantic": "2.13.4",
+    "torch": "2.11.0+cu128",
+    "transformers": "5.15.0",
+    "peft": "0.20.0",
+    "trl": "1.10.0",
+    "bitsandbytes": "0.50.1",
+    "datasets": "5.0.1",
+    "accelerate": "1.14.0"
+  },
+  "dependency_lock_hash": "87960634156c8d1a2d0cfd84d6c1acf4f9fdde83fe6f3f2d1d62d89ba8066cb0",
+  "python_version": "3.12.13",
+  "platform": "Linux-6.6.122+-x86_64-with-glibc2.35",
+  "experiment_timestamp": "2026-08-19T04:52:48.537378+00:00",
+  "result_status": "REAL_EXPERIMENT_RESULT",
+  "notes": ""
+}

@@ -163,6 +163,11 @@ not a measurement of it.**
 
 Full analysis: [`results/base_vs_tuned/report.md`](results/base_vs_tuned/report.md)
 
+**Raw judge transcripts:** [`results/base_vs_tuned/judge_transcripts.jsonl`](results/base_vs_tuned/judge_transcripts.jsonl)
+— 40 records, per-example judge score and reasoning, alongside `results.json`,
+`results.csv`, `manifest.json` and the plot. Recomputing the metrics from
+those records reproduces every number in this document exactly.
+
 **Statistical uncertainty: NOT COMPUTED.** At N=20 only the leak-rate delta
 (9/20 → 0/20) is large enough to be robust. Smaller deltas are directional.
 
@@ -187,7 +192,6 @@ make verify-training-data # hash, format, contamination gate
 
 | Item | Status |
 | --- | --- |
-| Raw judge transcripts (`judge_transcripts.jsonl`) | **Produced but not yet committed** — still in the Colab session that ran the evaluation |
 | Data-efficiency curve | **Not run** — due at Early (2+ points) and Final |
 | Human/judge agreement (Cohen's κ) | **Not graded** — 40 rows staged, 0 filled |
 | Demo video with live grader prompt | **Not recorded** |

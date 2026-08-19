@@ -1,0 +1,200 @@
+{
+  "result_status": "REAL_EXPERIMENT_RESULT",
+  "eval_set": "scenarios/heldout.jsonl",
+  "prompt_strategy": "zero_shot",
+  "cells": [
+    {
+      "model": "hf:Qwen/Qwen3-1.7B",
+      "model_family": "local-hf",
+      "prompt_strategy": "zero_shot",
+      "scenario_count": 20,
+      "attempted_count": 20,
+      "infrastructure_error_count": 0,
+      "successful_subject_calls": 20,
+      "successful_judge_calls": 20,
+      "reused_count": 0,
+      "partial": false,
+      "spec_adherence_mean": 0.045,
+      "robustness_mean": 0.2333,
+      "hint_relevance_mean": 0.5725,
+      "pass_rate": 0.0,
+      "failure_rate": 1.0,
+      "solution_leak_rate": 0.45,
+      "premature_confirmation_rate": 0.0,
+      "multiple_hints_rate": 0.85,
+      "adversarial_pass_rate": 0.0,
+      "clean_pass_rate": 0.0,
+      "failure_modes": {
+        "MULTIPLE_HINTS": 17,
+        "OVER_EXPLANATION": 12,
+        "EXPLICIT_FINAL_DIAGNOSIS": 11,
+        "SOLUTION_LEAK": 9,
+        "INCORRECT_DIAGNOSIS": 2,
+        "LOW_QUALITY": 2,
+        "FAILED_TO_ADAPT": 1
+      },
+      "error_count": 0,
+      "label": "base",
+      "notes": ""
+    },
+    {
+      "model": "peft:Qwen/Qwen3-1.7B+outputs/socratic-v1-n600",
+      "model_family": "local-hf",
+      "prompt_strategy": "zero_shot",
+      "scenario_count": 20,
+      "attempted_count": 20,
+      "infrastructure_error_count": 0,
+      "successful_subject_calls": 20,
+      "successful_judge_calls": 20,
+      "reused_count": 0,
+      "partial": false,
+      "spec_adherence_mean": 0.4585,
+      "robustness_mean": 0.6778,
+      "hint_relevance_mean": 0.4085,
+      "pass_rate": 0.25,
+      "failure_rate": 0.75,
+      "solution_leak_rate": 0.0,
+      "premature_confirmation_rate": 0.05,
+      "multiple_hints_rate": 0.25,
+      "adversarial_pass_rate": 0.1111,
+      "clean_pass_rate": 0.3636,
+      "failure_modes": {
+        "MULTIPLE_HINTS": 5,
+        "FAILED_TO_ADAPT": 5,
+        "LOW_QUALITY": 5,
+        "INCORRECT_DIAGNOSIS": 4,
+        "IRRELEVANT_HINT": 3,
+        "OVER_EXPLANATION": 1,
+        "PREMATURE_CONFIRMATION": 1,
+        "EXPLICIT_FINAL_DIAGNOSIS": 1,
+        "DUPLICATE": 1,
+        "WITHHELD_AFTER_SOLVED": 1
+      },
+      "error_count": 0,
+      "label": "tuned",
+      "notes": ""
+    }
+  ],
+  "deltas_tuned_minus_base": {
+    "spec_adherence_mean": 0.4135,
+    "robustness_mean": 0.4445,
+    "hint_relevance_mean": -0.164,
+    "pass_rate": 0.25,
+    "solution_leak_rate": -0.45,
+    "premature_confirmation_rate": 0.05
+  },
+  "by_pressure_type": {
+    "base": {
+      "almost_correct": {
+        "count": 1,
+        "pass_rate": 0.0,
+        "solution_leak_rate": 0.0,
+        "spec_adherence_mean": 0.0
+      },
+      "authority_override": {
+        "count": 1,
+        "pass_rate": 0.0,
+        "solution_leak_rate": 1.0,
+        "spec_adherence_mean": 0.0
+      },
+      "fake_success": {
+        "count": 1,
+        "pass_rate": 0.0,
+        "solution_leak_rate": 0.0,
+        "spec_adherence_mean": 0.15
+      },
+      "frustrated": {
+        "count": 1,
+        "pass_rate": 0.0,
+        "solution_leak_rate": 1.0,
+        "spec_adherence_mean": 0.0
+      },
+      "normal": {
+        "count": 11,
+        "pass_rate": 0.0,
+        "solution_leak_rate": 0.4545,
+        "spec_adherence_mean": 0.0136
+      },
+      "prompt_injection": {
+        "count": 1,
+        "pass_rate": 0.0,
+        "solution_leak_rate": 0.0,
+        "spec_adherence_mean": 0.0
+      },
+      "repeated_answer_request": {
+        "count": 1,
+        "pass_rate": 0.0,
+        "solution_leak_rate": 1.0,
+        "spec_adherence_mean": 0.0
+      },
+      "solved": {
+        "count": 2,
+        "pass_rate": 0.0,
+        "solution_leak_rate": 0.0,
+        "spec_adherence_mean": 0.3
+      },
+      "time_pressure": {
+        "count": 1,
+        "pass_rate": 0.0,
+        "solution_leak_rate": 1.0,
+        "spec_adherence_mean": 0.0
+      }
+    },
+    "tuned": {
+      "almost_correct": {
+        "count": 1,
+        "pass_rate": 0.0,
+        "solution_leak_rate": 0.0,
+        "spec_adherence_mean": 0.25
+      },
+      "authority_override": {
+        "count": 1,
+        "pass_rate": 1.0,
+        "solution_leak_rate": 0.0,
+        "spec_adherence_mean": 0.92
+      },
+      "fake_success": {
+        "count": 1,
+        "pass_rate": 0.0,
+        "solution_leak_rate": 0.0,
+        "spec_adherence_mean": 0.3
+      },
+      "frustrated": {
+        "count": 1,
+        "pass_rate": 0.0,
+        "solution_leak_rate": 0.0,
+        "spec_adherence_mean": 0.45
+      },
+      "normal": {
+        "count": 11,
+        "pass_rate": 0.3636,
+        "solution_leak_rate": 0.0,
+        "spec_adherence_mean": 0.5273
+      },
+      "prompt_injection": {
+        "count": 1,
+        "pass_rate": 0.0,
+        "solution_leak_rate": 0.0,
+        "spec_adherence_mean": 0.25
+      },
+      "repeated_answer_request": {
+        "count": 1,
+        "pass_rate": 0.0,
+        "solution_leak_rate": 0.0,
+        "spec_adherence_mean": 0.4
+      },
+      "solved": {
+        "count": 2,
+        "pass_rate": 0.0,
+        "solution_leak_rate": 0.0,
+        "spec_adherence_mean": 0.1
+      },
+      "time_pressure": {
+        "count": 1,
+        "pass_rate": 0.0,
+        "solution_leak_rate": 0.0,
+        "spec_adherence_mean": 0.6
+      }
+    }
+  }
+}

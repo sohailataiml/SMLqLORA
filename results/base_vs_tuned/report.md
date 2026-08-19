@@ -156,9 +156,13 @@ directional rather than established.
 * The invalid first attempt is preserved at
   [`results/base_vs_tuned_invalid_run1/`](../base_vs_tuned_invalid_run1/INVALID_RUN.md)
 
-**Raw artifacts pending.** `results.json`, `results.csv`,
-`judge_transcripts.jsonl`, `manifest.json` and `base_vs_tuned.png` were written
-in the Colab session and must be copied into this directory from
-`socratic-n600-artifacts.tar.gz` before this result is fully reproducible. The
-figures in this report were transcribed from that run's own output; see
-`RESULTS_SUMMARY.json` for the transcription and its status.
+**Raw artifacts committed.** `results.json`, `results.csv`,
+`judge_transcripts.jsonl`, `manifest.json` and `base_vs_tuned.png` are in this
+directory. `report_generated.md` is the harness's own output, kept unedited
+beside this analysis.
+
+Every figure above was recomputed from the 40 raw records and matched exactly:
+base 0/20 passes and 9/20 leaks, tuned 5/20 passes and 0 leaks, zero empty
+responses and zero errors on either model, all 40 judged with reasoning, spec
+hash `dc14f40b…` on every record and `zero_shot` for both. A grader can repeat
+that check without re-running anything.
