@@ -97,7 +97,7 @@ The single most important table in this README.
 
 | Component | Status |
 | --- | --- |
-| Behavior spec, scenario schema, deterministic checks | **TESTED LOCALLY** — 475 unit tests, 1 skip |
+| Behavior spec, scenario schema, deterministic checks | **TESTED LOCALLY** — 526 unit tests, 1 skip |
 | Evaluation harness, judge abstraction, model adapters | **TESTED LOCALLY** |
 | 56 evaluation scenarios (clean / adversarial / held-out) | **IMPLEMENTED**, split-isolation enforced in code |
 | Prompt-ceiling ablation | **REAL EXPERIMENT RESULT — COMPLETE** — 216/216 evaluations, 6/6 cells |
@@ -107,13 +107,16 @@ The single most important table in this README.
 | Teacher generation + quality gate | **REAL RUN — COMPLETE** — 1190 candidates judged, 1055 accepted |
 | Dataset V1 | **BUILT, AUDITED, FROZEN** — 600 examples, hash `9121c24e…` |
 | N=600 training data conversion | **VERIFIED OFFLINE** — 10/10 checks, [`results/training/verification.json`](results/training/verification.json) |
-| QLoRA training (N=600) | **RECIPE FROZEN; NOT RUN** — no GPU with cc ≥ 7.5 reachable ([preflight](results/training/socratic-v1-n600/PREFLIGHT.md)) |
-| Base vs tuned | **NOT RUN** — requires a checkpoint |
+| QLoRA training (N=600) | **TRAINED** — 102 steps on a Colab T4, 35 min; best epoch was 1, but epoch 3 was saved |
+| Base vs tuned | **REAL RESULT — MIXED** — leaks 45% → 0%, but hint relevance regressed ([report](results/base_vs_tuned/report.md)) |
 | Data efficiency (N=125/250/500) | **NOT RUN** — deliberately gated on the N=600 result |
 
 Nothing in `results/` is invented. Files that would hold un-run experiments say
-`NOT_RUN`; the one experiment that has run says `REAL_EXPERIMENT_RESULT` and
-carries the manifest that reproduces it.
+`NOT_RUN`; experiments that have run say `REAL_EXPERIMENT_RESULT` and carry the
+manifest that reproduces them. The first base-vs-tuned attempt measured an
+inference defect rather than behavior and is preserved, unmodified and marked
+`INVALID_EVALUATION`, at
+[`results/base_vs_tuned_invalid_run1/`](results/base_vs_tuned_invalid_run1/INVALID_RUN.md).
 
 ---
 
@@ -616,13 +619,21 @@ Four stages, only two of which have produced numbers:
 | --- | --- |
 | **Prompt ceiling** | REAL RESULT — [`results/prompt_ceiling/`](results/prompt_ceiling/). Verdict: **fine-tuning justified** |
 | **Dataset V1** | REAL — 600 examples, frozen, hashed, [`data/versions/v1/`](data/versions/v1/) |
-| **N=600 training** | NOT RUN — recipe frozen and verified, blocked on GPU |
-| **Base vs tuned** | NOT RUN — requires the checkpoint |
+| **N=600 training** | REAL — 540/60 split, 3 epochs, T4, 35 min |
+| **Base vs tuned** | REAL RESULT — **MIXED**. Solution leaks eliminated; diagnostic accuracy regressed |
 
-**No fine-tuning result exists yet.** Nothing in this repository claims that
-fine-tuning taught the behavior, because that has not been measured. The
-Minimum Viable Dataset Size is likewise **not** claimed: the N=125/250/500 sweep
-is deliberately gated on N=600 first showing a real improvement.
+**The fine-tuning result is MIXED, and its ceiling is unmeasured.** On the
+held-out set the tuned model eliminated solution leakage (45% → 0%), raised spec
+adherence tenfold and robustness by 0.445, and passed 5/20 where the base model
+passed 0/20 — under the same weak prompt. But hint relevance *fell* (0.573 →
+0.408): the model learned to withhold without learning to diagnose. The adapter
+evaluated is the epoch-3 checkpoint, and the run's own validation curve shows
+epoch 1 was better (eval loss 1.97 vs 2.73), so this is a lower bound rather
+than a measurement of what N=600 can do.
+
+The Minimum Viable Dataset Size is **not** claimed. The N=125/250/500 sweep
+stays gated — running it now would trace a curve contaminated by a
+checkpoint-selection defect.
 
 `results/base_vs_tuned/` and `results/data_efficiency/` are **NOT RUN**. They
 will be populated by the commands below once a checkpoint exists. The

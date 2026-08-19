@@ -1,0 +1,84 @@
+{
+  "result_status": "REAL_EXPERIMENT_RESULT",
+  "provenance_status": "TRANSCRIBED_FROM_RUN_OUTPUT",
+  "provenance_note": "These figures were transcribed from the run's own printed report in the Colab session. They are real measurements, not estimates. The canonical machine-written artifacts (results.json, results.csv, judge_transcripts.jsonl, manifest.json, base_vs_tuned.png) still live in that session's socratic-n600-artifacts.tar.gz and must be copied into this directory. Until then this file is a faithful summary, not a substitute, and per-scenario records are unavailable.",
+  "outcome": "MIXED_RESULT",
+  "experiment": "base_vs_tuned",
+  "dataset_version": "v1",
+  "dataset_hash": "9121c24e47c7253818040aa40356a67d3a359ddcec057bc5bfc533d6a77e2656",
+  "n_train": 600,
+  "run_id": "socratic-v1-n600",
+  "checkpoint_epoch_evaluated": 3,
+  "eval_set": "scenarios/heldout.jsonl",
+  "eval_set_hash": "a30abe2a9be7df5420e01197ba700b9e582fefb06fa3d0a0855351c1fbb5f048",
+  "prompt_strategy": "zero_shot",
+  "judge": "anthropic:claude-opus-5",
+  "base_model": "Qwen/Qwen3-1.7B",
+  "base_model_revision": "70d244cc86ccca08cf5af4e1e306ecf908b1ad5e",
+
+  "counts": {
+    "base": {
+      "attempted": 20, "measured": 20, "infrastructure_errors": 0,
+      "subject_calls_ok": 20, "judge_calls_ok": 20, "passes": 0
+    },
+    "tuned": {
+      "attempted": 20, "measured": 20, "infrastructure_errors": 0,
+      "subject_calls_ok": 20, "judge_calls_ok": 20, "passes": 5
+    }
+  },
+
+  "metrics": {
+    "spec_adherence":              {"base": 0.045, "tuned": 0.459, "delta":  0.413},
+    "robustness":                  {"base": 0.233, "tuned": 0.678, "delta":  0.445},
+    "hint_relevance":              {"base": 0.573, "tuned": 0.408, "delta": -0.164},
+    "pass_rate":                   {"base": 0.000, "tuned": 0.250, "delta":  0.250},
+    "solution_leak_rate":          {"base": 0.450, "tuned": 0.000, "delta": -0.450},
+    "premature_confirmation_rate": {"base": 0.000, "tuned": 0.050, "delta":  0.050}
+  },
+
+  "by_split": {
+    "clean":       {"n": 11, "base_pass_rate": 0.000, "tuned_pass_rate": 0.364},
+    "adversarial": {"n":  9, "base_pass_rate": 0.000, "tuned_pass_rate": 0.111}
+  },
+
+  "failure_modes": {
+    "base": {
+      "MULTIPLE_HINTS": 17, "OVER_EXPLANATION": 12, "EXPLICIT_FINAL_DIAGNOSIS": 11,
+      "SOLUTION_LEAK": 9, "INCORRECT_DIAGNOSIS": 2, "LOW_QUALITY": 2,
+      "FAILED_TO_ADAPT": 1
+    },
+    "tuned": {
+      "FAILED_TO_ADAPT": 5, "LOW_QUALITY": 5, "MULTIPLE_HINTS": 5,
+      "INCORRECT_DIAGNOSIS": 4, "IRRELEVANT_HINT": 3, "DUPLICATE": 1,
+      "EXPLICIT_FINAL_DIAGNOSIS": 1, "OVER_EXPLANATION": 1,
+      "PREMATURE_CONFIRMATION": 1, "WITHHELD_AFTER_SOLVED": 1
+    },
+    "note": "Codes are multi-label; one response can carry several, so counts may exceed the number of scenarios."
+  },
+
+  "training_validation_curve": {
+    "epoch_1": {"eval_loss": 1.97,  "token_accuracy": 0.584, "entropy": 3.019},
+    "epoch_2": {"eval_loss": 2.785, "token_accuracy": 0.514, "entropy": 5.154},
+    "epoch_3": {"eval_loss": 2.730, "token_accuracy": 0.515, "entropy": 4.847},
+    "final_train_loss": 2.504,
+    "note": "Epoch 1 was the best model. save_total_limit: 1 with no load_best_model_at_end kept the last checkpoint and pruned the best, so the adapter evaluated here is the degraded epoch-3 model."
+  },
+
+  "statistical_uncertainty": "NOT_COMPUTED",
+  "statistical_note": "No bootstrap is implemented in this harness. At N=20 only the leak-rate delta (9/20 -> 0/20) is large enough to be robust; smaller deltas are directional.",
+
+  "conclusions": {
+    "solution_leak_eliminated": true,
+    "refusal_pathology_introduced": false,
+    "hint_relevance_regressed": true,
+    "solved_state_intact": true,
+    "capability_ceiling_measured": false,
+    "capability_ceiling_note": "The evaluated checkpoint is known-degraded, so this result is a lower bound on what N=600 can do."
+  },
+
+  "recommendation": {
+    "run_data_efficiency_sweep": false,
+    "build_dataset_v2": false,
+    "next_action": "Re-train N=600 with load_best_model_at_end: true and metric_for_best_model: eval_loss, same data and hyperparameters and seed, then re-evaluate. One 35-minute run separates 'V1 cannot teach diagnostic accuracy' from 'the wrong epoch was saved'."
+  }
+}

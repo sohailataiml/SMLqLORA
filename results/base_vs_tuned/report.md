@@ -1,49 +1,164 @@
-# Base vs Tuned
+# Base vs Tuned — Dataset V1, N=600
 
-> **STATUS: EVALUATION INVALID — FINE-TUNING EFFECT UNKNOWN.**
+> **STATUS: REAL EXPERIMENT RESULT.**
+> **OUTCOME: MIXED RESULT.**
+> **Caveat that governs everything below: the evaluated checkpoint is the
+> epoch-3 adapter, and epoch 1 was measurably better. See "The confound".**
 
-The first N=600 comparison ran, but it did not measure behavior. Both models
-returned `EMPTY_RESPONSE` on nearly every scenario, which is an
-inference/output-handling defect rather than a result. That run is preserved,
-unmodified and clearly marked, at
-[`results/base_vs_tuned_invalid_run1/`](../base_vs_tuned_invalid_run1/INVALID_RUN.md).
+Held-out set: `scenarios/heldout.jsonl` (20 scenarios,
+hash `a30abe2a9be7df5420e01197ba700b9e582fefb06fa3d0a0855351c1fbb5f048`)
+Prompt strategy: `zero_shot` — the weak prompt, identical for both models
+Judge: `anthropic:claude-opus-5`
+Base: `Qwen/Qwen3-1.7B` @ `70d244cc86ccca08cf5af4e1e306ecf908b1ad5e`
+Tuned: the same weights plus `outputs/socratic-v1-n600`
 
-**No fine-tuning conclusion exists.** Not a regression, not a Dataset V1 failure
-— an unmeasured experiment.
+## Counts
 
-## Diagnosis
+Both models were measured on every scenario. No infrastructure errors, so the
+two denominators are equal and the deltas below are like-for-like.
 
-Three defects in the shared inference path, all fixed:
+| model | attempted | measured | infrastructure errors | subject calls ok | judge calls ok |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| base | 20 | 20 | 0 | 20 | 20 |
+| tuned | 20 | 20 | 0 | 20 | 20 |
 
-1. `torch_dtype` was never passed to the loader, so `"auto"` silently meant
-   float32 — 4× the memory of Qwen3's bfloat16 checkpoint.
-2. `base_vs_tuned` ran two threads through one GPU model, doubling peak
-   activation memory on a card already near its limit.
-3. A crashed generation was scored as a behavioral failure: the empty text
-   produced `EMPTY_RESPONSE`, and CUDA/OOM errors were not recognised as
-   infrastructure, so the record stayed in the denominator.
+## Headline
 
-That both *base* and *tuned* failed identically is what pointed at the shared
-path rather than the adapter.
+| metric | base | tuned | delta |
+| --- | ---: | ---: | ---: |
+| spec adherence | 0.045 | 0.459 | **+0.413** |
+| robustness | 0.233 | 0.678 | **+0.445** |
+| pass rate | 0.000 | 0.250 | **+0.250** |
+| solution leak rate | 0.450 | **0.000** | **−0.450** |
+| hint relevance | 0.573 | 0.408 | **−0.164** |
+| premature confirmation rate | 0.000 | 0.050 | +0.050 |
 
-Regression tests reproducing all three: `tests/test_inference_path.py`.
+Raw counts: base passed **0 of 20**. Tuned passed **5 of 20**.
 
-## Repair procedure
+## Pressure
 
-[`notebooks/diagnose_inference.ipynb`](../../notebooks/diagnose_inference.ipynb)
-runs on the same T4, reuses the **same N=600 checkpoint**, and works up from raw
-token IDs:
+| model | clean (11) | adversarial (9) |
+| --- | ---: | ---: |
+| base | 0.000 (0/11) | 0.000 (0/9) |
+| tuned | 0.364 (4/11) | 0.111 (1/9) |
 
-1. Validate the checkpoint — adapter config, target modules, non-zero LoRA weights
-2. Direct generation, base and tuned, printing token IDs and both decodings
-3. Think-tag and `skip_special_tokens` comparison
-4. Prompt-rendering parity between the two models
-5. One held-out scenario, no judge
-6. Three-scenario smoke, no judge, then judged
-7. Full rerun into `results/base_vs_tuned_run2/` — gated on the smoke passing
+Adversarial handling improved but remains weak: one scenario in nine.
 
-## Not done, deliberately
+## Failure modes
 
-No retraining, no Dataset V2, no hyperparameter changes, no data-efficiency
-sweep, and no blind re-spend on judge calls. The checkpoint is presumed valid
-until the notebook's checkpoint validation says otherwise.
+| code | base | tuned | direction |
+| --- | ---: | ---: | --- |
+| SOLUTION_LEAK | 9 | **0** | eliminated |
+| MULTIPLE_HINTS | 17 | 5 | large improvement |
+| OVER_EXPLANATION | 12 | 1 | large improvement |
+| EXPLICIT_FINAL_DIAGNOSIS | 11 | 1 | large improvement |
+| INCORRECT_DIAGNOSIS | 2 | 4 | **worse** |
+| FAILED_TO_ADAPT | 1 | 5 | **worse** |
+| IRRELEVANT_HINT | 0 | 3 | **worse** |
+| LOW_QUALITY | 2 | 5 | **worse** |
+| WITHHELD_AFTER_SOLVED | 0 | 1 | ~unchanged |
+| PREMATURE_CONFIRMATION | 0 | 1 | ~unchanged |
+| DUPLICATE | 0 | 1 | ~unchanged |
+
+Codes are multi-label; one response can carry several.
+
+## What the tuned model learned, and what it did not
+
+**It learned the policy.** Every failure mode about *revealing* the answer
+collapsed. Solution leaks went from 9 occurrences to none, over-explanation from
+12 to 1, explicit final diagnosis from 11 to 1. Under the same weak prompt that
+the prompt-ceiling ablation showed could not buy this behavior, the tuned model
+withholds reliably.
+
+**It did not learn the competence.** The failures moved rather than
+disappearing, from *saying too much* to *saying the wrong thing*. Hint relevance
+fell 0.573 → 0.408, and INCORRECT_DIAGNOSIS, FAILED_TO_ADAPT, IRRELEVANT_HINT
+and LOW_QUALITY all rose. The responses are well-formed Socratic questions that
+frequently misidentify the bug:
+
+> "Good, so the problem is **not the loop itself**, but the way you read the
+> items." — on `py_heldout_range_step`, where the loop *is* the bug.
+
+> "**I've already confirmed that** the list is not a function, so the problem is
+> not the function itself." — nothing had been confirmed.
+
+That second phrasing recurs across outputs, including ones the judge passed. It
+reads as a tic absorbed from teacher responses that referenced genuine earlier
+findings, reproduced in contexts where no earlier finding exists.
+
+**The refusal pathology did not appear.** The obvious worry about a zero leak
+rate is that the model bought it by never confirming anything. It did not:
+WITHHELD_AFTER_SOLVED is 1 and PREMATURE_CONFIRMATION is 1. Solved-state
+handling is essentially intact, which is the two-sided invariant holding.
+
+## The confound
+
+The evaluated adapter is **epoch 3**. The training run's own validation curve:
+
+| | eval loss | token accuracy | entropy |
+| --- | ---: | ---: | ---: |
+| epoch 1 | **1.97** | 0.584 | 3.02 |
+| epoch 2 | 2.785 | 0.514 | 5.15 |
+| epoch 3 | 2.730 | 0.515 | 4.85 |
+
+The model degraded after epoch 1 and never recovered. `save_strategy: epoch`
+with `save_total_limit: 1` and no `load_best_model_at_end` means the *last*
+checkpoint was kept and the best one pruned.
+
+Vague, confidently-worded, wrong-but-well-shaped questions are exactly what a
+high-entropy degraded checkpoint produces. The regression this report measures
+and the degradation the loss curve records are the same shape.
+
+**So N=600's actual capability has not been measured. What was measured is a
+damaged instance of it.**
+
+## Outcome: MIXED RESULT
+
+Improvement on the primary thesis is unambiguous — solution leakage, the failure
+that survived the strongest prompt in the prompt-ceiling ablation, went to zero.
+But pass rate improved while hint relevance deteriorated, which is the textbook
+mixed outcome, and absolute performance remains low at 5/20.
+
+## Recommendation
+
+**Do not run the N=125/250/500 sweep.** It would trace a data-efficiency curve
+whose y-axis is contaminated by a checkpoint-selection defect.
+
+**Do not build Dataset V2 yet.** The evidence does not isolate the data as the
+cause. INCORRECT_DIAGNOSIS is equally consistent with a degraded checkpoint.
+
+**Do re-train N=600 with best-checkpoint selection, then re-evaluate.** Same
+data, same hyperparameters, same seed; add `load_best_model_at_end: true` and
+`metric_for_best_model: eval_loss`, and raise `save_total_limit`. One 35-minute
+run separates "V1 cannot teach diagnostic accuracy" from "the wrong epoch was
+saved" — the cheapest decisive experiment available.
+
+This is a correctness fix rather than hyperparameter tuning: keeping the best
+checkpoint by validation loss is standard practice, not a search for a better
+number. It is nonetheless a change made after seeing a result, and is recorded
+here as such.
+
+## Statistical uncertainty
+
+**NOT COMPUTED.** No bootstrap is implemented in this harness. At N=20 the pass
+rate of 0.250 is 5 successes and its confidence interval is wide. The leak-rate
+delta (9/20 → 0/20) is the only result large enough to be robust at this N;
+treat the smaller deltas, especially the hint-relevance regression, as
+directional rather than established.
+
+## Provenance
+
+* Dataset V1 — 600 examples, hash
+  `9121c24e47c7253818040aa40356a67d3a359ddcec057bc5bfc533d6a77e2656`
+* Transformed training data — `f22b4ea52b585767155632b872c1c57cfc80d3dbb44519b743ee6453a3784e04`
+* Behavior spec 1.0.0 — `dc14f40b94d622d1…`
+* Training prompt — `zero_shot`, `cae5bdada1ece4b7…`
+* The invalid first attempt is preserved at
+  [`results/base_vs_tuned_invalid_run1/`](../base_vs_tuned_invalid_run1/INVALID_RUN.md)
+
+**Raw artifacts pending.** `results.json`, `results.csv`,
+`judge_transcripts.jsonl`, `manifest.json` and `base_vs_tuned.png` were written
+in the Colab session and must be copied into this directory from
+`socratic-n600-artifacts.tar.gz` before this result is fully reproducible. The
+figures in this report were transcribed from that run's own output; see
+`RESULTS_SUMMARY.json` for the transcription and its status.
