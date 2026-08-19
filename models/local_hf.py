@@ -254,7 +254,46 @@ def _supports_thinking_flag(model_id: str) -> bool:
     return "qwen3" in model_id.lower()
 
 
+def adapter_base_model(model_id: str, revision: str | None = None) -> str | None:
+    """The base model a PEFT adapter repo/directory was trained on, or None.
+
+    A published QLoRA checkpoint is an adapter, not a model: a few tens of MB of
+    LoRA weights that are meaningless without the base they were trained against.
+    `AutoModelForCausalLM.from_pretrained` cannot load one.
+
+    Graders run `eval.py --model <hf-repo-id>`, so the adapter case has to just
+    work rather than requiring a `peft:base+adapter` incantation they have no
+    reason to know. Reading `base_model_name_or_path` out of the adapter config
+    is how the repo declares what it needs.
+    """
+    import json
+
+    local = os.path.join(model_id, "adapter_config.json")
+    if os.path.exists(local):
+        with open(local, encoding="utf-8") as fh:
+            return json.load(fh).get("base_model_name_or_path")
+
+    try:
+        from huggingface_hub import hf_hub_download
+    except ImportError:
+        return None
+    try:
+        path = hf_hub_download(
+            model_id, "adapter_config.json", revision=revision or None
+        )
+    except Exception:
+        return None  # not an adapter repo, or not reachable - treat as a full model
+    with open(path, encoding="utf-8") as fh:
+        return json.load(fh).get("base_model_name_or_path")
+
+
 def _hf_factory(model_id: str, revision: str | None = None, **kw):
+    """Load a full model, or transparently resolve an adapter to base+adapter."""
+    base = adapter_base_model(model_id, revision)
+    if base:
+        # The adapter pins its own base; `revision` names the ADAPTER's commit,
+        # so it must not be applied to the base model as well.
+        return LocalHFAdapter(base, adapter_path=model_id, **kw)
     return LocalHFAdapter(model_id, revision=revision, **kw)
 
 

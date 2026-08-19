@@ -276,3 +276,52 @@ def test_raise_on_error_surfaces_the_real_exception():
 
     with pytest.raises(RuntimeError, match="adapter load failed"):
         _Boom().generate([Message(role=Role.USER, content="hi")], raise_on_error=True)
+
+
+# ------------- a published adapter repo must work with the plain grader command
+
+
+def test_a_local_adapter_directory_declares_its_base_model(tmp_path):
+    """`eval.py --model <repo-id>` is the grader's command; an adapter-only repo
+    cannot be loaded by AutoModelForCausalLM, so the base must be resolved from
+    the adapter config rather than demanded from the grader."""
+    import json
+
+    from models.local_hf import adapter_base_model
+
+    (tmp_path / "adapter_config.json").write_text(
+        json.dumps({"base_model_name_or_path": "Qwen/Qwen3-1.7B", "r": 16}),
+        encoding="utf-8",
+    )
+    assert adapter_base_model(str(tmp_path)) == "Qwen/Qwen3-1.7B"
+
+
+def test_a_plain_directory_is_not_treated_as_an_adapter(tmp_path):
+    from models.local_hf import adapter_base_model
+
+    (tmp_path / "config.json").write_text("{}", encoding="utf-8")
+    assert adapter_base_model(str(tmp_path)) is None
+
+
+def test_hf_factory_resolves_a_local_adapter_to_base_plus_adapter(tmp_path):
+    """The adapter path must survive, and the base must come from the config."""
+    import json
+
+    from models.local_hf import _hf_factory
+
+    (tmp_path / "adapter_config.json").write_text(
+        json.dumps({"base_model_name_or_path": "Qwen/Qwen3-1.7B"}), encoding="utf-8"
+    )
+    adapter = _hf_factory(str(tmp_path))
+    assert adapter.model_id == "Qwen/Qwen3-1.7B"
+    assert adapter.adapter_path == str(tmp_path)
+    assert adapter.name.startswith("peft:")
+
+
+def test_hf_factory_still_loads_a_full_model_normally(tmp_path):
+    from models.local_hf import _hf_factory
+
+    adapter = _hf_factory("Qwen/Qwen3-1.7B", revision="abc123")
+    assert adapter.model_id == "Qwen/Qwen3-1.7B"
+    assert adapter.adapter_path is None
+    assert adapter.revision == "abc123"
