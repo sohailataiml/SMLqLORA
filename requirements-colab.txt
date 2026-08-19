@@ -27,6 +27,15 @@ pyyaml>=6.0
 python-dotenv>=1.0
 tqdm>=4.66
 
+# NOT a dependency — a landmine, recorded here because it cost a full debugging
+# cycle. Colab preinstalls torchao 0.10.0, and PEFT's LoRA dispatcher calls
+# is_torchao_available(), which RAISES on any version below 0.16.0 instead of
+# returning False. Nothing in this project uses torchao, but its mere presence
+# makes PeftModel.from_pretrained fail — which surfaces as a tuned model that
+# returns an empty string for every scenario, with the error swallowed.
+#   pip uninstall -y torchao
+# The notebooks do this before installing anything else.
+
 # Needed only by the evaluation cells at the end — the LLM judge.
 anthropic>=0.40
 
