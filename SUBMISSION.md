@@ -7,13 +7,15 @@ giving away the answer.**
 
 ## Pinned versions
 
-Every number in this document is reproducible against exactly these:
+Every number in this document is reproducible against exactly these. The
+eval-code hash is the commit the full verification below was run against;
+any later commits are documentation only and change no result.
 
 | | |
 | --- | --- |
 | **Model checkpoint (HF, public)** | [`sohailataimleng/socratic-debug-tutor-qwen3-1.7b-n600`](https://huggingface.co/sohailataimleng/socratic-debug-tutor-qwen3-1.7b-n600) |
 | **Model commit hash** | `16d60373d2289f056dfa6b51bc22bc3ac14f8331` |
-| **Eval-code commit hash** | `dcac8738109b4db5f993b71c4b8eef4d1644d794` |
+| **Eval-code commit hash** | `f6c70e1ccc55330e9248604c1f9561638e34e59d` |
 | **Base model** | `Qwen/Qwen3-1.7B` |
 | **Base model revision** | `70d244cc86ccca08cf5af4e1e306ecf908b1ad5e` |
 | **Dataset V1 hash** | `9121c24e47c7253818040aa40356a67d3a359ddcec057bc5bfc533d6a77e2656` |
@@ -82,6 +84,20 @@ resolves without a prefix, that `eval.py` produces a results table and fails wit
 an explanation rather than a stack trace on bad input, that the harness works on
 a scenario file it has never seen, and that the published metrics recompute from
 the raw transcripts.
+
+**Last run: 13/13 passed**, on a fresh clone of this repository in a clean Colab
+environment that had never seen the project — including the live pull of the
+published checkpoint from the Hub and the full test suite. The `--live` check
+resolved the bare repo id to
+`peft:Qwen/Qwen3-1.7B+sohailataimleng/socratic-debug-tutor-qwen3-1.7b-n600`,
+downloaded the adapter and generated.
+
+That exercise was worth doing: it caught two defects invisible from inside a
+working checkout. The `base_vs_tuned` command printed above previously failed
+with `Unsupported model provider`, because only `eval.py` normalised bare repo
+ids; and the test suite failed on a clean clone with
+`ModuleNotFoundError: No module named 'tests.test_filtering'`, because `tests`
+was not a package. Both are fixed and re-verified.
 
 ---
 
