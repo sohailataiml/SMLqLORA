@@ -391,3 +391,90 @@ def test_total_train_steps_matches_the_configured_recipe(t4_config):
 
     # 540 examples, batch 2 x accum 8 = 16 per step -> 34 per epoch, 3 epochs.
     assert total_train_steps(t4_config.section("training"), 540) == 102
+
+
+# --------------------------- the load dtype must follow AMP, not the checkpoint
+
+
+def test_fp16_training_loads_the_model_in_float16(t4_config):
+    """THE BUG: no torch_dtype meant 'follow the checkpoint' -> Qwen3's bfloat16.
+
+    The LoRA parameters then inherit bfloat16, and the fp16 GradScaler has no
+    CUDA unscale kernel for it, so training dies at the first gradient clip.
+    """
+    from training.train import model_load_dtype
+
+    assert model_load_dtype(t4_config.section("training")) == "float16"
+
+
+def test_bf16_training_loads_the_model_in_bfloat16(config):
+    """The Ampere-and-newer config is the one that may legitimately use bf16."""
+    from training.train import model_load_dtype
+
+    assert model_load_dtype({"bf16": True, "fp16": False}) == "bfloat16"
+    # The base config ships bf16: false / fp16: true, same as the T4 config.
+    assert model_load_dtype(config.section("training")) in ("float16", "bfloat16")
+
+
+def test_no_mixed_precision_follows_the_checkpoint():
+    from training.train import model_load_dtype
+
+    assert model_load_dtype({"bf16": False, "fp16": False}) == "auto"
+
+
+def test_bf16_wins_when_both_are_set():
+    """bf16 needs no GradScaler, so it is the safe interpretation."""
+    from training.train import model_load_dtype
+
+    assert model_load_dtype({"bf16": True, "fp16": True}) == "bfloat16"
+
+
+def test_precision_guard_rejects_bf16_trainables_under_fp16():
+    """Fails before the first optimizer step instead of during it."""
+    from training.train import PrecisionMismatchError, assert_precision_is_trainable
+
+    class _P:
+        def __init__(self, dtype, requires_grad=True):
+            self.dtype = dtype
+            self.requires_grad = requires_grad
+
+    class _Model:
+        def named_parameters(self):
+            return [
+                ("base.weight", _P("torch.float32")),
+                ("lora_A.weight", _P("torch.bfloat16")),
+            ]
+
+    with pytest.raises(PrecisionMismatchError, match="lora_A"):
+        assert_precision_is_trainable(_Model(), {"fp16": True, "bf16": False})
+
+
+def test_precision_guard_is_silent_under_bf16():
+    """bf16 needs no GradScaler, so bf16 trainables are fine there."""
+    from training.train import assert_precision_is_trainable
+
+    class _P:
+        dtype = "torch.bfloat16"
+        requires_grad = True
+
+    class _Model:
+        def named_parameters(self):
+            return [("lora_A.weight", _P())]
+
+    assert_precision_is_trainable(_Model(), {"fp16": False, "bf16": True})
+
+
+def test_precision_guard_ignores_frozen_bf16_weights():
+    """Only TRAINABLE parameters reach the GradScaler."""
+    from training.train import bf16_trainable_parameters
+
+    class _P:
+        def __init__(self, dtype, requires_grad):
+            self.dtype = dtype
+            self.requires_grad = requires_grad
+
+    params = [
+        ("frozen.weight", _P("torch.bfloat16", False)),
+        ("lora_B.weight", _P("torch.float32", True)),
+    ]
+    assert bf16_trainable_parameters(params) == []

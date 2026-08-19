@@ -126,6 +126,60 @@ class TrainerArgumentError(RuntimeError):
     """Raised when a hyperparameter cannot be expressed in the installed TRL."""
 
 
+class PrecisionMismatchError(RuntimeError):
+    """Raised when trainable parameters cannot be used with the chosen AMP mode."""
+
+
+def model_load_dtype(train_cfg: dict[str, Any]) -> str:
+    """The dtype the base model's non-quantized weights must load in.
+
+    Omitting `torch_dtype` does not mean "pick something sensible" - it means
+    "follow the checkpoint", and Qwen3's config says bfloat16. On a T4 that
+    combination is fatal: the LoRA parameters inherit bfloat16, and fp16 mixed
+    precision uses a GradScaler whose CUDA unscale kernel has no bfloat16
+    implementation. Training dies at the first gradient-clipping step with
+
+        NotImplementedError: "_amp_foreach_non_finite_check_and_unscale_cuda"
+        not implemented for 'BFloat16'
+
+    The load dtype must therefore follow the mixed-precision mode, not the
+    checkpoint.
+    """
+    if train_cfg.get("bf16"):
+        return "bfloat16"
+    if train_cfg.get("fp16"):
+        return "float16"
+    return "auto"
+
+
+def bf16_trainable_parameters(named_parameters: Any) -> list[str]:
+    """Names of trainable parameters held in bfloat16.
+
+    Compares the dtype by name rather than by identity so this stays testable on
+    a machine without torch - which is where the rest of the suite runs.
+    """
+    return sorted(
+        name for name, param in named_parameters
+        if getattr(param, "requires_grad", False)
+        and str(getattr(param, "dtype", "")) == "torch.bfloat16"
+    )
+
+
+def assert_precision_is_trainable(model: Any, train_cfg: dict[str, Any]) -> None:
+    """Catch a dtype/AMP mismatch before the first optimizer step, not during it."""
+    if not train_cfg.get("fp16") or train_cfg.get("bf16"):
+        return
+    offenders = bf16_trainable_parameters(model.named_parameters())
+    if offenders:
+        raise PrecisionMismatchError(
+            f"fp16 mixed precision is enabled, but {len(offenders)} trainable "
+            f"parameters are bfloat16 - the fp16 GradScaler cannot unscale those "
+            f"on CUDA.\n"
+            f"  first offenders: {offenders[:3]}\n"
+            f"  the base model must load in float16 when fp16: true."
+        )
+
+
 #: Arguments TRL/transformers have renamed across versions. First name that the
 #: installed SFTConfig accepts wins.
 TRAINER_ARG_ALIASES: dict[str, tuple[str, ...]] = {
@@ -574,6 +628,10 @@ def _run_training(
         bnb_4bit_compute_dtype=compute_dtype,
     )
 
+    load_dtype = model_load_dtype(train_cfg)
+    print(f"  model dtype      : {load_dtype} (mixed precision: "
+          f"{'bf16' if train_cfg.get('bf16') else 'fp16'})")
+
     model = AutoModelForCausalLM.from_pretrained(
         model_cfg["base_model"],
         revision=model_cfg.get("revision", "main"),
@@ -581,6 +639,9 @@ def _run_training(
         device_map="auto",
         trust_remote_code=bool(model_cfg.get("trust_remote_code", False)),
         attn_implementation=str(model_cfg.get("attn_implementation", "eager")),
+        torch_dtype=(
+            load_dtype if load_dtype == "auto" else getattr(torch, load_dtype)
+        ),
     )
     model.config.use_cache = False
     model = prepare_model_for_kbit_training(
@@ -597,6 +658,7 @@ def _run_training(
     )
     model = get_peft_model(model, peft_config)
     model.print_trainable_parameters()
+    assert_precision_is_trainable(model, train_cfg)
 
     train_dataset = Dataset.from_list([{"messages": r["messages"]} for r in train_rows])
     eval_dataset = (
