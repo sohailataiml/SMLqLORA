@@ -61,8 +61,20 @@ training:
   eval_strategy: epoch
   save_strategy: epoch
   save_total_limit: 1
-  bf16: false        # T4 CHANGE: Turing has no bf16
-  fp16: true
+  # T4 CHANGE: no mixed precision at all.
+  #
+  # Turing has no bfloat16, so bf16 is out. fp16 ought to work, but transformers
+  # builds its Accelerator from ambient state that can disagree with these flags,
+  # re-casting the model inside prepare() after every check this repo performs -
+  # observed as a bfloat16 GradScaler kernel error on a run whose parameters were
+  # verifiably uint8 + float16 + float32. Without AMP there is no GradScaler and
+  # no autocast, so that failure mode cannot occur.
+  #
+  # The cost is speed, not correctness: the frozen base stays 4-bit and the
+  # adapters stay fp32, exactly as in the AMP path. Nothing about the experiment
+  # changes. Re-enable fp16 here if a future stack handles it cleanly.
+  bf16: false
+  fp16: false
   gradient_checkpointing: true
   seed: 42
   report_to: none

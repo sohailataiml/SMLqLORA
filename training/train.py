@@ -130,7 +130,9 @@ class PrecisionMismatchError(RuntimeError):
     """Raised when trainable parameters cannot be used with the chosen AMP mode."""
 
 
-def model_load_dtype(train_cfg: dict[str, Any]) -> str:
+def model_load_dtype(
+    train_cfg: dict[str, Any], quant_cfg: dict[str, Any] | None = None
+) -> str:
     """The dtype the base model's non-quantized weights must load in.
 
     Omitting `torch_dtype` does not mean "pick something sensible" - it means
@@ -149,7 +151,39 @@ def model_load_dtype(train_cfg: dict[str, Any]) -> str:
         return "bfloat16"
     if train_cfg.get("fp16"):
         return "float16"
-    return "auto"
+    # No mixed precision. "auto" would follow the checkpoint back to bfloat16,
+    # so match the quantization compute dtype instead - that is the dtype the
+    # dequantized matmuls actually run in.
+    compute = str((quant_cfg or {}).get("bnb_4bit_compute_dtype", "")).strip()
+    return compute or "auto"
+
+
+def mixed_precision_mode(train_cfg: dict[str, Any]) -> str:
+    """The accelerate spelling of the configured precision: bf16 / fp16 / no."""
+    if train_cfg.get("bf16"):
+        return "bf16"
+    if train_cfg.get("fp16"):
+        return "fp16"
+    return "no"
+
+
+def apply_mixed_precision_environment(train_cfg: dict[str, Any]) -> str:
+    """Tell accelerate the precision explicitly instead of letting it decide.
+
+    transformers builds its Accelerator from ambient state - an `accelerate
+    config` file, or ACCELERATE_* environment variables - and that state can
+    disagree with the training arguments. When it does, the model is re-cast
+    inside `Accelerator.prepare()`, AFTER any check this module performs, which
+    is how a run whose parameters were verifiably `uint8 + float16 + float32`
+    still died in a bfloat16 GradScaler kernel.
+
+    Setting the variable makes the two agree and makes the choice visible.
+    """
+    import os
+
+    mode = mixed_precision_mode(train_cfg)
+    os.environ["ACCELERATE_MIXED_PRECISION"] = mode
+    return mode
 
 
 def dtype_kwarg_name(loader: Any) -> str:
@@ -398,6 +432,8 @@ def check_trainer_api(train_cfg: dict[str, Any], model_cfg: dict[str, Any],
         from trl import SFTConfig
     except ImportError:
         return ["trl not installed - trainer arguments not checked"]
+    apply_mixed_precision_environment(train_cfg)
+
     requested = requested_trainer_arguments(
         train_cfg, model_cfg, Path("."), has_eval=True
     )
@@ -705,7 +741,7 @@ def _run_training(
         bnb_4bit_compute_dtype=compute_dtype,
     )
 
-    load_dtype = model_load_dtype(train_cfg)
+    load_dtype = model_load_dtype(train_cfg, quant_cfg)
     print(f"  model dtype      : {load_dtype} (mixed precision: "
           f"{'bf16' if train_cfg.get('bf16') else 'fp16'})")
 

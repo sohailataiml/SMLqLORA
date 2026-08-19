@@ -175,10 +175,22 @@ def test_t4_config_differs_only_where_the_hardware_forces_it(config, t4_config):
 
 
 def test_t4_config_is_actually_t4_safe(t4_config):
-    """Turing has no bfloat16. Getting this wrong fails minutes into training."""
-    assert t4_config.section("quantization")["bnb_4bit_compute_dtype"] == "float16"
-    assert t4_config.section("training")["bf16"] is False
-    assert t4_config.section("training")["fp16"] is True
+    """Turing has no bfloat16, and the fp16 GradScaler path proved unreliable."""
+    from training.train import mixed_precision_mode, model_load_dtype
+
+    training = t4_config.section("training")
+    quant = t4_config.section("quantization")
+
+    assert quant["bnb_4bit_compute_dtype"] == "float16"
+    assert training["bf16"] is False, "Turing has no bfloat16 unit"
+    assert training["fp16"] is False, (
+        "AMP is off on purpose: accelerate re-cast the model inside prepare(), "
+        "after every check here, and killed the run in a bf16 GradScaler kernel"
+    )
+    assert mixed_precision_mode(training) == "no"
+    # With AMP off the load dtype must still not fall back to the checkpoint's
+    # bfloat16 - it follows the quantization compute dtype instead.
+    assert model_load_dtype(training, quant) == "float16"
     # FlashAttention-2 needs Ampere; asking for it on a T4 raises at load time.
     assert t4_config.section("model")["attn_implementation"] == "eager"
 
@@ -396,7 +408,7 @@ def test_total_train_steps_matches_the_configured_recipe(t4_config):
 # --------------------------- the load dtype must follow AMP, not the checkpoint
 
 
-def test_fp16_training_loads_the_model_in_float16(t4_config):
+def test_fp16_training_loads_the_model_in_float16():
     """THE BUG: no torch_dtype meant 'follow the checkpoint' -> Qwen3's bfloat16.
 
     The LoRA parameters then inherit bfloat16, and the fp16 GradScaler has no
@@ -404,7 +416,7 @@ def test_fp16_training_loads_the_model_in_float16(t4_config):
     """
     from training.train import model_load_dtype
 
-    assert model_load_dtype(t4_config.section("training")) == "float16"
+    assert model_load_dtype({"bf16": False, "fp16": True}) == "float16"
 
 
 def test_bf16_training_loads_the_model_in_bfloat16(config):
@@ -596,3 +608,34 @@ def test_dtype_histogram_reports_what_actually_loaded():
     ])
     assert describe_parameter_dtypes(model) == "float32x2, uint8x1"
     assert describe_parameter_dtypes(model, trainable_only=True) == "float32x2"
+
+
+# --------------------------- accelerate must not disagree with the config
+
+
+def test_mixed_precision_mode_maps_to_accelerate_spellings():
+    from training.train import mixed_precision_mode
+
+    assert mixed_precision_mode({"bf16": True, "fp16": False}) == "bf16"
+    assert mixed_precision_mode({"bf16": False, "fp16": True}) == "fp16"
+    assert mixed_precision_mode({"bf16": False, "fp16": False}) == "no"
+
+
+def test_mixed_precision_environment_is_set_explicitly(monkeypatch):
+    """Ambient ACCELERATE_* state must not decide the precision for us."""
+    import os
+
+    from training.train import apply_mixed_precision_environment
+
+    monkeypatch.setenv("ACCELERATE_MIXED_PRECISION", "bf16")
+    assert apply_mixed_precision_environment({"bf16": False, "fp16": False}) == "no"
+    assert os.environ["ACCELERATE_MIXED_PRECISION"] == "no"
+
+
+def test_no_amp_load_dtype_does_not_fall_back_to_the_checkpoint():
+    """"auto" would follow Qwen3's config straight back to bfloat16."""
+    from training.train import model_load_dtype
+
+    off = {"bf16": False, "fp16": False}
+    assert model_load_dtype(off, {"bnb_4bit_compute_dtype": "float16"}) == "float16"
+    assert model_load_dtype(off, {}) == "auto"
