@@ -50,6 +50,64 @@ def adapter_weights(directory: Path) -> Path | None:
     return None
 
 
+def load_adapter_tensors(path: Path) -> dict[str, Any] | None:
+    """Read adapter weights as tensors, or None if that is not possible here."""
+    try:
+        if path.suffix == ".safetensors":
+            from safetensors.torch import load_file
+            return dict(load_file(str(path)))
+        import torch
+        return dict(torch.load(str(path), map_location="cpu"))
+    except Exception:  # pragma: no cover - missing torch/safetensors, or corrupt
+        return None
+
+
+def normalize_adapter_key(key: str) -> str:
+    """Strip the PEFT adapter-name segment so two serialisations line up.
+
+    `save_pretrained` on a live model writes `lora_A.default.weight`, while a
+    checkpoint written mid-run may write `lora_A.weight`. Same numbers, different
+    spelling.
+    """
+    for marker in (".default.", ".default_0."):
+        key = key.replace(marker, ".")
+    return key
+
+
+def compare_tensor_sets(exported: dict[str, Any], other: dict[str, Any]) -> dict[str, Any]:
+    """Numeric comparison of two adapter state dicts, key-name differences aside."""
+    import torch
+
+    left = {normalize_adapter_key(k): v for k, v in exported.items()}
+    right = {normalize_adapter_key(k): v for k, v in other.items()}
+    shared = sorted(set(left) & set(right))
+    result: dict[str, Any] = {
+        "tensor_count_exported": len(left),
+        "tensor_count_other": len(right),
+        "shared_keys": len(shared),
+        "missing_from_other": sorted(set(left) - set(right))[:5],
+        "missing_from_exported": sorted(set(right) - set(left))[:5],
+    }
+    if not shared or len(shared) != len(left) or len(shared) != len(right):
+        result["identical"] = False
+        result["reason"] = "the two files do not describe the same set of tensors"
+        return result
+
+    max_diff = 0.0
+    for key in shared:
+        a, b = left[key], right[key]
+        if a.shape != b.shape:
+            result["identical"] = False
+            result["reason"] = f"shape mismatch on {key}: {tuple(a.shape)} vs {tuple(b.shape)}"
+            return result
+        diff = (a.float() - b.float()).abs().max().item()
+        max_diff = max(max_diff, diff)
+
+    result["max_abs_diff"] = max_diff
+    result["identical"] = max_diff == 0.0
+    return result
+
+
 def checkpoint_dirs(output_dir: Path) -> list[Path]:
     """Surviving per-epoch checkpoints, ordered by global step."""
     found = [
@@ -152,6 +210,7 @@ def verify(output_dir: Path) -> tuple[int, dict[str, Any]]:
 
     if claimed_name and claimed_name in matches:
         report["verdict"] = "VERIFIED_BEST"
+        report["match_method"] = "bytes"
         report["detail"] = (
             f"The exported adapter byte-matches {claimed_name}, which the trainer "
             f"selected as best by {selection.get('metric_for_best_model')} "
@@ -173,11 +232,54 @@ def verify(output_dir: Path) -> tuple[int, dict[str, Any]]:
         )
         return 1, report
 
+    # A byte mismatch is not evidence of the wrong weights. `save_pretrained`
+    # re-serialises with its own header and may rename keys, so identical numbers
+    # can land in a differently-hashed file. Ask the only question that matters:
+    # are the VALUES the best checkpoint's values?
+    exported_tensors = load_adapter_tensors(exported)
+    if exported_tensors is not None:
+        numeric_matches = []
+        for directory in surviving:
+            other = load_adapter_tensors(adapter_weights(directory))
+            if other is None:
+                continue
+            comparison = compare_tensor_sets(exported_tensors, other)
+            comparison["checkpoint"] = directory.name
+            report.setdefault("tensor_comparisons", []).append(comparison)
+            if comparison.get("identical"):
+                numeric_matches.append(directory.name)
+
+        report["tensor_matches"] = numeric_matches
+
+        if claimed_name and numeric_matches == [claimed_name]:
+            report["verdict"] = "VERIFIED_BEST"
+            report["match_method"] = "tensor"
+            report["detail"] = (
+                f"The exported adapter is not byte-identical to any checkpoint -- "
+                f"save_pretrained re-serialised it -- but its WEIGHTS are exactly "
+                f"{claimed_name}'s, which the trainer selected as best by "
+                f"{selection.get('metric_for_best_model')} "
+                f"({selection.get('best_metric')}). Every tensor matches to 0.0 "
+                f"absolute difference."
+            )
+            return 0, report
+
+        if numeric_matches == [last]:
+            report["verdict"] = "EXPORTED_FINAL_NOT_BEST"
+            report["match_method"] = "tensor"
+            report["detail"] = (
+                f"The exported adapter's WEIGHTS are the LAST checkpoint's "
+                f"({last}), not the best one ({claimed_name}). Checkpoint "
+                f"selection did not take effect. Do not evaluate this adapter as "
+                f"a corrected baseline."
+            )
+            return 1, report
+
     report["verdict"] = "EXPORT_MATCHES_NO_CHECKPOINT"
     report["detail"] = (
-        "The exported adapter matches none of the surviving checkpoints. This can "
-        "happen if save_model re-serialised the weights; compare the reported "
-        "eval_loss instead and treat selection as unconfirmed."
+        "The exported adapter matches none of the surviving checkpoints, by bytes "
+        "or by tensor values. Treat selection as unconfirmed and do not evaluate "
+        "this adapter as a corrected baseline."
     )
     return 2, report
 
@@ -217,6 +319,16 @@ def main(argv: list[str] | None = None) -> int:
           f"{report.get('best_differs_from_final')}")
     print(f"  exported adapter sha256          : {report.get('exported_sha256', '')[:16]}")
     print(f"  export byte-matches              : {report.get('export_matches')}")
+    for comparison in report.get("tensor_comparisons", []):
+        if "max_abs_diff" in comparison:
+            print(f"  tensor diff vs {comparison['checkpoint']:<18}: "
+                  f"max |delta| = {comparison['max_abs_diff']} "
+                  f"over {comparison['shared_keys']} tensors")
+        else:
+            print(f"  tensor diff vs {comparison['checkpoint']:<18}: "
+                  f"{comparison.get('reason')}")
+    if report.get("tensor_matches") is not None:
+        print(f"  export tensor-matches            : {report.get('tensor_matches')}")
     print()
     print(f"  VERDICT: {report['verdict']}")
     print(f"  {report.get('detail', '')}")
