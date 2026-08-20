@@ -372,9 +372,22 @@ def main(argv: list[str] | None = None) -> int:
     print(f"CONCLUSION: {report['conclusion']['verdict']}")
 
     if args.write:
-        OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-        OUTPUT.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
-        print("\nWrote results/failure_analysis/v1_n600_failure_taxonomy.json")
+        # --output was parsed and then ignored, so every run wrote over the
+        # MVP's taxonomy regardless of what the caller asked for. The corrected
+        # run and the historical one are evidence about different checkpoints;
+        # they do not share a filename.
+        destination = Path(args.output) if args.output else OUTPUT
+        if not destination.is_absolute():
+            destination = REPO_ROOT / destination
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(json.dumps(report, indent=2) + chr(10),
+                               encoding='utf-8')
+        try:
+            shown = destination.relative_to(REPO_ROOT)
+        except ValueError:
+            shown = destination
+        print()
+        print(f'Wrote {shown}')
     return 0
 
 
