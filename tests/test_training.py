@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -283,3 +284,134 @@ def test_checkpoint_metadata_records_reproducibility_fields(spec):
                 "training_system_prompt"):
         assert key in metadata, key
     assert metadata["dataset_train_size"] == len(split.train)
+
+
+# ---------------------------------------------------------------------------
+# Checkpoint selection.
+#
+# The MVP N=600 run exported its epoch-3 adapter while its own validation curve
+# showed epoch 1 was better, because `save_total_limit: 1` pruned the best one
+# and nothing recorded which epoch had shipped. Both halves of that -- being able
+# to ask for the best checkpoint, and recording which one was exported -- are
+# tested here.
+# ---------------------------------------------------------------------------
+
+
+class _FakeTrainerState:
+    def __init__(self, **kw):
+        self.log_history = kw.get("log_history", [])
+        self.best_model_checkpoint = kw.get("best_model_checkpoint")
+        self.best_metric = kw.get("best_metric")
+        self.global_step = kw.get("global_step", 102)
+        self.epoch = kw.get("epoch", 3.0)
+
+
+def _args(**overrides):
+    from training.train import requested_trainer_arguments
+
+    train_cfg = {"num_train_epochs": 3, **overrides}
+    return requested_trainer_arguments(
+        train_cfg, {"max_seq_length": 2048}, Path("outputs/x"), has_eval=True
+    )
+
+
+def test_checkpoint_selection_is_absent_unless_requested():
+    """An unchanged config must produce exactly the arguments it produced before,
+    so no existing recipe shifts underneath it."""
+    resolved = _args()
+    assert "load_best_model_at_end" not in resolved
+    assert "metric_for_best_model" not in resolved
+    assert "greater_is_better" not in resolved
+
+
+def test_best_checkpoint_can_be_requested_from_the_config():
+    resolved = _args(load_best_model_at_end=True, metric_for_best_model="eval_loss",
+                     greater_is_better=False)
+    assert resolved["load_best_model_at_end"] is True
+    assert resolved["metric_for_best_model"] == "eval_loss"
+    assert resolved["greater_is_better"] is False
+
+
+def test_best_checkpoint_is_refused_when_there_is_no_validation_split():
+    """`load_best_model_at_end` needs eval running; asking without it fails
+    inside the Trainer, after the model is already on the GPU."""
+    from training.train import TrainerArgumentError, requested_trainer_arguments
+
+    with pytest.raises(TrainerArgumentError, match="validation split"):
+        requested_trainer_arguments(
+            {"load_best_model_at_end": True}, {"max_seq_length": 2048},
+            Path("outputs/x"), has_eval=False,
+        )
+
+
+def test_checkpoint_selection_settings_cannot_be_silently_dropped():
+    from training.train import EXPERIMENTALLY_SIGNIFICANT
+
+    assert {"load_best_model_at_end", "metric_for_best_model",
+            "greater_is_better"} <= EXPERIMENTALLY_SIGNIFICANT
+
+
+def test_selection_record_names_the_final_checkpoint_when_not_selecting_best():
+    from training.train import checkpoint_selection_record
+
+    record = checkpoint_selection_record(
+        _FakeTrainerState(), {"load_best_model_at_end": False}
+    )
+    assert record["exported_checkpoint"] == "final_step"
+
+
+def test_selection_record_names_the_best_checkpoint_and_its_metric():
+    from training.train import checkpoint_selection_record
+
+    state = _FakeTrainerState(
+        best_model_checkpoint="outputs/run/checkpoint-34", best_metric=1.97
+    )
+    record = checkpoint_selection_record(
+        state,
+        {"load_best_model_at_end": True, "metric_for_best_model": "eval_loss",
+         "greater_is_better": False},
+    )
+    assert record["exported_checkpoint"] == "best_by_metric"
+    assert record["best_model_checkpoint"] == "outputs/run/checkpoint-34"
+    assert record["best_metric"] == 1.97
+
+
+def test_selection_record_preserves_the_validation_curve():
+    """The MVP run's loss curve survived only as a pasted console log."""
+    from training.train import checkpoint_selection_record
+
+    state = _FakeTrainerState(log_history=[
+        {"loss": 2.9, "epoch": 0.5},
+        {"eval_loss": 1.97, "epoch": 1.0},
+        {"eval_loss": 2.785, "epoch": 2.0},
+        {"eval_loss": 2.73, "epoch": 3.0},
+    ])
+    record = checkpoint_selection_record(state, {"load_best_model_at_end": True})
+    assert [e["eval_loss"] for e in record["validation_history"]] == [1.97, 2.785, 2.73]
+    assert len(record["train_history"]) == 1
+
+
+def test_the_corrected_config_differs_from_the_mvp_config_only_in_selection():
+    """The V1-vs-V2 comparison is only clean if nothing else moved."""
+    import yaml
+
+    root = Path(__file__).resolve().parent.parent
+    mvp = yaml.safe_load(
+        (root / "training/configs/qlora_qwen3_1_7b_t4.yaml").read_text(encoding="utf-8")
+    )
+    fixed = yaml.safe_load(
+        (root / "training/configs/qlora_qwen3_1_7b_t4_bestckpt.yaml").read_text(
+            encoding="utf-8")
+    )
+    for section in ("model", "quantization", "lora", "data"):
+        assert mvp[section] == fixed[section], f"{section} must not change"
+
+    selection_keys = {"load_best_model_at_end", "metric_for_best_model",
+                      "greater_is_better", "save_total_limit"}
+    changed = {
+        k for k in set(mvp["training"]) | set(fixed["training"])
+        if mvp["training"].get(k) != fixed["training"].get(k)
+    }
+    assert changed <= selection_keys, f"unexpected training changes: {changed - selection_keys}"
+    assert fixed["training"]["load_best_model_at_end"] is True
+    assert fixed["training"]["metric_for_best_model"] == "eval_loss"

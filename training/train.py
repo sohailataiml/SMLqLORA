@@ -306,6 +306,12 @@ EXPERIMENTALLY_SIGNIFICANT = frozenset({
     "num_train_epochs", "per_device_train_batch_size", "gradient_accumulation_steps",
     "learning_rate", "lr_scheduler_type", "weight_decay", "max_grad_norm",
     "seed", "max_length", "warmup_ratio",
+    # Which checkpoint the run exports is as significant as how it was trained.
+    # The N=600 MVP run shipped its epoch-3 adapter while its own validation
+    # curve showed epoch 1 was better, because these were not configurable and
+    # `save_total_limit: 1` pruned the best one. Silently dropping them would
+    # reproduce exactly that defect.
+    "load_best_model_at_end", "metric_for_best_model", "greater_is_better",
 })
 
 
@@ -316,6 +322,38 @@ def total_train_steps(train_cfg: dict[str, Any], train_examples: int) -> int:
     epochs = float(train_cfg.get("num_train_epochs", 3))
     per_epoch = max(1, -(-train_examples // (batch * accum)))  # ceil
     return max(1, int(per_epoch * epochs))
+
+
+def _checkpoint_selection_arguments(
+    train_cfg: dict[str, Any], *, has_eval: bool
+) -> dict[str, Any]:
+    """Best-checkpoint export settings, present only when actually requested.
+
+    Emitted conditionally for two reasons. A config that does not ask for this
+    produces exactly the arguments it produced before, so no existing recipe
+    shifts underneath it. And because these keys are experimentally significant,
+    including them unconditionally would turn "this TRL cannot express
+    `metric_for_best_model`" into a hard error even for runs that never wanted
+    it -- while still erroring, correctly, for runs that did.
+
+    `load_best_model_at_end` also requires evaluation to be running. Asking for
+    it without a validation split fails inside the Trainer, after the model is
+    already on the GPU, so it is refused here instead.
+    """
+    if not bool(train_cfg.get("load_best_model_at_end", False)):
+        return {}
+    if not has_eval:
+        raise TrainerArgumentError(
+            "load_best_model_at_end needs a validation split to choose a best "
+            "checkpoint from, but this run has none. Set "
+            "`data.validation_fraction` above 0, or drop the setting."
+        )
+    return {
+        "load_best_model_at_end": True,
+        "metric_for_best_model": str(
+            train_cfg.get("metric_for_best_model", "eval_loss")),
+        "greater_is_better": bool(train_cfg.get("greater_is_better", False)),
+    }
 
 
 def requested_trainer_arguments(
@@ -342,6 +380,7 @@ def requested_trainer_arguments(
         "logging_steps": int(train_cfg.get("logging_steps", 5)),
         "save_strategy": str(train_cfg.get("save_strategy", "epoch")),
         "save_total_limit": int(train_cfg.get("save_total_limit", 1)),
+        **_checkpoint_selection_arguments(train_cfg, has_eval=has_eval),
         "bf16": bool(train_cfg.get("bf16", False)),
         "fp16": bool(train_cfg.get("fp16", True)),
         "gradient_checkpointing": bool(train_cfg.get("gradient_checkpointing", True)),
@@ -580,6 +619,34 @@ def build_checkpoint_metadata(
     }
 
 
+def checkpoint_selection_record(trainer_state: Any, resolved: dict[str, Any]) -> dict:
+    """Which checkpoint this run exported, and the curve that justifies it.
+
+    Reconstructing this after the fact was impossible for the N=600 MVP run: the
+    adapter shipped without a trainer state, `save_total_limit: 1` had already
+    deleted the earlier checkpoints, and the only surviving record of the
+    validation curve was a console log pasted into a report. Recording it beside
+    the adapter makes the question "which epoch is this?" answerable from the
+    artifact instead of from memory.
+    """
+    load_best = bool(resolved.get("load_best_model_at_end", False))
+    history = list(getattr(trainer_state, "log_history", []) or [])
+    return {
+        "exported_checkpoint": "best_by_metric" if load_best else "final_step",
+        "load_best_model_at_end": load_best,
+        "metric_for_best_model": resolved.get("metric_for_best_model"),
+        "greater_is_better": resolved.get("greater_is_better"),
+        "save_strategy": resolved.get("save_strategy"),
+        "save_total_limit": resolved.get("save_total_limit"),
+        "best_model_checkpoint": getattr(trainer_state, "best_model_checkpoint", None),
+        "best_metric": getattr(trainer_state, "best_metric", None),
+        "final_global_step": getattr(trainer_state, "global_step", None),
+        "final_epoch": getattr(trainer_state, "epoch", None),
+        "validation_history": [e for e in history if "eval_loss" in e],
+        "train_history": [e for e in history if "loss" in e and "eval_loss" not in e],
+    }
+
+
 # =============================================================================
 # Training
 # =============================================================================
@@ -684,8 +751,9 @@ def train(
         print(f"Metadata written to {output_dir / 'checkpoint_metadata.json'}")
         return output_dir
 
-    _run_training(config, train_rows, validation_rows, output_dir)
+    selection = _run_training(config, train_rows, validation_rows, output_dir)
     verify_adapter_written(output_dir)
+    metadata["checkpoint_selection"] = selection
 
     (output_dir / "checkpoint_metadata.json").write_text(
         json.dumps({**metadata, "completed": True}, indent=2, default=str) + "\n",
@@ -706,8 +774,12 @@ def _run_training(
     train_rows: Sequence[dict[str, Any]],
     validation_rows: Sequence[dict[str, Any]],
     output_dir: Path,
-) -> None:
-    """The actual training loop. Imports the heavy stack lazily."""
+) -> dict[str, Any]:
+    """The actual training loop. Imports the heavy stack lazily.
+
+    Returns the checkpoint-selection record, which the caller folds into
+    `checkpoint_metadata.json` beside the adapter.
+    """
     import torch
     from datasets import Dataset
     from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
@@ -819,11 +891,18 @@ def _run_training(
     trainer.save_model(str(output_dir))
     tokenizer.save_pretrained(str(output_dir))
 
+    selection = checkpoint_selection_record(trainer.state, resolved)
+    print(f"  exported checkpoint: {selection['exported_checkpoint']}"
+          f" (best={selection['best_model_checkpoint']},"
+          f" metric={selection['best_metric']})")
+
     output_cfg = config.section("output")
     if output_cfg.get("push_to_hub") and output_cfg.get("hub_repo_id"):
         trainer.model.push_to_hub(str(output_cfg["hub_repo_id"]))
         tokenizer.push_to_hub(str(output_cfg["hub_repo_id"]))
         print(f"Pushed adapter to https://huggingface.co/{output_cfg['hub_repo_id']}")
+
+    return selection
 
 
 def main(argv: Sequence[str] | None = None) -> int:
