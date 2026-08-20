@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+from pathlib import Path
 from typing import Any
 
 from analysis.corpus import (
@@ -241,11 +242,20 @@ def test_learned_template_hypothesis(v1: list[Example], tuned: list) -> dict:
     }
 
 
-def build_report() -> dict[str, Any]:
+def build_report(transcripts: Path = TRANSCRIPTS, *, run_label: str | None = None) -> dict[str, Any]:
+    """Classify one run's held-out outputs and test the V1 hypotheses against it.
+
+    `transcripts` defaults to the MVP base-vs-tuned file. Pointing it at a
+    corrected run's `judge_transcripts.jsonl` is how the same markers get
+    measured before and after the checkpoint fix, with identical code.
+    """
     v1 = load_dataset_v1()
     raw_v1 = read_jsonl(REPO_ROOT / "data/versions/v1/selected.jsonl")
     heldout = load_heldout()
-    _base, tuned = split_by_model(read_jsonl(TRANSCRIPTS))
+    records = read_jsonl(transcripts)
+    _base, tuned = split_by_model(records)
+    if not tuned:  # a single-model eval of a non-adapter model
+        tuned = records
 
     ood_hits = out_of_distribution_phrases(
         [r["model_response"] for r in tuned], [e.response for e in v1]
@@ -268,8 +278,11 @@ def build_report() -> dict[str, Any]:
 
     return {
         "analysis_version": ANALYSIS_VERSION,
-        "source_transcripts": "results/base_vs_tuned/judge_transcripts.jsonl",
-        "run": "socratic-v1-n600, checkpoint epoch 3 (final)",
+        "source_transcripts": str(
+            transcripts.relative_to(REPO_ROOT) if transcripts.is_relative_to(REPO_ROOT)
+            else transcripts
+        ).replace("\\", "/"),
+        "run": run_label or "socratic-v1-n600, checkpoint epoch 3 (final)",
         "counts": {
             "scenarios": len(per_scenario),
             "passes": sum(1 for s in per_scenario if s["pass"]),
@@ -326,9 +339,18 @@ def build_report() -> dict[str, Any]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--write", action="store_true", help="write the JSON taxonomy")
+    parser.add_argument("--transcripts", default=None,
+                        help="judge_transcripts.jsonl to classify "
+                             "(default: the MVP base-vs-tuned run)")
+    parser.add_argument("--run-label", default=None)
+    parser.add_argument("--output", default=None,
+                        help="where --write puts the JSON")
     args = parser.parse_args(argv)
 
-    report = build_report()
+    transcripts = Path(args.transcripts) if args.transcripts else TRANSCRIPTS
+    if not transcripts.is_absolute():
+        transcripts = REPO_ROOT / transcripts
+    report = build_report(transcripts, run_label=args.run_label)
     counts = report["counts"]
     print(
         f"Scenarios {counts['scenarios']}, passes {counts['passes']}, "
