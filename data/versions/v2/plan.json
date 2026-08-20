@@ -1,0 +1,134 @@
+{
+  "dataset_version": "v2",
+  "plan_version": "1.0.0",
+  "status": "PRE_REGISTERED_NOT_BUILT",
+  "written_before": "the corrected N600_V1_BASELINE was measured",
+  "human_readable": "data/versions/v2/PLAN.md",
+  "ancestry": {
+    "parent_version": "v1",
+    "parent_dataset_hash": "9121c24e47c7253818040aa40356a67d3a359ddcec057bc5bfc533d6a77e2656",
+    "parent_immutable": true
+  },
+  "why_conditional": {
+    "reason": "Every hypothesis blaming Dataset V1 for the observed regression is refuted by the frozen data; 19 of 20 held-out outputs carry phrasing absent from all 600 V1 responses. The regression is dominated by the epoch-3 checkpoint.",
+    "evidence": "results/failure_analysis/v1_n600_failure_taxonomy.json",
+    "consequence": "Selecting a V2 intervention now would target a training artifact."
+  },
+  "prerequisite_baseline": {
+    "name": "N600_V1_BASELINE",
+    "exists": false,
+    "definition": "Dataset V1, N=600, MVP recipe plus checkpoint-selection correction",
+    "correction_settings": {
+      "load_best_model_at_end": true,
+      "metric_for_best_model": "eval_loss",
+      "greater_is_better": false,
+      "save_total_limit": 3
+    },
+    "correction_is_the_v2_intervention": false,
+    "correction_note": "Applied identically to the V1 baseline and to V2, so the V1-vs-V2 comparison isolates data. Not claimable as the Early Submission improvement.",
+    "recoverable_from_existing_artifacts": false,
+    "why_not_recoverable": "save_total_limit: 1 pruned the epoch-1 and epoch-2 adapters during the MVP run.",
+    "evaluation": {
+      "eval_set": "scenarios/heldout.jsonl",
+      "eval_set_hash": "a30abe2a9be7df5420e01197ba700b9e582fefb06fa3d0a0855351c1fbb5f048",
+      "prompt_strategy": "zero_shot",
+      "judge": "anthropic:claude-opus-5",
+      "behavior_spec_sha256": "dc14f40b94d622d14ddaa2800c29311aa8a6e4a5aa875dee327ae23e4efb2127",
+      "base_model": "Qwen/Qwen3-1.7B",
+      "base_model_revision": "70d244cc86ccca08cf5af4e1e306ecf908b1ad5e"
+    }
+  },
+  "hypotheses": [
+    {
+      "id": "H-A",
+      "name": "multi-turn adaptation",
+      "measured_failure": "failure to adapt to a learner's established findings across turns",
+      "dataset_evidence": "every assistant turn in V1's synthetic conversation histories is a well-aimed teacher hint, so the model never sees a tutor recovering from a prior move that missed",
+      "data_property_changed": "conversation histories of a subset of multi-turn examples, so the prior assistant turn is misaimed and the target response must redirect without restating it",
+      "predicted_improvement": ["multi_turn_pass_rate", "FAILED_TO_ADAPT"],
+      "standing_evidence": "tuned model passed 0/5 multi-turn and 5/15 first-turn scenarios despite V1 being 79.8% multi-turn"
+    },
+    {
+      "id": "H-B",
+      "name": "solved-state release",
+      "measured_failure": "withholding after the learner has already produced the fix",
+      "dataset_evidence": "V1's 85 solved-state examples are 14.2% of the data and all sit at turn 2 or later",
+      "data_property_changed": "proportion and turn-position spread of solved-state examples",
+      "predicted_improvement": ["WITHHELD_AFTER_SOLVED", "solved_split_pass_rate"],
+      "standing_evidence": "both solved-state held-out scenarios failed"
+    },
+    {
+      "id": "H-C",
+      "name": "hint-policy consistency",
+      "measured_failure": "hints aimed at the wrong part of the program",
+      "dataset_evidence": "V1 mixes hint_strength narrow=234, nudge=206, pointed=160 with nothing in the learner-visible input indicating which applies",
+      "data_property_changed": "hint-strength distribution collapsed to a single consistent policy, off-policy examples regenerated at the retained strength",
+      "predicted_improvement": ["hint_relevance", "INCORRECT_DIAGNOSIS", "IRRELEVANT_HINT"],
+      "standing_evidence": "hint_strength is a generation dimension not derivable from the scenario the model sees"
+    }
+  ],
+  "withdrawn_hypotheses": [
+    {
+      "claim": "The V1 gate never checked hints against the scenario's expected_bug.",
+      "verdict": "FALSE",
+      "refutation": "evaluation/judge.py places 'Actual bug:' and 'Correct fix:' in the judge prompt and defines hint_relevance as how directly the move points at the actual bug. V1 scores mean 0.950 on it."
+    }
+  ],
+  "decision_rule": {
+    "applied_to": "N600_V1_BASELINE",
+    "first_match_wins": true,
+    "branches": [
+      {"order": 1, "condition": "multi_turn_pass_rate < first_turn_pass_rate - 0.20", "select": "H-A"},
+      {"order": 2, "condition": "WITHHELD_AFTER_SOLVED >= 1 or solved_split_pass_rate == 0", "select": "H-B"},
+      {"order": 3, "condition": "hint_relevance < 0.573 or (INCORRECT_DIAGNOSIS + IRRELEVANT_HINT) >= 4", "select": "H-C"},
+      {"order": 4, "condition": "otherwise", "select": "STOP_AND_REPORT", "note": "No data-attributable failure survives the correction. Report that the MVP's apparent data defect was a checkpoint defect; propose V2 but do not claim it."}
+    ]
+  },
+  "success_criteria": {
+    "fixed_before_v2_exists": true,
+    "primary": {
+      "rule": "V - B >= +0.10 absolute on the selected hypothesis's target metric",
+      "and_also": "the change is at least 2 scenarios out of 20"
+    },
+    "guardrails": {
+      "solution_leak_rate": {"bound": "<= 0.05", "v1_achieved": 0.0},
+      "spec_adherence": {"bound": ">= baseline - 0.05"},
+      "pass_rate": {"bound": ">= baseline"},
+      "premature_confirmation_rate": {"bound": "<= 0.10"},
+      "infrastructure_errors": {"bound": "== 0", "note": "any non-zero invalidates the run"}
+    },
+    "guardrail_breach_forbids": "YES",
+    "reporting_rule": "At n=20 a delta below 0.10 is not claimable and is reported as directional. Raw counts accompany every rate.",
+    "allowed_outcomes": ["YES", "PARTIALLY", "NO", "REGRESSED"]
+  },
+  "construction_constraints": {
+    "n_held_constant": 600,
+    "n_rationale": "V2 replaces examples rather than adding them, so the comparison isolates data content, not data quantity.",
+    "max_examples_changed": 150,
+    "max_examples_changed_pct": 25,
+    "exceeding_cap_requires": "a written justification in PLAN.md Amendments before V2 is built",
+    "v1_untouched": true,
+    "per_example_records": ["v1_ancestor_id", "reason_code"],
+    "unchanged_from_v1": [
+      "teacher model anthropic:claude-opus-5",
+      "behavior spec 1.0.0 / dc14f40b",
+      "record schema",
+      "dedupe procedure",
+      "contamination check against scenarios/clean.jsonl, adversarial.jsonl, heldout.jsonl",
+      "stratified selection seed policy"
+    ],
+    "required_deliverables": [
+      "freeze.json with dataset_hash",
+      "DATASET_CARD.md",
+      "V1-vs-V2 distribution comparison across pressure_type, bug_category, language, difficulty, turn position, student_progress"
+    ]
+  },
+  "explicitly_not_the_v2_intervention": [
+    "load_best_model_at_end",
+    "metric_for_best_model",
+    "greater_is_better",
+    "save_total_limit",
+    "any other training-configuration or checkpoint-selection change"
+  ],
+  "amendments": []
+}
