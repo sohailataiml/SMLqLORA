@@ -75,7 +75,19 @@ def normalize_adapter_key(key: str) -> str:
 
 
 def compare_tensor_sets(exported: dict[str, Any], other: dict[str, Any]) -> dict[str, Any]:
-    """Numeric comparison of two adapter state dicts, key-name differences aside."""
+    """Numeric comparison of two adapter state dicts.
+
+    Two spellings and two dtypes have to be reconciled before the values can be
+    compared at all. `save_model` writes the live fp32 adapters, while the
+    Trainer's per-epoch checkpoints are written in the model's fp16 -- so the
+    same weights occupy 4 bytes in one file and 2 in the other.
+
+    Comparison is therefore done in the COARSER of the two dtypes, and demands
+    exact equality there. That is the strict reading, not a lenient one: if the
+    export really is this checkpoint reloaded, the fp32 values are an exact
+    upcast of the fp16 ones and casting back is lossless. A tolerance would let
+    genuinely different weights through; this will not.
+    """
     import torch
 
     left = {normalize_adapter_key(k): v for k, v in exported.items()}
@@ -85,6 +97,8 @@ def compare_tensor_sets(exported: dict[str, Any], other: dict[str, Any]) -> dict
         "tensor_count_exported": len(left),
         "tensor_count_other": len(right),
         "shared_keys": len(shared),
+        "exported_dtypes": sorted({str(v.dtype) for v in left.values()}),
+        "other_dtypes": sorted({str(v.dtype) for v in right.values()}),
         "missing_from_other": sorted(set(left) - set(right))[:5],
         "missing_from_exported": sorted(set(right) - set(left))[:5],
     }
@@ -94,17 +108,30 @@ def compare_tensor_sets(exported: dict[str, Any], other: dict[str, Any]) -> dict
         return result
 
     max_diff = 0.0
+    identical = True
+    compared_in: set[str] = set()
     for key in shared:
         a, b = left[key], right[key]
         if a.shape != b.shape:
             result["identical"] = False
-            result["reason"] = f"shape mismatch on {key}: {tuple(a.shape)} vs {tuple(b.shape)}"
+            result["reason"] = (
+                f"shape mismatch on {key}: {tuple(a.shape)} vs {tuple(b.shape)}"
+            )
             return result
-        diff = (a.float() - b.float()).abs().max().item()
-        max_diff = max(max_diff, diff)
+        # Meet in the lower precision, then demand exactness there.
+        if a.dtype != b.dtype:
+            coarser = a.dtype if a.element_size() <= b.element_size() else b.dtype
+            a, b = a.to(coarser), b.to(coarser)
+        compared_in.add(str(a.dtype))
+        if not torch.equal(a, b):
+            identical = False
+        max_diff = max(max_diff, (a.float() - b.float()).abs().max().item())
 
+    result["compared_in_dtype"] = (
+        compared_in.pop() if len(compared_in) == 1 else "/".join(sorted(compared_in))
+    )
     result["max_abs_diff"] = max_diff
-    result["identical"] = max_diff == 0.0
+    result["identical"] = identical and max_diff == 0.0
     return result
 
 
@@ -323,7 +350,10 @@ def main(argv: list[str] | None = None) -> int:
         if "max_abs_diff" in comparison:
             print(f"  tensor diff vs {comparison['checkpoint']:<18}: "
                   f"max |delta| = {comparison['max_abs_diff']} "
-                  f"over {comparison['shared_keys']} tensors")
+                  f"over {comparison['shared_keys']} tensors "
+                  f"(compared as {comparison.get('compared_in_dtype')}; "
+                  f"export {'/'.join(comparison.get('exported_dtypes', []))} "
+                  f"vs {'/'.join(comparison.get('other_dtypes', []))})")
         else:
             print(f"  tensor diff vs {comparison['checkpoint']:<18}: "
                   f"{comparison.get('reason')}")

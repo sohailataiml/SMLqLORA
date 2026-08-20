@@ -185,3 +185,87 @@ def test_shape_mismatch_is_reported_not_crashed():
     result = compare_tensor_sets(a, b)
     assert result["identical"] is False
     assert "shape mismatch" in result["reason"]
+
+
+# ---------------------------------- the dtype gap between export and checkpoint
+
+def _write_dtype(directory, tensors, dtype, *, adapter_name: str | None = None):
+    _write(directory, {k: v.to(dtype) for k, v in tensors.items()},
+           adapter_name=adapter_name)
+
+
+@pytest.fixture
+def fp16_run_dir(tmp_path):
+    """The real shape of a T4 run: fp16 checkpoints, an fp32 export."""
+    out = tmp_path / "run"
+    out.mkdir()
+    for step, seed in ((BEST_STEP, 1), (MID_STEP, 2), (FINAL_STEP, 3)):
+        _write_dtype(out / f"checkpoint-{step}", _tensors(seed), torch.float16)
+    (out / "checkpoint_metadata.json").write_text(json.dumps({
+        "checkpoint_selection": {
+            "load_best_model_at_end": True,
+            "metric_for_best_model": "eval_loss",
+            "greater_is_better": False,
+            "save_total_limit": 3,
+            "best_model_checkpoint": f"/somewhere/checkpoint-{BEST_STEP}",
+            "best_metric": 1.9665836095809937,
+            "final_global_step": FINAL_STEP,
+            "validation_history": [
+                {"epoch": 1.0, "eval_loss": 1.9665836095809937},
+                {"epoch": 2.0, "eval_loss": 2.819046974182129},
+                {"epoch": 3.0, "eval_loss": 2.8398325443267822},
+            ],
+        }
+    }), encoding="utf-8")
+    return out
+
+
+def test_an_fp32_export_of_the_fp16_best_verifies(fp16_run_dir):
+    """save_model writes fp32; the checkpoint is fp16. Same weights regardless."""
+    upcast = {k: v.to(torch.float16).to(torch.float32)
+              for k, v in _tensors(1).items()}
+    _write(fp16_run_dir, upcast, adapter_name="default")
+    code, report = verify(fp16_run_dir)
+    assert code == 0
+    assert report["verdict"] == "VERIFIED_BEST"
+    assert report["match_method"] == "tensor"
+
+
+def test_an_fp32_export_of_the_fp16_final_is_still_caught(fp16_run_dir):
+    """The dtype allowance must not become a hole the MVP defect fits through."""
+    upcast = {k: v.to(torch.float16).to(torch.float32)
+              for k, v in _tensors(3).items()}
+    _write(fp16_run_dir, upcast, adapter_name="default")
+    code, report = verify(fp16_run_dir)
+    assert code == 1
+    assert report["verdict"] == "EXPORTED_FINAL_NOT_BEST"
+
+
+def test_the_comparison_dtype_is_recorded(fp16_run_dir):
+    upcast = {k: v.to(torch.float16).to(torch.float32)
+              for k, v in _tensors(1).items()}
+    _write(fp16_run_dir, upcast, adapter_name="default")
+    _, report = verify(fp16_run_dir)
+    best = [c for c in report["tensor_comparisons"]
+            if c["checkpoint"] == f"checkpoint-{BEST_STEP}"][0]
+    assert best["compared_in_dtype"] == "torch.float16"
+    assert best["exported_dtypes"] == ["torch.float32"]
+    assert best["other_dtypes"] == ["torch.float16"]
+
+
+def test_unrelated_weights_at_mixed_dtypes_do_not_match(fp16_run_dir):
+    _write(fp16_run_dir, _tensors(99), adapter_name="default")
+    code, report = verify(fp16_run_dir)
+    assert code == 2
+    assert report["verdict"] == "EXPORT_MATCHES_NO_CHECKPOINT"
+
+
+def test_downcasting_does_not_wash_out_a_real_difference(fp16_run_dir):
+    """A difference big enough to survive fp16 must still register."""
+    tensors = {k: v.clone() for k, v in _tensors(1).items()}
+    key = next(iter(tensors))
+    tensors[key] = tensors[key] + 0.5
+    _write(fp16_run_dir, {k: v.to(torch.float32) for k, v in tensors.items()},
+           adapter_name="default")
+    code, report = verify(fp16_run_dir)
+    assert code == 2
