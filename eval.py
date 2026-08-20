@@ -61,6 +61,19 @@ def _fail(message: str, code: int = 2) -> int:
     return code
 
 
+
+def _describe_path(path: Path) -> str:
+    """Repo-relative when possible, absolute otherwise.
+
+    A finished evaluation must not exit non-zero because its last line could not
+    phrase a path. Twenty judge calls have already been paid for by this point.
+    """
+    try:
+        return str(path.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Evaluate a model against the Socratic Debug Tutor behavior spec.",
@@ -123,7 +136,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _fail(str(exc).strip("'"))
 
     safe_name = model.name.replace("/", "_").replace(":", "_").replace("+", "__")
+    # Resolve a relative --output against the repo, exactly as --eval-set is
+    # resolved above. Without this the artifacts land wherever the caller happens
+    # to be standing, and the summary line below cannot describe where they went.
     out = Path(args.output) if args.output else REPO_ROOT / "results" / "eval" / safe_name
+    if not out.is_absolute():
+        out = REPO_ROOT / out
     out.mkdir(parents=True, exist_ok=True)
 
     if not args.quiet:
@@ -212,7 +230,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             f"were excluded from every rate above."
         )
     print(f"\nfailure modes: {failure_mode_counts(measured) or 'none'}")
-    print(f"artifacts    : {out.relative_to(REPO_ROOT)}")
+    print(f"artifacts    : {_describe_path(out)}")
     return 0
 
 
