@@ -241,13 +241,31 @@ def cohens_kappa(pairs: Sequence[tuple[bool, bool]]) -> float | None:
     return round((observed - expected) / (1 - expected), 4)
 
 
+#: Column names carrying the judge's verdict, in precedence order.
+#:
+#: The evaluation harness exports `llm_judge_pass`; the dataset gate exports
+#: `automatic_pass` (see `data/versions/v1/human_review.csv`). Reading only the
+#: first silently drops every pair from the second sheet, and the failure is
+#: invisible until after somebody has spent an hour grading it.
+JUDGE_LABEL_COLUMNS = ("llm_judge_pass", "automatic_pass", "judge_pass")
+
+
+def judge_label(row: dict[str, object]) -> bool | None:
+    for column in JUDGE_LABEL_COLUMNS:
+        if column in row:
+            label = parse_label(row.get(column))
+            if label is not None:
+                return label
+    return None
+
+
 def score_agreement(rows: Iterable[dict[str, object]]) -> AgreementReport:
     """Compute agreement from exported rows whose human columns are filled in."""
     rows = list(rows)
     pairs: list[tuple[bool, bool]] = []
     for row in rows:
         human = parse_label(row.get("human_pass"))
-        judge = parse_label(row.get("llm_judge_pass"))
+        judge = judge_label(row)
         if human is None or judge is None:
             continue  # ungraded rows are excluded, never guessed
         pairs.append((judge, human))

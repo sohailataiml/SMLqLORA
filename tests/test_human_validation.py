@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+from pathlib import Path
 
 import pytest
 
@@ -15,6 +16,8 @@ from evaluation.human_validation import (
     select_validation_sample,
 )
 from evaluation.schemas import DeterministicResult, EvalRecord, Message, Role
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
 def make_record(
@@ -211,3 +214,62 @@ class TestAgreementScoring:
         rows += [{"llm_judge_pass": "False", "human_pass": "False"}] * 5
 
         assert "near-perfect" in score_agreement(rows).interpretation
+
+
+# --------------------------------------------------------------------------
+# The dataset gate and the eval harness name the judge's verdict column
+# differently. Reading only one of them silently drops every pair from the other
+# sheet -- and the failure is invisible until after somebody has graded it.
+# --------------------------------------------------------------------------
+
+
+def test_judge_label_reads_the_harness_column():
+    from evaluation.human_validation import judge_label
+
+    assert judge_label({"llm_judge_pass": "true"}) is True
+
+
+def test_judge_label_reads_the_dataset_gate_column():
+    from evaluation.human_validation import judge_label
+
+    assert judge_label({"automatic_pass": "false"}) is False
+
+
+def test_judge_label_is_none_when_no_verdict_column_is_present():
+    from evaluation.human_validation import judge_label
+
+    assert judge_label({"candidate_id": "gen_v1_00001"}) is None
+
+
+def test_agreement_scores_a_dataset_gate_sheet():
+    """`data/versions/v1/human_review.csv` uses `automatic_pass`."""
+    from evaluation.human_validation import score_agreement
+
+    rows = [
+        {"automatic_pass": "true", "human_pass": "true"},
+        {"automatic_pass": "true", "human_pass": "false"},
+        {"automatic_pass": "false", "human_pass": "false"},
+        {"automatic_pass": "true", "human_pass": ""},
+    ]
+    report = score_agreement(rows)
+    assert report.n_rows == 4
+    assert report.n_graded == 3
+    assert report.judge_pass_human_fail == 1
+
+
+def test_the_staged_v1_sheet_is_scoreable_once_graded():
+    """Guards the workflow in HUMAN_REVIEW.md against column drift."""
+    import csv
+
+    from evaluation.human_validation import judge_label
+
+    path = REPO_ROOT / "data/versions/v1/human_review.csv"
+    rows = list(csv.DictReader(path.open(encoding="utf-8")))
+    assert len(rows) == 40
+    assert all(judge_label(row) is not None for row in rows), (
+        "every staged row must carry a readable judge verdict, or grading the "
+        "sheet produces no agreement statistic"
+    )
+    assert all(not (row.get("human_pass") or "").strip() for row in rows), (
+        "human_pass must stay empty until a person fills it in"
+    )
