@@ -178,3 +178,29 @@ def test_the_modules_it_calls_are_importable(all_source):
     assert "analysis.failure_taxonomy" in all_source
     import analysis.compare_runs  # noqa: F401
     import analysis.failure_taxonomy  # noqa: F401
+
+
+def test_the_evaluation_is_archived_before_the_notebook_ends(code_cells):
+    """A recycled runtime once took twenty paid judge transcripts with it.
+
+    Archiving only at the end is archiving only if nothing goes wrong in
+    between, and the thing that goes wrong is the runtime itself.
+    """
+    evaluation = next(i for i, s in enumerate(code_cells)
+                      if "eval.py" in s and "--judge" in s)
+    archive = next(i for i, s in enumerate(code_cells) if "EVAL_ARCHIVE" in s)
+    assert archive == evaluation + 1, (
+        "the archive step must come directly after the paid evaluation, "
+        f"not {archive - evaluation} cells later"
+    )
+
+
+def test_a_finished_run_can_be_restored_without_retraining(all_source):
+    """38 minutes of T4 time should survive a lost VM."""
+    assert "SAVED = Path(" in all_source
+    assert "Train it with section 6 instead" in all_source
+
+
+def test_restoring_refuses_to_overwrite_an_existing_adapter(all_source):
+    assert 'if (DEST / "adapter_model.safetensors").exists():' in all_source
+    assert "leaving it untouched" in all_source
