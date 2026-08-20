@@ -27,7 +27,13 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from evaluation.schemas import ErrorKind, Message, Role, classify_error  # noqa: E402
-from models.credentials import Credential, describe_credential  # noqa: E402
+from models.credentials import (  # noqa: E402
+    Credential,
+    CredentialConflictError,
+    describe_credential,
+    resolve_credential_conflicts,
+)
+from models.credentials import SOURCE_DOTENV, SOURCE_ENV_VAR  # noqa: E402
 from models.providers import _load_dotenv_once  # noqa: E402
 from models.adapters import (  # noqa: E402
     GenerationParams,
@@ -124,6 +130,29 @@ def probe(model_spec: str) -> ProbeResult:
     # verdict about the wrong account is worse than no verdict, because it reads
     # as an answer.
     credential = describe_credential(env_var) if env_var else None
+
+    # A conflict is not a quota question and must not be reported as one. Settle
+    # which key is in play before spending a call, or say why we cannot.
+    if env_var:
+        try:
+            resolve_credential_conflicts([env_var])
+        except CredentialConflictError as exc:
+            return ProbeResult(
+                model_spec, env_var, True, False, "CREDENTIAL_CONFLICT",
+                str(exc),
+                f"Unset the shell variable, or set "
+                f"{SOURCE_ENV_VAR}={SOURCE_DOTENV} to use the .env value.",
+                credential=credential,
+            )
+        except ValueError as exc:
+            return ProbeResult(
+                model_spec, env_var, True, False, "BAD_CREDENTIAL_SOURCE",
+                str(exc), f"Set {SOURCE_ENV_VAR} to a valid value.",
+                credential=credential,
+            )
+        # Re-read: an explicit choice may have just changed what is in effect.
+        credential = describe_credential(env_var)
+
     present = bool(os.environ.get(env_var)) if env_var else True
 
     if env_var and not present:

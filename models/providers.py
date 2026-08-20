@@ -28,6 +28,7 @@ from models.adapters import (
     ScriptedAdapter,
     register_provider,
 )
+from models.credentials import resolve_credential_conflicts
 from evaluation.schemas import Message, Role
 
 # Anthropic model families that reject sampling parameters and think by default.
@@ -41,12 +42,23 @@ _OPENAI_NO_SAMPLING = re.compile(r"^(o\d|gpt-5)", re.I)
 THINKING_MAX_TOKENS_FLOOR = 4096
 
 
-def _load_dotenv_once() -> None:
+def _load_dotenv_once(env_var: str | None = None) -> None:
+    """Load `.env`, then refuse to guess when it disagrees with the shell.
+
+    `load_dotenv(override=False)` is the right precedence but an invisible one:
+    a stale shell key silently outranks a funded key in `.env`, and every
+    downstream verdict is then about the wrong account. When `env_var` is given
+    and the two sources hold different values, this raises rather than let a
+    paid call pick one on its own. With no conflict, nothing changes.
+    """
     try:
         from dotenv import load_dotenv
     except ImportError:  # pragma: no cover - optional
-        return
-    load_dotenv(override=False)
+        pass
+    else:
+        load_dotenv(override=False)
+    if env_var is not None:
+        resolve_credential_conflicts([env_var])
 
 
 def _split_system(
@@ -104,7 +116,7 @@ class AnthropicAdapter(ModelAdapter):
     @property
     def client(self):
         if self._client is None:
-            _load_dotenv_once()
+            _load_dotenv_once(self.ENV_VAR)
             try:
                 import anthropic
             except ImportError as exc:
@@ -220,7 +232,7 @@ class OpenAIAdapter(ModelAdapter):
     @property
     def client(self):
         if self._client is None:
-            _load_dotenv_once()
+            _load_dotenv_once(self.ENV_VAR)
             try:
                 import openai
             except ImportError as exc:

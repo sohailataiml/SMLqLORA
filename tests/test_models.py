@@ -113,7 +113,7 @@ def test_missing_model_id_is_reported():
 
 def test_missing_credentials_message_names_the_env_var(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    monkeypatch.setattr("models.providers._load_dotenv_once", lambda: None)
+    monkeypatch.setattr("models.providers._load_dotenv_once", lambda *_: None)
     model = AnthropicAdapter("claude-opus-5")
     with pytest.raises(MissingCredentialsError, match="ANTHROPIC_API_KEY"):
         _ = model.client
