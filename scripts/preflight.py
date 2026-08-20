@@ -27,6 +27,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from evaluation.schemas import ErrorKind, Message, Role, classify_error  # noqa: E402
+from models.credentials import Credential, describe_credential  # noqa: E402
 from models.providers import _load_dotenv_once  # noqa: E402
 from models.adapters import (  # noqa: E402
     GenerationParams,
@@ -91,6 +92,7 @@ class ProbeResult:
     remedy: str = ""
     latency_s: float = 0.0
     reply: str = ""
+    credential: Credential | None = None
 
     @property
     def line(self) -> str:
@@ -118,6 +120,10 @@ def probe(model_spec: str) -> ProbeResult:
 
     provider = model_spec.split(":", 1)[0].lower()
     env_var = CREDENTIAL_ENV.get(provider)
+    # Identify WHICH credential is in play, not merely whether one exists. A
+    # verdict about the wrong account is worse than no verdict, because it reads
+    # as an answer.
+    credential = describe_credential(env_var) if env_var else None
     present = bool(os.environ.get(env_var)) if env_var else True
 
     if env_var and not present:
@@ -125,21 +131,25 @@ def probe(model_spec: str) -> ProbeResult:
             model_spec, env_var, False, False, "NO_CREDENTIAL",
             f"{env_var} is not set in the environment.",
             f"Set {env_var} in .env (see .env.example).",
+            credential=credential,
         )
 
     try:
         adapter = resolve_model(model_spec)
     except MissingCredentialsError as exc:
         return ProbeResult(model_spec, env_var, present, False,
-                           "NO_CREDENTIAL", str(exc), f"Set {env_var}.")
+                           "NO_CREDENTIAL", str(exc), f"Set {env_var}.",
+                           credential=credential)
     except MissingDependencyError as exc:
         return ProbeResult(model_spec, env_var, present, False,
                            "NO_SDK", str(exc),
-                           'pip install -e ".[providers]"')
+                           'pip install -e ".[providers]"',
+                           credential=credential)
     except (UnsupportedProviderError, ModelNotFoundError) as exc:
         return ProbeResult(model_spec, env_var, present, False,
                            "BAD_SPEC", str(exc),
-                           "Fix the model spec passed to --models.")
+                           "Fix the model spec passed to --models.",
+                           credential=credential)
 
     response = adapter.generate(
         [Message(role=Role.USER, content=PREFLIGHT_PROMPT)],
@@ -148,7 +158,8 @@ def probe(model_spec: str) -> ProbeResult:
     if response.error:
         verdict, remedy = diagnose(response.error)
         return ProbeResult(model_spec, env_var, present, False, verdict,
-                           response.error, remedy, response.latency_s)
+                           response.error, remedy, response.latency_s,
+                           credential=credential)
 
     # An empty body is not a credential problem, but it is not a dial tone
     # either - flag it rather than let the full run discover it.
@@ -158,6 +169,7 @@ def probe(model_spec: str) -> ProbeResult:
             "Authenticated and billed, but the model returned no text.",
             "Check max_tokens and any thinking-budget interaction.",
             response.latency_s,
+            credential=credential,
         )
 
     return ProbeResult(
@@ -166,6 +178,7 @@ def probe(model_spec: str) -> ProbeResult:
         f"(revision={response.revision})",
         latency_s=response.latency_s,
         reply=response.text.strip()[:60],
+        credential=credential,
     )
 
 
@@ -176,14 +189,24 @@ def run(model_specs: Sequence[str], *, verbose: bool = True) -> list[ProbeResult
         print("This is not an experiment; nothing here is recorded as a result.\n")
         for result in results:
             print(result.line)
-            print(f"       credential : {result.credential_env or 'n/a'} "
-                  f"{'present' if result.credential_present else 'MISSING'}")
+            # Naming the credential is the difference between "the account has
+            # no credit" and "THIS account has no credit". The fingerprint is a
+            # tail plus a digest -- enough to tell two keys apart, useless to
+            # anyone who copies it.
+            if result.credential is not None:
+                print(f"       credential : {result.credential.summary}")
+            else:
+                print(f"       credential : {result.credential_env or 'n/a'} "
+                      f"{'present' if result.credential_present else 'MISSING'}")
             print(f"       detail     : {result.detail}")
             if result.reply:
                 print(f"       reply      : {result.reply!r} "
                       f"({result.latency_s:.2f}s)")
             if result.remedy:
                 print(f"       remedy     : {result.remedy}")
+            warning = result.credential.warning if result.credential else None
+            if warning:
+                print(f"       WARNING    : {warning}")
             print()
     return results
 
