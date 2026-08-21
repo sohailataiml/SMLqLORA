@@ -1,0 +1,55 @@
+{
+  "analysis_version": "1.0.0",
+  "run_dir": "C:\\Users\\sohai\\OneDrive\\Documents\\Gauntlet\\workspace\\SMLQLora\\outputs\\socratic-v1-n600-bestckpt",
+  "tokenizer": {
+    "model": "Qwen/Qwen3-1.7B",
+    "revision": "70d244cc86ccca08cf5af4e1e306ecf908b1ad5e"
+  },
+  "loss_masking": {
+    "assistant_only_loss": {
+      "requested": null,
+      "trl_default": false
+    },
+    "completion_only_loss": {
+      "requested": null,
+      "trl_default": null
+    },
+    "effective": "full_sequence",
+    "evidence": "trl/trainer/sft_config.py: assistant_only_loss defaults to False ('loss is computed on the entire sequence'); completion_only_loss defaults to None (completion-only only for prompt-completion datasets). trl/trainer/sft_trainer.py:1510-1519 takes the language-modeling branch for a `messages` dataset and emits only input_ids when assistant_only_loss is False; the collator at line 465 then defaults labels to input_ids, so nothing is masked to -100."
+  },
+  "examples": {
+    "train_total": 540,
+    "solved": 75,
+    "unsolved": 465,
+    "unsolved_to_solved_ratio": 6.2,
+    "solved_share": 0.1389
+  },
+  "target_behaviour_counts": {
+    "question_only": 361,
+    "neither": 80,
+    "confirm_no_question": 71,
+    "confirm_with_question": 28
+  },
+  "tokens": {
+    "all_loss_bearing": 272647,
+    "system_prompt": 17820,
+    "learner_and_context": 198925,
+    "tutor_target": 55902,
+    "system_share_of_loss": 0.0654,
+    "tutor_target_share_of_loss": 0.205
+  },
+  "release_signal": {
+    "solved_target_tokens": 20291,
+    "unsolved_target_tokens": 35611,
+    "solved_share_of_target_tokens": 0.363,
+    "solved_share_of_all_loss_tokens": 0.1936,
+    "solved_target_share_of_all_loss_tokens": 0.0744
+  },
+  "behaviour_target_tokens": {
+    "question_only": 27680,
+    "neither": 6449,
+    "confirm_no_question": 19118,
+    "confirm_with_question": 2655
+  },
+  "per_example_count": 540
+}
