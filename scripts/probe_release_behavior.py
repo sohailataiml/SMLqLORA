@@ -103,11 +103,14 @@ def probe(model_specs: list[str]) -> dict[str, Any]:
                 }
                 results.append(row)
                 mark = "CONFIRMS" if row["confirms"] else "no-confirm"
-                print(f"[{mark:10}] {spec.split('+')[-1][:28]:28} "
-                      f"{variant:28} {scenario.id}")
-                print(f"    {row['response'][:220]}")
+                print()
+                print(f"scenario : {scenario.id}")
+                print(f"model    : {model_label(spec)}  ({spec})")
+                print(f"condition: {variant}")
+                print(f"verdict  : [{mark}]")
+                print(f"response : {row['response']}")
 
-    return {
+    report = {
         "artifact_status": "DIAGNOSTIC_PROBE_NOT_AN_EXPERIMENT",
         "note": (
             "No judge calls. Not comparable with N600_V1_BASELINE and not "
@@ -122,17 +125,78 @@ def probe(model_specs: list[str]) -> dict[str, Any]:
         },
         "results": results,
     }
+    report["replication_check"] = replication_check(report)
+    return report
+
+
+#: The condition whose value is already known. Condition A reproduces the
+#: corrected baseline, where the adapter confirmed in 0 of 20 outputs and 0 of
+#: the 2 solved scenarios. If it comes back non-zero the probe is not measuring
+#: the run we think it is, and nothing below it should be interpreted.
+REPLICATION_CONDITION = ("corrected adapter", "zero_shot")
+REPLICATION_EXPECTED = 0
+
+
+def model_label(spec: str) -> str:
+    """A stable, readable name for each of the two models under test."""
+    if spec.startswith("peft:"):
+        return "corrected adapter"
+    if spec.startswith("hf:"):
+        return "base model"
+    return spec
+
+
+def confirmation_counts(report: dict[str, Any]) -> dict[tuple[str, str], int]:
+    """Confirmations per (model label, prompt variant), over the solved scenarios."""
+    counts: dict[tuple[str, str], int] = {}
+    for row in report["results"]:
+        if "response" not in row:
+            continue
+        key = (model_label(row["model"]), row["prompt_variant"])
+        counts[key] = counts.get(key, 0) + int(bool(row["confirms"]))
+    return counts
+
+
+def replication_check(report: dict[str, Any]) -> dict[str, Any]:
+    """Did condition A reproduce the known baseline behaviour?"""
+    counts = confirmation_counts(report)
+    observed = counts.get(REPLICATION_CONDITION)
+    return {
+        "condition": " / ".join(REPLICATION_CONDITION),
+        "expected_confirmations": REPLICATION_EXPECTED,
+        "observed_confirmations": observed,
+        "reproduces_baseline": observed == REPLICATION_EXPECTED,
+        "note": (
+            "The corrected baseline confirmed in 0 of 20 held-out outputs, "
+            "including both solved scenarios. A non-zero value here means this "
+            "probe is not measuring that run; stop and do not interpret the "
+            "other three conditions."
+        ),
+    }
 
 
 def summarise(report: dict[str, Any]) -> str:
-    rows = [r for r in report["results"] if "response" in r]
-    lines = ["", "confirmation counts (out of 2 solved scenarios):"]
-    seen: dict[tuple[str, str], int] = {}
-    for row in rows:
-        key = (row["model"], row["prompt_variant"])
-        seen[key] = seen.get(key, 0) + int(bool(row["confirms"]))
-    for (model, variant), count in sorted(seen.items()):
-        lines.append(f"  {count}/2  {model}  [{variant}]")
+    counts = confirmation_counts(report)
+    total = len(solved_scenarios())
+    lines = ["", f"confirmation counts (out of {total} solved scenarios):", ""]
+    for label in ("corrected adapter", "base model"):
+        for variant in prompt_variants():
+            key = (label, variant)
+            value = f"{counts[key]}/{total}" if key in counts else "not run"
+            lines.append(f"  {label:18} / {variant:28} {value}")
+    check = report.get("replication_check") or replication_check(report)
+    lines.append("")
+    if check["observed_confirmations"] is None:
+        lines.append("  REPLICATION CHECK: condition A was not run.")
+    elif check["reproduces_baseline"]:
+        lines.append("  REPLICATION CHECK: PASS - condition A reproduces the "
+                     "known 0/2 baseline.")
+    else:
+        lines.append(
+            f"  REPLICATION CHECK: FAIL - condition A gave "
+            f"{check['observed_confirmations']}/{total}, expected "
+            f"{REPLICATION_EXPECTED}/{total}. Do not interpret this probe."
+        )
     return "\n".join(lines)
 
 

@@ -101,11 +101,19 @@ def test_an_unresolvable_model_is_reported_not_raised():
     assert report["results"][0]["error"]
 
 
-def test_the_summary_counts_confirmations_per_variant():
-    report = probe(["mock:demo"])
-    text = summarise(report)
-    assert "zero_shot" in text
-    assert "/2" in text
+def test_the_summary_always_shows_the_four_canonical_conditions():
+    """A model that is neither the adapter nor the base leaves them 'not run'.
+
+    The four rows are the question being asked, so they are printed whether or
+    not a given invocation filled them in. A missing row would read as a zero.
+    """
+    text = summarise(probe(["mock:demo"]))
+    rows = [
+        line for line in text.splitlines()
+        if "/" in line and ("corrected adapter" in line or "base model" in line)
+    ]
+    assert len(rows) == 4, rows
+    assert all("not run" in line for line in rows)
 
 
 def test_writing_the_artifact_stays_where_it_is_told(tmp_path):
@@ -120,3 +128,79 @@ def test_it_does_not_write_unless_asked(tmp_path):
     before = DEFAULT_OUTPUT.exists()
     main(["--model", "mock:demo"])
     assert DEFAULT_OUTPUT.exists() == before
+
+
+# -------------------------------------------------- the four-condition summary
+
+ADAPTER = "peft:Qwen/Qwen3-1.7B+outputs/socratic-v1-n600-bestckpt"
+BASE = "hf:Qwen/Qwen3-1.7B"
+SOLVED_IDS = (
+    "py_heldout_solved_generator_exhausted",
+    "js_heldout_solved_debounce_closure",
+)
+
+
+def _synthetic(pairs):
+    """A report shaped like a real run, without needing a GPU."""
+    from scripts.probe_release_behavior import replication_check
+    results = []
+    for model, variant, confirms in pairs:
+        for scenario_id in SOLVED_IDS:
+            results.append({
+                "model": model, "prompt_variant": variant,
+                "scenario_id": scenario_id, "response": "x",
+                "confirms": confirms, "asks_question": True,
+                "explains": False, "error": None,
+            })
+    report = {"results": results}
+    report["replication_check"] = replication_check(report)
+    return report
+
+
+def test_model_labels_are_stable_and_readable():
+    from scripts.probe_release_behavior import model_label
+    assert model_label(ADAPTER) == "corrected adapter"
+    assert model_label(BASE) == "base model"
+
+
+def test_the_summary_reports_all_four_conditions():
+    report = _synthetic([
+        (ADAPTER, "zero_shot", False),
+        (ADAPTER, "zero_shot_plus_release_rule", True),
+        (BASE, "zero_shot", False),
+        (BASE, "zero_shot_plus_release_rule", True),
+    ])
+    text = summarise(report)
+    for label in ("corrected adapter", "base model"):
+        for variant in ("zero_shot", "zero_shot_plus_release_rule"):
+            assert label in text and variant in text
+    assert "0/2" in text and "2/2" in text
+
+
+def test_replication_passes_when_condition_a_is_zero():
+    report = _synthetic([(ADAPTER, "zero_shot", False)])
+    assert report["replication_check"]["reproduces_baseline"] is True
+    assert "PASS" in summarise(report)
+
+
+def test_replication_fails_loudly_when_condition_a_is_not_zero():
+    """A probe that does not reproduce the baseline must not be interpreted."""
+    report = _synthetic([(ADAPTER, "zero_shot", True)])
+    assert report["replication_check"]["reproduces_baseline"] is False
+    text = summarise(report)
+    assert "FAIL" in text
+    assert "Do not interpret" in text
+
+
+def test_the_expected_replication_value_is_the_measured_baseline():
+    from scripts.probe_release_behavior import (
+        REPLICATION_CONDITION,
+        REPLICATION_EXPECTED,
+    )
+    assert REPLICATION_CONDITION == ("corrected adapter", "zero_shot")
+    assert REPLICATION_EXPECTED == 0
+
+
+def test_the_artifact_carries_the_replication_check():
+    report = probe(["mock:demo"])
+    assert "replication_check" in report
