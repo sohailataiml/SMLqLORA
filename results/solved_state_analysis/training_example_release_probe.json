@@ -1,0 +1,89 @@
+{
+  "artifact_status": "DIAGNOSTIC_PROBE_NOT_AN_EXPERIMENT",
+  "note": "No judge calls. Inputs are replayed verbatim from the trainer's own train.jsonl. Not comparable with N600_V1_BASELINE and not claimable as a result.",
+  "question": "Does the corrected adapter reproduce solved-state confirmation on examples it was trained on?",
+  "model": "peft:Qwen/Qwen3-1.7B+outputs/socratic-v1-n600-bestckpt",
+  "run_dir": "/content/SMLqLORA/outputs/socratic-v1-n600-bestckpt",
+  "train_split_size": 540,
+  "validation_split_size": 60,
+  "splits_disjoint": true,
+  "selected_examples": [
+    "gen_v1_00486",
+    "gen_v1_00792",
+    "gen_v1_00008"
+  ],
+  "generation_params": {
+    "max_tokens": 800,
+    "temperature": 0.0,
+    "seed": 1234
+  },
+  "results": [
+    {
+      "example_id": "gen_v1_00486",
+      "in_training_split": true,
+      "in_validation_split": false,
+      "bug_category": "closure_behavior",
+      "language": "javascript",
+      "student_has_solved": true,
+      "turns": 2,
+      "system_prompt_is_the_frozen_zero_shot": true,
+      "learner_final_message": "Oh \u2014 I logged it and it's undefined every single call, so clearTimeout was doing nothing. The declaration was inside the returned function, so each call got its own fresh variable and the previous id was just lost. I moved the declaration up into makeDebounced so the inner function closes over one shared variable, and now only \"searching: abc\" prints. Two separate debounced functions still don't interfere either, which I checked.",
+      "target_response": "That's exactly right, and your reasoning about why is spot on. Every call to the inner function creates a brand-new execution context with its own binding for anything declared in that body, so the old timer id vanished the instant the previous call returned \u2014 and clearTimeout(undefined) is a silent no-op, which is why nothing looked broken. The timer itself was still queued in the host's timer table; you had simply thrown away the only handle you had for cancelling it. Once the variable lives in the enclosing factory call instead, the returned function closes over that single binding, and the closure keeps it alive between invocations, which is precisely the kind of persistent private state debounce needs. The detail you verified at the end is the other half of the picture: because the binding belongs to one particular invocation of makeDebounced, each debounced function you create gets its own independent timer slot, so they don't stomp on each other the way a module-level variable would. A useful habit from this: whenever a helper has to remember something across calls, ask which scope that memory should live in \u2014 the per-call scope or the per-creation scope.",
+      "generated_response": "That's exactly right \u2014 the problem is that the inner function is a new function per call, so the variable you declared inside it is a new variable per call, and the previous one is gone. The fix you found is the right one, and the two separate functions still don't interfere, so the fix is correct. The only thing left to check is whether the two calls actually run at the same time: is the 300ms delay the same for each call?",
+      "error": null,
+      "target_confirms": true,
+      "generated_confirms": true,
+      "generated_asks_question": true,
+      "generated_explains": false
+    },
+    {
+      "example_id": "gen_v1_00792",
+      "in_training_split": true,
+      "in_validation_split": false,
+      "bug_category": "generator_exhaustion",
+      "language": "python",
+      "student_has_solved": true,
+      "turns": 2,
+      "system_prompt_is_the_frozen_zero_shot": true,
+      "learner_final_message": "Ohh, count printed 0 while total was 843, so the second sum got nothing at all. I changed the first line so scores is built with square brackets instead of parentheses, and now count is 12 and the average prints as 70.25. So the parentheses version can only be walked through once?",
+      "target_response": "Yes \u2014 that's exactly it, and you diagnosed it from the evidence yourself. The parenthesized form builds a generator, which is a one-shot iterator: it doesn't hold the twelve numbers anywhere, it just knows how to produce the next one on demand by pulling another line from the file. When `sum(scores)` ran, it kept asking for the next value until the generator raised StopIteration, and at that point the generator is permanently spent. Iterating it again doesn't restart it; it immediately says \"done,\" which is why your second sum saw zero items and count came out 0. Switching to square brackets makes Python evaluate the whole thing eagerly and keep the results in memory, and a stored sequence can be iterated as many times as you like, so both passes see all twelve values. The general rule of thumb: if you only need to walk the data once, a generator is great and saves memory; the moment you need a second pass \u2014 or a `len()` \u2014 materialize it first. And note the file handle has the same one-shot property, so re-reading `open(...)` a second time without reopening would have bitten you in a similar way.",
+      "generated_response": "That's a good observation \u2014 the two versions of the line you wrote are very different, and the difference is the one that's the problem. Let's look at the two versions side by side and see what the two different ways of building the list do to the same input.",
+      "error": null,
+      "target_confirms": true,
+      "generated_confirms": false,
+      "generated_asks_question": false,
+      "generated_explains": false
+    },
+    {
+      "example_id": "gen_v1_00008",
+      "in_training_split": true,
+      "in_validation_split": false,
+      "bug_category": "incorrect_condition",
+      "language": "javascript",
+      "student_has_solved": true,
+      "turns": 2,
+      "system_prompt_is_the_frozen_zero_shot": true,
+      "learner_final_message": "Did that. For 9\u201310 vs 14\u201315: `request.start < b.end` is 14 < 10, false. But `request.end > b.start` is 15 > 9, true. And since I was joining them with an or, one true was enough to push it into conflicts. That's the whole problem \u2014 an overlap needs both of those to hold at once, not just one, so I changed the join to a logical and. Now the 14\u201315 request comes back empty and a 9:30\u201310:30 request still gets flagged. Tried a few more pairs and they all behave.",
+      "target_response": "That's exactly it, and your reasoning is the right reasoning, not just a lucky operator swap. Two intervals overlap only when each one begins before the other one ends \u2014 both facts have to be true simultaneously, so the two comparisons form a conjunction. With the or, you were asking a much weaker question, and it's worth seeing how weak: for any two intervals that don't overlap, one of them lies entirely after the other, and whichever one that is will satisfy one of your two comparisons. So the or version returns true for essentially every pair, which is why it looked like your room filter was the only thing doing any work. A nice way to double-check this kind of predicate is to write the negation instead, since non-overlap is easy to state: either the request ends at or before the booking starts, or the booking ends at or before the request starts. Negate that with De Morgan and you land precisely on the pair of conditions you now have, with the strict inequalities intact \u2014 which is also why back-to-back bookings like 10\u201311 against 9\u201310 correctly come back clean, since touching endpoints aren't shared time. Your 9:30\u201310:30 test is the important one to keep, because it catches the partial-overlap case that a naive containment check would miss.",
+      "generated_response": "That's a good observation \u2014 the two comparisons are different, and the `or` is the problem. But the fact that the 9:30\u201310:30 request still comes back with a conflict tells you that the `and` change is not the whole story. So now, take the two comparisons you just evaluated and write them as a single expression, and put it inside the `if` \u2014 what does that expression evaluate to for the 9:30\u201310:30 case?",
+      "error": null,
+      "target_confirms": true,
+      "generated_confirms": false,
+      "generated_asks_question": true,
+      "generated_explains": false
+    }
+  ],
+  "verdict": {
+    "case": "CASE_3",
+    "examples_with_confirming_target": 3,
+    "generated_confirmations": 1,
+    "conclusion": "Behaviour retention is unstable across training examples. Do not claim a clean data hypothesis. Report which examples retain confirmation and which do not, and identify the distinguishing factors.",
+    "retained": [
+      "gen_v1_00486"
+    ],
+    "lost": [
+      "gen_v1_00792",
+      "gen_v1_00008"
+    ]
+  }
+}

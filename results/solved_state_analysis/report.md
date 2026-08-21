@@ -330,3 +330,93 @@ If that is right, the remedy is a **training-recipe** change (vary the system
 prompt across examples, or state the release rule in it during training), not a
 change to dataset content. It is cheap to test. It rests on two scenarios and one
 probe, and is recorded here as a hypothesis to be tested, not a result.
+
+---
+
+# 15. The training-example gate (CASE 3)
+
+§14 left one question open: the adapter confirms nothing on held-out data, but is
+that because the behaviour never survived training, or because it survived and
+does not transfer? Those imply opposite next steps, so the gate feeds it an
+example it was **trained on** and asks whether it reproduces that example's
+confirmation.
+
+Inputs are replayed from `outputs/<run>/data/train.jsonl` — the file the trainer
+consumed — so split membership is a property of the file. Targets were checked
+byte-for-byte against frozen Dataset V1. All 540 training rows carry one
+identical system prompt, byte-identical to the frozen `zero_shot` strategy, so
+no prompt strengthening was possible. Artifact:
+`training_example_release_probe.json`.
+
+## Result
+
+```
+confirmations reproduced: 1/3 training examples
+retained : ['gen_v1_00486']
+lost     : ['gen_v1_00792', 'gen_v1_00008']
+
+VERDICT: CASE_3
+```
+
+| Example | Bug category | Generated | Confirms |
+|---|---|---|---|
+| `gen_v1_00486` | closure_behavior | *"That's exactly right… the fix is correct."* | **yes** |
+| `gen_v1_00792` | generator_exhaustion | *"That's a good observation… Let's look at the two versions side by side."* | no |
+| `gen_v1_00008` | incorrect_condition | *"…the `and` change is not the whole story."* | no |
+
+## Distinguishing factors
+
+The split is not by bug category or language. It tracks how the learner's final
+turn reads on the surface:
+
+- **`00486` (retained)** — flat declarative success plus a verification the
+  learner performed. No question, no ambiguous vocabulary.
+- **`00792` (lost)** — success that **ends with a question** ("So the parentheses
+  version can only be walked through once?"). A trailing question appears to
+  re-trigger the dominant answer-with-a-question pathway.
+- **`00008` (lost)** — success containing **"still gets flagged"**. The model
+  read that as a residual fault and continued debugging, even though the flagged
+  request genuinely overlaps and *should* be flagged. A success report was
+  misparsed as a failure report.
+
+**This theory does not survive its own cross-check.** Both held-out solved
+scenarios are clean declarative successes with no trailing question and no
+ambiguous vocabulary — the same shape as `00486`, which was retained — and both
+failed. Surface cues explain the split within the training examples and do not
+explain the held-out failures. Recorded as an observation, not a mechanism.
+
+Note also that even the retained case is not clean spec compliance: it confirms
+and then appends a further question, which the spec asks it not to do.
+
+## What this establishes
+
+Retention is **1/3 on data the model trained on and 0/2 on held-out** — one
+confirmation across five solved cases.
+
+- **CASE 2 refuted.** The behaviour is not erased; it fired once, in its target's
+  own idiom. The capability is present in the weights.
+- **CASE 1 refuted.** It is not present-but-ungeneralised either; it fails on two
+  of three examples the model was directly trained on.
+
+The behaviour survives fine-tuning weakly and unreliably, and barely transfers.
+
+## Consequence for Dataset V2
+
+Per the predeclared CASE 3, no clean data hypothesis is claimed.
+
+The contrastive design floated in §12 now has a specific problem. It assumes the
+model can learn and retain a solved/unsolved discrimination from paired
+examples, and this gate shows it does not reliably retain the simpler behaviour
+from examples it saw directly. Adding contrastive pairs would be adding more of
+something that is not sticking.
+
+**Retention is the binding constraint, and it sits upstream of data content.**
+The open questions are the ones CASE 2 names — learning rate, epoch count (epoch
+1 was already best; 2 and 3 were worse), system-prompt invariance across all 600
+examples, whether loss is assistant-only, and the 6:1 unsolved:solved balance.
+Those are training-recipe questions, and they gate whether any dataset change
+can hold.
+
+The encouraging half: `gen_v1_00486` proves the capability is in the weights
+rather than erased, which suggests it is recoverable — and probably recoverable
+without new data.

@@ -232,3 +232,83 @@ def test_it_does_not_write_unless_asked():
     before = DEFAULT_OUTPUT.exists()
     main(["--model", "mock:demo"])
     assert DEFAULT_OUTPUT.exists() == before
+
+
+# ------------------------------------------- the committed gate result itself
+
+COMMITTED = REPO_ROOT / "results/solved_state_analysis/training_example_release_probe.json"
+
+committed_only = pytest.mark.skipif(
+    not COMMITTED.exists(), reason="gate result not present"
+)
+
+
+@pytest.fixture
+def committed():
+    return json.loads(COMMITTED.read_text(encoding="utf-8"))
+
+
+@committed_only
+def test_the_committed_gate_ran_three_training_examples(committed):
+    assert len(committed["results"]) == 3
+    assert all(r["error"] is None for r in committed["results"])
+    assert committed["selected_examples"] == [
+        "gen_v1_00486", "gen_v1_00792", "gen_v1_00008"
+    ]
+
+
+@committed_only
+def test_every_probed_example_was_in_the_training_split(committed):
+    """The gate's premise: the model saw these."""
+    assert committed["train_split_size"] == 540
+    assert committed["validation_split_size"] == 60
+    assert committed["splits_disjoint"] is True
+    for row in committed["results"]:
+        assert row["in_training_split"] is True
+        assert row["in_validation_split"] is False
+
+
+@committed_only
+def test_the_committed_gate_used_the_frozen_prompt(committed):
+    """No prompt strengthening; the weak prompt is what training used."""
+    for row in committed["results"]:
+        assert row["system_prompt_is_the_frozen_zero_shot"] is True
+
+
+@committed_only
+def test_committed_targets_match_frozen_dataset_v1(committed):
+    """Provenance: nothing was rewritten between dataset and artifact."""
+    frozen = {r["id"]: r["tutor_response"] for r in load_v1_solved()}
+    for row in committed["results"]:
+        assert row["target_response"] == frozen[row["example_id"]]
+
+
+@committed_only
+def test_every_committed_target_confirms(committed):
+    for row in committed["results"]:
+        assert row["target_confirms"] is True
+
+
+@committed_only
+def test_the_committed_gate_records_case_3(committed):
+    """One retained of three: neither erased nor reliably retained."""
+    verdict = committed["verdict"]
+    assert verdict["case"] == "CASE_3"
+    assert verdict["generated_confirmations"] == 1
+    assert verdict["examples_with_confirming_target"] == 3
+    assert verdict["retained"] == ["gen_v1_00486"]
+    assert verdict["lost"] == ["gen_v1_00792", "gen_v1_00008"]
+
+
+@committed_only
+def test_the_committed_gate_is_labelled_a_diagnostic(committed):
+    assert committed["artifact_status"] == "DIAGNOSTIC_PROBE_NOT_AN_EXPERIMENT"
+    assert committed["model"].startswith("peft:")
+
+
+@committed_only
+def test_the_verdict_recomputes_from_the_rows(committed):
+    """The headline must follow the data, not sit beside it."""
+    assert classify(committed) == {
+        k: v for k, v in committed["verdict"].items()
+    }
