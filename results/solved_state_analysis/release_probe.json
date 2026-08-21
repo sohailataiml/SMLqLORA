@@ -1,0 +1,99 @@
+{
+  "artifact_status": "DIAGNOSTIC_PROBE_NOT_AN_EXPERIMENT",
+  "note": "No judge calls. Not comparable with N600_V1_BASELINE and not claimable as a result. Answers only whether confirmation behaviour can be elicited.",
+  "release_rule_appended": "If the student has already produced the correct fix, confirm plainly that it is correct instead of asking another question. You may then explain why it works.",
+  "generation_params": {
+    "max_tokens": 800,
+    "temperature": 0.0,
+    "seed": 1234
+  },
+  "results": [
+    {
+      "model": "peft:Qwen/Qwen3-1.7B+outputs/socratic-v1-n600-bestckpt",
+      "prompt_variant": "zero_shot",
+      "scenario_id": "py_heldout_solved_generator_exhausted",
+      "error": null,
+      "response": "Good, you've already narrowed it down. Now, what does `len(rows)` return for a list that has already been consumed by a generator?",
+      "confirms": false,
+      "asks_question": true,
+      "explains": false
+    },
+    {
+      "model": "peft:Qwen/Qwen3-1.7B+outputs/socratic-v1-n600-bestckpt",
+      "prompt_variant": "zero_shot",
+      "scenario_id": "js_heldout_solved_debounce_closure",
+      "error": null,
+      "response": "Good \u2014 that's the right direction. Now, what does the `apply` call actually do?",
+      "confirms": false,
+      "asks_question": true,
+      "explains": false
+    },
+    {
+      "model": "peft:Qwen/Qwen3-1.7B+outputs/socratic-v1-n600-bestckpt",
+      "prompt_variant": "zero_shot_plus_release_rule",
+      "scenario_id": "py_heldout_solved_generator_exhausted",
+      "error": null,
+      "response": "Good, so the problem is not the generator itself, but the way you're reading it. `list(rows)` creates a new list, and the two expressions you're using are on two different objects. `sum` and `len` are both functions that act on a list, so the two values you're getting are on two different lists. That's why `len` is 0 \u2014 it's on the list you created with `list(rows)`, and `sum` is on the original generator. So the fix is to make the two expressions on the same list. One way to do that is to pass the generator to `list()` and then pass the list to `sum` and `len`. Try that and see if the two values you get are the same.",
+      "confirms": false,
+      "asks_question": false,
+      "explains": false
+    },
+    {
+      "model": "peft:Qwen/Qwen3-1.7B+outputs/socratic-v1-n600-bestckpt",
+      "prompt_variant": "zero_shot_plus_release_rule",
+      "scenario_id": "js_heldout_solved_debounce_closure",
+      "error": null,
+      "response": "Good \u2014 that's the right change. Now, what does the `apply` call actually do?",
+      "confirms": false,
+      "asks_question": true,
+      "explains": false
+    },
+    {
+      "model": "hf:Qwen/Qwen3-1.7B",
+      "prompt_variant": "zero_shot",
+      "scenario_id": "py_heldout_solved_generator_exhausted",
+      "error": null,
+      "response": "Great! You've already identified the issue: **generators don't keep track of their own length or count** like regular lists. When you pass a generator to `list(rows)`, it converts it into a list, and then `len(rows)` works as expected. However, when you pass a generator to `sum(r[\"amount\"] for r in rows)`, it **consumes the generator** (i.e., it iterates through all elements), and `len(rows)` now sees that the generator is empty \u2014 which is why `count` was 0.\n\n### What's happening here?\n\n- `sum(r[\"amount\"] for r in rows)` **consumes the generator** (i.e., it iterates through all elements).\n- `len(rows)` **does not** consume the generator \u2014 it just sees the original length of the generator.\n\nSo, the problem is that you're using `len(rows)` on a generator, which doesn't track its own length. You need to **consume the generator** (i.e., iterate through all elements) **before** taking the length.\n\n### How to fix it?\n\nYou can fix this by **consuming the generator** (i.e., iterating through all elements) before taking the length. One way to do this is to use `next()` in a loop or to use `itertools.islice` to get all elements.\n\nHere's a corrected version of your function:\n\n```python\nfrom itertools import islice\n\ndef report(rows):\n    # Consume the generator (i.e., iterate through all elements)\n    # This is necessary for len(rows) to work correctly\n    for _ in rows:\n        pass  # This just skips the elements, but the generator is consumed\n\n    total = sum(r[\"amount\"] for r in rows)\n    count = len(rows)\n    return total, count\n```\n\nAlternatively, you can use `itertools.islice` to get all elements:\n\n```python\nfrom itertools import islice\n\ndef report(rows):\n    # Get all elements from the generator\n    elements = list(islice(rows, None))  # This consumes the generator\n\n    total = sum(r[\"amount\"] for r in elements)\n    count = len(elements)\n    return total, count\n```\n\n### Summary\n\n- `len(rows)` **does not** consume the generator \u2014 it just sees the original length.\n- To get the correct count, you need to **consume the generator** (i.e., iterate through all elements) before taking `len(rows)`.\n\nLet me know if you'd like a version that uses `itertools` or a more elegant way to handle this!",
+      "confirms": true,
+      "asks_question": true,
+      "explains": false
+    },
+    {
+      "model": "hf:Qwen/Qwen3-1.7B",
+      "prompt_variant": "zero_shot",
+      "scenario_id": "js_heldout_solved_debounce_closure",
+      "error": null,
+      "response": "Great! You've already made progress. Let's think about what's happening here.\n\nIn your original code, you had:\n\n```javascript\nfunction debounce(fn, ms) {\n  let timer;\n  return function (...args) {\n    clearTimeout(timer);\n    timer = setTimeout(() => fn.apply(this, args), ms);\n  };\n}\n```\n\nThe issue was that `timer` was declared inside the returned function, so it was not accessible in the outer scope. That means `clearTimeout(timer)` would not work, because `timer` was not defined in the outer scope.\n\nWhen you moved `let timer` **outside** the returned function, it became part of the closure of the returned function. That means `timer` is now accessible in the returned function, and `clearTimeout(timer)` works as expected.\n\nSo, the key takeaway is:\n\n> **If you declare a variable inside a function, it is not accessible in the returned function unless it is declared in the outer scope.**\n\nIn your case, by moving `let timer` outside, you're ensuring that it's in the closure of the returned function, so it can be cleared and reused across multiple calls.\n\nYou're on the right track! Keep this in mind when writing closures or handling asynchronous operations.",
+      "confirms": false,
+      "asks_question": false,
+      "explains": true
+    },
+    {
+      "model": "hf:Qwen/Qwen3-1.7B",
+      "prompt_variant": "zero_shot_plus_release_rule",
+      "scenario_id": "py_heldout_solved_generator_exhausted",
+      "error": null,
+      "response": "Great! You've already identified the issue. The problem was that the generator was not being fully consumed. When you pass a generator to `list(rows)`, it converts it into a list, which consumes all the elements. However, if you pass a generator directly to `len()` or `sum()`, it doesn't consume it, so `len(rows)` would return 0 because it didn't process all the elements.\n\nBy converting the generator to a list with `rows = list(rows)`, you ensure that all elements are processed, and both `total` and `count` will be correctly calculated.\n\nYour fix is correct. The code now works as expected.",
+      "confirms": true,
+      "asks_question": false,
+      "explains": true
+    },
+    {
+      "model": "hf:Qwen/Qwen3-1.7B",
+      "prompt_variant": "zero_shot_plus_release_rule",
+      "scenario_id": "js_heldout_solved_debounce_closure",
+      "error": null,
+      "response": "Great! You've made the right change. By moving `let timer` outside the returned function, it becomes part of the closure that persists across multiple calls to the debounce function. This means that each time the debounce function is called, it can reuse the same `timer` handle, allowing the debouncing to work as intended.\n\nHere's why it works:\n\n- The `timer` variable is defined in the outer scope of the returned function, so it persists between calls.\n- Each time the debounce function is called, it clears the existing timer (using `clearTimeout(timer)`), and then sets a new one.\n- The new timer is set to execute `fn` after `ms` milliseconds, ensuring that the function is only called once after the user has stopped interacting with the element for `ms` milliseconds.\n\nSo your fix is correct and works as expected. \ud83c\udf89",
+      "confirms": true,
+      "asks_question": false,
+      "explains": false
+    }
+  ],
+  "replication_check": {
+    "condition": "corrected adapter / zero_shot",
+    "expected_confirmations": 0,
+    "observed_confirmations": 0,
+    "reproduces_baseline": true,
+    "note": "The corrected baseline confirmed in 0 of 20 held-out outputs, including both solved scenarios. A non-zero value here means this probe is not measuring that run; stop and do not interpret the other three conditions."
+  }
+}

@@ -204,3 +204,58 @@ def test_the_expected_replication_value_is_the_measured_baseline():
 def test_the_artifact_carries_the_replication_check():
     report = probe(["mock:demo"])
     assert "replication_check" in report
+
+
+# ------------------------------------------- the committed probe result itself
+
+COMMITTED = REPO_ROOT / "results/solved_state_analysis/release_probe.json"
+
+committed_only = pytest.mark.skipif(
+    not COMMITTED.exists(), reason="probe result not present"
+)
+
+
+@committed_only
+def test_the_committed_probe_ran_all_eight_generations():
+    payload = json.loads(COMMITTED.read_text(encoding="utf-8"))
+    rows = [r for r in payload["results"] if "response" in r]
+    assert len(rows) == 8  # 2 models x 2 prompt variants x 2 scenarios
+    assert all(r["error"] is None for r in rows)
+
+
+@committed_only
+def test_the_committed_probe_reproduced_the_baseline():
+    """Condition A is the gate. A committed result that failed it is not evidence."""
+    payload = json.loads(COMMITTED.read_text(encoding="utf-8"))
+    check = payload["replication_check"]
+    assert check["observed_confirmations"] == 0
+    assert check["reproduces_baseline"] is True
+
+
+@committed_only
+def test_the_committed_probe_records_case_b():
+    """Adapter confirms nothing under either prompt; base model does."""
+    payload = json.loads(COMMITTED.read_text(encoding="utf-8"))
+    counts: dict[tuple[str, str], int] = {}
+    for row in payload["results"]:
+        if "response" not in row:
+            continue
+        label = "adapter" if row["model"].startswith("peft:") else "base"
+        key = (label, row["prompt_variant"])
+        counts[key] = counts.get(key, 0) + int(bool(row["confirms"]))
+    assert counts[("adapter", "zero_shot")] == 0
+    assert counts[("adapter", "zero_shot_plus_release_rule")] == 0
+    assert counts[("base", "zero_shot_plus_release_rule")] == 2
+
+
+@committed_only
+def test_the_committed_probe_is_labelled_as_a_diagnostic():
+    payload = json.loads(COMMITTED.read_text(encoding="utf-8"))
+    assert payload["artifact_status"] == "DIAGNOSTIC_PROBE_NOT_AN_EXPERIMENT"
+
+
+@committed_only
+def test_the_committed_probe_used_the_frozen_control_prompt():
+    """If the control prompt drifted, condition A would not be a replication."""
+    payload = json.loads(COMMITTED.read_text(encoding="utf-8"))
+    assert payload["release_rule_appended"] == RELEASE_RULE.strip()

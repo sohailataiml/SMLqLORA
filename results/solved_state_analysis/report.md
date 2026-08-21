@@ -246,3 +246,87 @@ data intervention become the right instrument.
   thin (3–4). This analysis cannot rule out a depth effect, only an absence.
 - The confirmation finding is correlational. That the model never confirms is
   measured; that this *causes* the two failures is inference.
+
+---
+
+# 14. Follow-up: the release probe (CASE B)
+
+§12 named two cheap experiments that would decide whether the missing
+confirmation behaviour is *absent* or merely *unelicited*. Both are now done.
+`release_probe.json` holds the raw generations; `scripts/probe_release_behavior.py`
+reproduces them. No judge calls were made.
+
+## Result
+
+```
+corrected adapter  / zero_shot                    0/2
+corrected adapter  / zero_shot_plus_release_rule  0/2
+base model         / zero_shot                    1/2
+base model         / zero_shot_plus_release_rule  2/2
+
+REPLICATION CHECK: PASS - condition A reproduces the known 0/2 baseline.
+```
+
+Condition A is a replication gate, not a measurement, and it passed in the
+strongest available sense: both responses are **verbatim identical** to the
+baseline evaluation and to the smoke tests run two sessions earlier. The probe
+measured the adapter that produced the 10/20 baseline.
+
+This is **CASE B** under the interpretation fixed before the run: the base model
+confirms, the corrected adapter does not, including under the explicit rule.
+
+## What the generations show
+
+The base model follows the release rule when given it — twice, plainly:
+
+> "Your fix is correct. The code now works as expected."
+> "So your fix is correct and works as expected."
+
+The adapter is unmoved by the same instruction:
+
+> `zero_shot`: "Good — that's the right direction. Now, what does the `apply` call actually do?"
+> `+ release rule`: "Good — that's the right change. Now, what does the `apply` call actually do?"
+
+One word changed; the irrelevant `apply` question survived.
+
+On the Python scenario the rule made the adapter **worse**: it produced a
+technically false explanation (claiming `sum` still ran on the original
+generator after `rows = list(rows)`) and instructed the learner to perform the
+fix they had already performed. Prompt pressure did not unlock the behaviour, it
+degraded the output.
+
+## Two caveats that cut against the headline
+
+1. **A near-miss on the detector.** "that's the right change" is closer to an
+   acknowledgement than "the right direction", and the regex does not match it.
+   But the spec requires confirming *rather than asking another question*, and it
+   asks one. Scored generously at 1/2, the adapter still trails the base model
+   and still violates the rule. **The CASE B reading is robust to that call.**
+2. **The base model is not better overall.** Its Python `zero_shot`
+   confirmation arrived wrapped in a wrong explanation and a code block that
+   would break the program (`for _ in rows: pass` exhausts the generator before
+   `sum` sees it). That is a solution leak carrying incorrect code. The claim
+   here is narrow: the base model *possesses* solved-state recognition and
+   release; the fine-tuned model does not.
+
+## Consequence for Dataset V2
+
+Dataset V1 contains the behaviour (82/85 targets confirm). The base model has the
+behaviour. Fine-tuning on that data removed it. **Adding more solved examples
+cannot be justified as the remedy when the existing ones coincide with the
+capability disappearing.** `V2_NOT_JUSTIFIED` stands, now on two independent
+lines of evidence rather than one.
+
+## A mechanism hypothesis, explicitly not a finding
+
+All 600 training examples share one identical system prompt. That may teach the
+model the system prompt carries no information, so at inference it ignores
+instructions placed there. The probe is consistent with this — a modified system
+prompt moved the base model substantially and the adapter barely at all — and it
+would also explain why the 515 non-solved examples' "ask a question" prior
+overrides the 85 solved ones regardless of what the conversation says.
+
+If that is right, the remedy is a **training-recipe** change (vary the system
+prompt across examples, or state the release rule in it during training), not a
+change to dataset content. It is cheap to test. It rests on two scenarios and one
+probe, and is recorded here as a hypothesis to be tested, not a result.
