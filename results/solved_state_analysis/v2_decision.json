@@ -1,0 +1,15 @@
+{
+  "decision": {
+    "verdict": "V2_NOT_JUSTIFIED",
+    "reason": "Every data-gap hypothesis is refuted by the frozen corpus while the capability/transfer hypothesis is supported. More or better solved examples would target a gap that the measurements say is not there.",
+    "supported_hypotheses": [
+      "H6"
+    ]
+  },
+  "limitations": [
+    "The held-out set contains only 2 solved scenarios. No causal claim about solved-state behaviour can rest on n=2.",
+    "Signal patterns are lexical and will miss paraphrases they were not written for; they are reported as counts, not as ground truth.",
+    "TF-IDF similarity is lexical. A low score does not prove two examples are conceptually unrelated.",
+    "The confirmation detector is a regex over tutor phrasing; a confirmation worded unusually would be missed."
+  ]
+}

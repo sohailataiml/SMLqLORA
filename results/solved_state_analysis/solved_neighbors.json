@@ -1,0 +1,156 @@
+[
+  {
+    "heldout_id": "py_heldout_solved_generator_exhausted",
+    "heldout_bug_category": "loop_boundary",
+    "heldout_recognition_category": "diagnosis_change_and_success",
+    "neighbours": [
+      {
+        "v1_id": "gen_v1_00792",
+        "similarity": 0.1883,
+        "prior_turns": 2,
+        "bug_category": "generator_exhaustion",
+        "language": "python",
+        "recognition_category": "diagnosis_change_and_success",
+        "in_training_split": true,
+        "student_excerpt": "Ohh, count printed 0 while total was 843, so the second sum got nothing at all. I changed the first line so scores is built with square brackets instead of parentheses, and now count is 12 and the ave",
+        "tutor_excerpt": "Yes \u2014 that's exactly it, and you diagnosed it from the evidence yourself. The parenthesized form builds a generator, which is a one-shot iterator: it doesn't hold the twelve numbers anywhere, it just ",
+        "tutor_confirms": true,
+        "tutor_explains": false,
+        "tutor_asks_question": false
+      },
+      {
+        "v1_id": "gen_v1_00598",
+        "similarity": 0.1706,
+        "prior_turns": 6,
+        "bug_category": "callback_ordering",
+        "language": "javascript",
+        "recognition_category": "diagnosis_change_and_success",
+        "in_training_split": true,
+        "student_excerpt": "Got it working. I wrapped the whole cached replay \u2014 the row loop and the end emit \u2014 in a `process.nextTick(() => { ... })` so it fires after `streamReport` has returned and the caller has attached its",
+        "tutor_excerpt": "Yes \u2014 that's the fix, and your explanation of it is right on the money. The defect was never in the cache or the data; it was that your function had two different timing contracts. The database branch",
+        "tutor_confirms": true,
+        "tutor_explains": true,
+        "tutor_asks_question": false
+      },
+      {
+        "v1_id": "gen_v1_00807",
+        "similarity": 0.1701,
+        "prior_turns": 4,
+        "bug_category": "string_immutability",
+        "language": "python",
+        "recognition_category": "diagnosis_change_and_success",
+        "in_training_split": true,
+        "student_excerpt": "Got it. The assignment inside _substitute was only rebinding the local parameter name \u2014 the caller's out never saw it, and since str has no in-place mutation there was nothing else for it to observe. ",
+        "tutor_excerpt": "That's exactly right, and your diagnosis is the correct one rather than a lucky patch. Python passes object references by value: the name buf in the helper starts out pointing at the same string objec",
+        "tutor_confirms": true,
+        "tutor_explains": true,
+        "tutor_asks_question": false
+      },
+      {
+        "v1_id": "gen_v1_00319",
+        "similarity": 0.1537,
+        "prior_turns": 6,
+        "bug_category": "callback_ordering",
+        "language": "javascript",
+        "recognition_category": "change_only",
+        "in_training_split": true,
+        "student_excerpt": "I think I got it! I made totalCart take a second argument that's a function to call at the end, and I keep a count of how many items are still outstanding. Each callback subtracts one, and when it hit",
+        "tutor_excerpt": "That's correct, and you didn't get lucky \u2014 that's the standard pattern for this exact situation. Here's what was going on underneath. When you call fetchPrice, the setTimeout inside it only *schedules",
+        "tutor_confirms": true,
+        "tutor_explains": true,
+        "tutor_asks_question": false
+      },
+      {
+        "v1_id": "gen_v1_00118",
+        "similarity": 0.1523,
+        "prior_turns": 2,
+        "bug_category": "none_handling",
+        "language": "python",
+        "recognition_category": "no_core_signal",
+        "in_training_split": true,
+        "student_excerpt": "Ah, that split it open. Two of my rows never produce a number: the second one has no weight_kg key at all, and the third has it set explicitly to None, and single-argument get hands back None in both ",
+        "tutor_excerpt": "That's the fix, and your reasoning about why the default-argument route falls short is exactly right. `dict.get` with a single argument has two indistinguishable ways of yielding None \u2014 the key is abs",
+        "tutor_confirms": true,
+        "tutor_explains": true,
+        "tutor_asks_question": false
+      }
+    ]
+  },
+  {
+    "heldout_id": "js_heldout_solved_debounce_closure",
+    "heldout_bug_category": "closure_behavior",
+    "heldout_recognition_category": "diagnosis_change_and_success",
+    "neighbours": [
+      {
+        "v1_id": "gen_v1_00486",
+        "similarity": 0.1656,
+        "prior_turns": 2,
+        "bug_category": "closure_behavior",
+        "language": "javascript",
+        "recognition_category": "diagnosis_change_and_success",
+        "in_training_split": true,
+        "student_excerpt": "Oh \u2014 I logged it and it's undefined every single call, so clearTimeout was doing nothing. The declaration was inside the returned function, so each call got its own fresh variable and the previous id ",
+        "tutor_excerpt": "That's exactly right, and your reasoning about why is spot on. Every call to the inner function creates a brand-new execution context with its own binding for anything declared in that body, so the ol",
+        "tutor_confirms": true,
+        "tutor_explains": true,
+        "tutor_asks_question": false
+      },
+      {
+        "v1_id": "gen_v1_00013",
+        "similarity": 0.1569,
+        "prior_turns": 2,
+        "bug_category": "return_placement",
+        "language": "python",
+        "recognition_category": "diagnosis_and_change",
+        "in_training_split": true,
+        "student_excerpt": "That was it. The print only fired twice \u2014 once for the comment line and once for debug=true \u2014 so the loop wasn't running to the end at all. I moved the return statement out of the loop and dedented it",
+        "tutor_excerpt": "Yes, that's exactly right, and your fix is the correct one. A return doesn't end the current iteration, it ends the whole function call immediately \u2014 the loop, the accumulator, everything gets abandon",
+        "tutor_confirms": true,
+        "tutor_explains": false,
+        "tutor_asks_question": false
+      },
+      {
+        "v1_id": "gen_v1_00598",
+        "similarity": 0.1493,
+        "prior_turns": 6,
+        "bug_category": "callback_ordering",
+        "language": "javascript",
+        "recognition_category": "diagnosis_change_and_success",
+        "in_training_split": true,
+        "student_excerpt": "Got it working. I wrapped the whole cached replay \u2014 the row loop and the end emit \u2014 in a `process.nextTick(() => { ... })` so it fires after `streamReport` has returned and the caller has attached its",
+        "tutor_excerpt": "Yes \u2014 that's the fix, and your explanation of it is right on the money. The defect was never in the cache or the data; it was that your function had two different timing contracts. The database branch",
+        "tutor_confirms": true,
+        "tutor_explains": true,
+        "tutor_asks_question": false
+      },
+      {
+        "v1_id": "gen_v1_00309",
+        "similarity": 0.1341,
+        "prior_turns": 2,
+        "bug_category": "hoisting",
+        "language": "javascript",
+        "recognition_category": "diagnosis_and_change",
+        "in_training_split": true,
+        "student_excerpt": "Okay, that was the tell. It printed `undefined` on the very first line of the function, before the `if` had even run. So the name `config` inside `paginate` was never the module-level object at all \u2014 ",
+        "tutor_excerpt": "That's exactly right, and you diagnosed it cleanly \u2014 your fix is correct. The key mechanic is that `var` binds per function, not per block: at the moment the call frame for `paginate` is created, ever",
+        "tutor_confirms": true,
+        "tutor_explains": true,
+        "tutor_asks_question": false
+      },
+      {
+        "v1_id": "gen_v1_00487",
+        "similarity": 0.1311,
+        "prior_turns": 4,
+        "bug_category": "hoisting",
+        "language": "javascript",
+        "recognition_category": "diagnosis_and_change",
+        "in_training_split": true,
+        "student_excerpt": "Ohh. Okay, I moved the whole `var getDiscount = function (count) {...}` block up so it sits above the console.log, and now it runs fine \u2014 logs \"Discount rate: 0\" then 30. So the name gets reserved at ",
+        "tutor_excerpt": "That's exactly it, and your explanation is the correct one \u2014 nice work getting there. To fill in the mechanics: when the engine enters `checkout` it creates bindings for every `var` in the function bo",
+        "tutor_confirms": true,
+        "tutor_explains": false,
+        "tutor_asks_question": false
+      }
+    ]
+  }
+]

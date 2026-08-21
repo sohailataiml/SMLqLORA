@@ -1,0 +1,160 @@
+{
+  "output_dir": "/content/SMLqLORA/outputs/socratic-v1-n600-bestckpt",
+  "requested_load_best_model_at_end": true,
+  "metric_for_best_model": "eval_loss",
+  "greater_is_better": false,
+  "save_total_limit": 3,
+  "trainer_best_model_checkpoint": "/content/SMLqLORA/outputs/socratic-v1-n600-bestckpt/checkpoint-34",
+  "trainer_best_metric": 1.9665836095809937,
+  "final_global_step": 102,
+  "final_epoch": 3.0,
+  "validation_history": [
+    {
+      "eval_loss": 1.9665836095809937,
+      "eval_runtime": 26.5114,
+      "eval_samples_per_second": 2.263,
+      "eval_steps_per_second": 0.302,
+      "eval_entropy": 2.99129456281662,
+      "eval_num_tokens": 272647.0,
+      "eval_mean_token_accuracy": 0.5841004401445389,
+      "epoch": 1.0,
+      "step": 34
+    },
+    {
+      "eval_loss": 2.819046974182129,
+      "eval_runtime": 26.3064,
+      "eval_samples_per_second": 2.281,
+      "eval_steps_per_second": 0.304,
+      "eval_entropy": 5.24363774061203,
+      "eval_num_tokens": 545294.0,
+      "eval_mean_token_accuracy": 0.5040413253009319,
+      "epoch": 2.0,
+      "step": 68
+    },
+    {
+      "eval_loss": 2.8398325443267822,
+      "eval_runtime": 26.236,
+      "eval_samples_per_second": 2.287,
+      "eval_steps_per_second": 0.305,
+      "eval_entropy": 5.114675164222717,
+      "eval_num_tokens": 817941.0,
+      "eval_mean_token_accuracy": 0.5030180402100086,
+      "epoch": 3.0,
+      "step": 102
+    }
+  ],
+  "exported_adapter": "adapter_model.safetensors",
+  "exported_sha256": "384b13cc64826b983184b57d5ede2c715c4690d1fa48cd7cd994cbed250338b9",
+  "checkpoints_found": [
+    "checkpoint-34",
+    "checkpoint-68",
+    "checkpoint-102"
+  ],
+  "checkpoint_hashes": [
+    {
+      "checkpoint": "checkpoint-34",
+      "step": 34,
+      "sha256": "bc7cef2b810af2fb9f3da3a4bd1594e0c7c6e59d621b0fac9986c5c768622123",
+      "matches_export": false
+    },
+    {
+      "checkpoint": "checkpoint-68",
+      "step": 68,
+      "sha256": "794e945d69f6da1014e9ba349593db19ac42f331ddb15be77135365d470dad94",
+      "matches_export": false
+    },
+    {
+      "checkpoint": "checkpoint-102",
+      "step": 102,
+      "sha256": "358e8d34f0922154947be9245089c93ca6bdd032546072949781454c322b9611",
+      "matches_export": false
+    }
+  ],
+  "export_matches": [],
+  "best_by_eval_loss": {
+    "eval_loss": 1.9665836095809937,
+    "eval_runtime": 26.5114,
+    "eval_samples_per_second": 2.263,
+    "eval_steps_per_second": 0.302,
+    "eval_entropy": 2.99129456281662,
+    "eval_num_tokens": 272647.0,
+    "eval_mean_token_accuracy": 0.5841004401445389,
+    "epoch": 1.0,
+    "step": 34
+  },
+  "eval_loss_by_epoch": [
+    [
+      1.0,
+      1.9665836095809937
+    ],
+    [
+      2.0,
+      2.819046974182129
+    ],
+    [
+      3.0,
+      2.8398325443267822
+    ]
+  ],
+  "best_differs_from_final": true,
+  "trainer_best_checkpoint_name": "checkpoint-34",
+  "tensor_comparisons": [
+    {
+      "tensor_count_exported": 392,
+      "tensor_count_other": 392,
+      "shared_keys": 392,
+      "exported_dtypes": [
+        "torch.float32"
+      ],
+      "other_dtypes": [
+        "torch.bfloat16"
+      ],
+      "missing_from_other": [],
+      "missing_from_exported": [],
+      "compared_in_dtype": "torch.bfloat16",
+      "max_abs_diff": 0.0,
+      "identical": true,
+      "checkpoint": "checkpoint-34"
+    },
+    {
+      "tensor_count_exported": 392,
+      "tensor_count_other": 392,
+      "shared_keys": 392,
+      "exported_dtypes": [
+        "torch.float32"
+      ],
+      "other_dtypes": [
+        "torch.bfloat16"
+      ],
+      "missing_from_other": [],
+      "missing_from_exported": [],
+      "compared_in_dtype": "torch.bfloat16",
+      "max_abs_diff": 0.4052734375,
+      "identical": false,
+      "checkpoint": "checkpoint-68"
+    },
+    {
+      "tensor_count_exported": 392,
+      "tensor_count_other": 392,
+      "shared_keys": 392,
+      "exported_dtypes": [
+        "torch.float32"
+      ],
+      "other_dtypes": [
+        "torch.bfloat16"
+      ],
+      "missing_from_other": [],
+      "missing_from_exported": [],
+      "compared_in_dtype": "torch.bfloat16",
+      "max_abs_diff": 0.5048828125,
+      "identical": false,
+      "checkpoint": "checkpoint-102"
+    }
+  ],
+  "tensor_matches": [
+    "checkpoint-34"
+  ],
+  "verdict": "VERIFIED_BEST",
+  "match_method": "tensor",
+  "detail": "The exported adapter is not byte-identical to any checkpoint -- save_pretrained re-serialised it -- but its WEIGHTS are exactly checkpoint-34's, which the trainer selected as best by eval_loss (1.9665836095809937). Every tensor matches to 0.0 absolute difference."
+}

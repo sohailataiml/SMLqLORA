@@ -242,6 +242,107 @@ def test_learned_template_hypothesis(v1: list[Example], tuned: list) -> dict:
     }
 
 
+#: Share of failures carrying a checkpoint-only marker above which the run's
+#: output distribution is dominated by the template attractor. Chosen as a
+#: simple majority: when most failures carry phrasing the training data cannot
+#: produce, the run describes the checkpoint rather than the data. Below it the
+#: attractor is present but no longer the explanation for most failures.
+ATTRACTOR_DOMINANCE_THRESHOLD = 0.5
+
+
+def attractor_dominates(failures_with_marker: int, failures_total: int) -> bool:
+    """Whether checkpoint-only markers account for most of this run's failures."""
+    if failures_total == 0:
+        return False
+    return failures_with_marker / failures_total >= ATTRACTOR_DOMINANCE_THRESHOLD
+
+
+def prevalence_note(dominates: bool) -> str:
+    """What the marker prevalence licenses saying about this particular run."""
+    shared = (
+        "These markers appear on passing outputs too, so they are not a "
+        "predictor of which scenario fails. They characterise the checkpoint's "
+        "whole output distribution."
+    )
+    if dominates:
+        return shared + (
+            " The model is generating from a template attractor that does not "
+            "exist in its training data. That is why this run cannot be read as "
+            "a measurement of what Dataset V1 teaches."
+        )
+    return shared + (
+        " Most failures in this run carry no such marker, so the attractor no "
+        "longer explains them and this run can be read as a measurement of what "
+        "Dataset V1 teaches."
+    )
+
+
+def build_conclusion(
+    hypotheses: list[dict], failures_with_marker: int, failures_total: int
+) -> dict:
+    """Derive the conclusion from this run's measurements, not from the MVP's.
+
+    The verdict follows the hypothesis tests; the summary and implication follow
+    the marker prevalence. Hardcoding them meant a corrected run inherited the
+    MVP's explanation -- reporting that the checkpoint still needed correcting
+    after it had been corrected.
+    """
+    all_refuted = all(h["verdict"] == "REFUTED" for h in hypotheses)
+    dominates = attractor_dominates(failures_with_marker, failures_total)
+    share = (failures_with_marker / failures_total) if failures_total else 0.0
+
+    verdict = (
+        "DATASET_V1_NOT_IMPLICATED_BY_CURRENT_EVIDENCE" if all_refuted
+        else "DATASET_V1_PARTIALLY_IMPLICATED"
+    )
+
+    if all_refuted:
+        summary = (
+            "Every hypothesis blaming Dataset V1 for the diagnostic regression is "
+            "refuted by the frozen data itself."
+        )
+    else:
+        supported = [h["hypothesis"] for h in hypotheses if h["verdict"] != "REFUTED"]
+        summary = (
+            "At least one hypothesis blaming Dataset V1 survives the frozen data: "
+            + "; ".join(supported)
+        )
+
+    if dominates:
+        summary += (
+            f" Markers Dataset V1 cannot produce appear across "
+            f"{failures_with_marker} of {failures_total} held-out failures "
+            f"({share:.0%}), so the regression is dominated by the degraded "
+            f"checkpoint."
+        )
+        implication = (
+            "A Dataset V2 designed against this evidence would be designed "
+            "against a training artifact. The checkpoint must be corrected "
+            "before the V2 target is chosen."
+        )
+    else:
+        summary += (
+            f" Markers Dataset V1 cannot produce now appear in only "
+            f"{failures_with_marker} of {failures_total} held-out failures "
+            f"({share:.0%}), so the checkpoint attractor no longer accounts for "
+            f"them."
+        )
+        implication = (
+            "Checkpoint selection no longer explains the residual failures, so "
+            "they are legitimate candidates for analysis. That does not by "
+            "itself make them data-attributable: the hypothesis tests above are "
+            "what decide whether Dataset V1 is implicated."
+        )
+
+    return {
+        "verdict": verdict,
+        "checkpoint_attractor_dominates": dominates,
+        "failures_with_checkpoint_marker_share": round(share, 4),
+        "summary": summary,
+        "implication": implication,
+    }
+
+
 def build_report(transcripts: Path = TRANSCRIPTS, *, run_label: str | None = None) -> dict[str, Any]:
     """Classify one run's held-out outputs and test the V1 hypotheses against it.
 
@@ -276,6 +377,14 @@ def build_report(transcripts: Path = TRANSCRIPTS, *, run_label: str | None = Non
     passes = [s for s in per_scenario if s["pass"]]
     marked_passes = sum(1 for s in passes if s["checkpoint_attributable"])
 
+    hypotheses = [
+        test_first_turn_hypothesis(v1, heldout, tuned),
+        test_weak_gate_hypothesis(raw_v1),
+        test_coverage_hypothesis(v1, heldout),
+        test_learned_template_hypothesis(v1, tuned),
+    ]
+    dominates = attractor_dominates(len(attributable), len(failures))
+
     return {
         "analysis_version": ANALYSIS_VERSION,
         "source_transcripts": str(
@@ -295,12 +404,7 @@ def build_report(transcripts: Path = TRANSCRIPTS, *, run_label: str | None = Non
             "failures_total": len(failures),
             "passes_with_marker": marked_passes,
             "passes_total": len(passes),
-            "note": "These markers appear on passing outputs too, so they are not "
-            "a predictor of which scenario fails. They characterise the "
-            "checkpoint's whole output distribution: the model is "
-            "generating from a template attractor that does not exist in "
-            "its training data. That is why this run cannot be read as a "
-            "measurement of what Dataset V1 teaches.",
+            "note": prevalence_note(dominates),
         },
         "v1_baseline_markers": {
             "total": len(v1),
@@ -316,23 +420,10 @@ def build_report(transcripts: Path = TRANSCRIPTS, *, run_label: str | None = Non
         "out_of_distribution_phrase_count": len(ood_hits),
         "out_of_distribution_phrases": ood_hits[:25],
         "per_scenario": per_scenario,
-        "dataset_hypotheses_tested": [
-            test_first_turn_hypothesis(v1, heldout, tuned),
-            test_weak_gate_hypothesis(raw_v1),
-            test_coverage_hypothesis(v1, heldout),
-            test_learned_template_hypothesis(v1, tuned),
-        ],
-        "conclusion": {
-            "verdict": "DATASET_V1_NOT_IMPLICATED_BY_CURRENT_EVIDENCE",
-            "summary": "Every hypothesis blaming Dataset V1 for the diagnostic "
-            "regression is refuted by the frozen data itself, while the "
-            "markers Dataset V1 cannot produce appear across most "
-            "held-out failures. The regression is dominated by the "
-            "known-degraded epoch-3 checkpoint.",
-            "implication": "A Dataset V2 designed against this evidence would be "
-            "designed against a training artifact. The checkpoint must "
-            "be corrected before the V2 target is chosen.",
-        },
+        "dataset_hypotheses_tested": hypotheses,
+        "conclusion": build_conclusion(
+            hypotheses, len(attributable), len(failures)
+        ),
     }
 
 

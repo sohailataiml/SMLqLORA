@@ -1,0 +1,94 @@
+{
+  "count": 85,
+  "prior_turn_distribution": {
+    "2": 46,
+    "4": 26,
+    "6": 13
+  },
+  "declared_conversation_turns": {
+    "1": 46,
+    "2": 26,
+    "3": 13
+  },
+  "language": {
+    "python": 43,
+    "javascript": 42
+  },
+  "difficulty": {
+    "easy": 43,
+    "medium": 24,
+    "hard": 18
+  },
+  "bug_category": {
+    "async_await": 4,
+    "boolean_condition": 4,
+    "callback_ordering": 4,
+    "closure_behavior": 4,
+    "comparison_identity": 4,
+    "array_mutation": 3,
+    "dictionary_access": 3,
+    "exception_handling": 3,
+    "generator_exhaustion": 3,
+    "incorrect_condition": 3,
+    "integer_division": 3,
+    "list_mutation": 3,
+    "loop_boundary": 3,
+    "map_vs_foreach": 3,
+    "missing_return": 3,
+    "mutable_default": 3,
+    "none_handling": 3,
+    "promise_handling": 3,
+    "return_placement": 3,
+    "scope": 3,
+    "shadowed_builtin": 3,
+    "shallow_copy": 3,
+    "string_immutability": 3,
+    "this_binding": 3,
+    "type_coercion": 3,
+    "undefined_properties": 3,
+    "hoisting": 2
+  },
+  "hint_strength": {
+    "narrow": 68,
+    "nudge": 12,
+    "pointed": 5
+  },
+  "student_progress": {
+    "solved": 85
+  },
+  "student_message_words": {
+    "n": 85,
+    "min": 42,
+    "median": 69.0,
+    "max": 143,
+    "mean": 70.61
+  },
+  "signal_counts": {
+    "describes_code_change": 63,
+    "states_diagnosis": 54,
+    "claims_success": 42,
+    "shows_runtime_output": 27
+  },
+  "core_signal_count_distribution": {
+    "2": 41,
+    "1": 20,
+    "3": 19,
+    "0": 5
+  },
+  "recognition_categories": {
+    "diagnosis_change_and_success": 19,
+    "diagnosis_and_change": 18,
+    "change_and_success": 15,
+    "change_only": 11,
+    "diagnosis_only": 9,
+    "diagnosis_and_success": 8,
+    "no_core_signal": 5
+  },
+  "tutor_behaviour": {
+    "confirms": 82,
+    "explains": 57,
+    "confirms_and_explains": 56,
+    "asks_question": 3,
+    "confirms_without_question": 79
+  }
+}

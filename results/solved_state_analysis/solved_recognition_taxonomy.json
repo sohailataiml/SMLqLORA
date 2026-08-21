@@ -1,0 +1,47 @@
+{
+  "categories": {
+    "diagnosis_change_and_success": 19,
+    "diagnosis_and_change": 18,
+    "change_and_success": 15,
+    "change_only": 11,
+    "diagnosis_only": 9,
+    "diagnosis_and_success": 8,
+    "no_core_signal": 5
+  },
+  "heldout": [
+    {
+      "id": "py_heldout_solved_generator_exhausted",
+      "language": "python",
+      "bug_category": "loop_boundary",
+      "difficulty": "hard",
+      "prior_turns": 2,
+      "student_message": "Once only \u2014 so the sum consumed it and len saw nothing. I materialised it with `rows = list(rows)` first and both values are right now.",
+      "signals": {
+        "describes_code_change": true,
+        "states_diagnosis": true,
+        "claims_success": true,
+        "shows_runtime_output": true
+      },
+      "word_count": 26,
+      "core_signal_count": 3,
+      "recognition_category": "diagnosis_change_and_success"
+    },
+    {
+      "id": "js_heldout_solved_debounce_closure",
+      "language": "javascript",
+      "bug_category": "closure_behavior",
+      "difficulty": "hard",
+      "prior_turns": 2,
+      "student_message": "Nothing at all. I moved `let timer` outside the returned function so it lives in the closure, and now it debounces properly.",
+      "signals": {
+        "describes_code_change": true,
+        "states_diagnosis": true,
+        "claims_success": true,
+        "shows_runtime_output": false
+      },
+      "word_count": 22,
+      "core_signal_count": 3,
+      "recognition_category": "diagnosis_change_and_success"
+    }
+  ]
+}

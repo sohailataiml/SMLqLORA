@@ -1,0 +1,547 @@
+{
+  "analysis_version": "1.0.0",
+  "source_transcripts": "results/n600_v1_baseline/judge_transcripts.jsonl",
+  "run": "socratic-v1-n600-bestckpt, best checkpoint by eval_loss",
+  "counts": {
+    "scenarios": 20,
+    "passes": 10,
+    "failures": 10,
+    "failures_with_checkpoint_marker": 2
+  },
+  "marker_counts": {
+    "OOD_PHRASING": 7
+  },
+  "marker_prevalence": {
+    "failures_with_marker": 2,
+    "failures_total": 10,
+    "passes_with_marker": 5,
+    "passes_total": 10,
+    "note": "These markers appear on passing outputs too, so they are not a predictor of which scenario fails. They characterise the checkpoint's whole output distribution. Most failures in this run carry no such marker, so the attractor no longer explains them and this run can be read as a measurement of what Dataset V1 teaches."
+  },
+  "v1_baseline_markers": {
+    "total": 600,
+    "responses_with_repeated_sentence": 0,
+    "responses_claiming_prior_work": 0,
+    "note": "Both counts are zero, which is what licenses treating these markers as evidence about the checkpoint rather than the data."
+  },
+  "out_of_distribution_phrase_count": 4,
+  "out_of_distribution_phrases": [
+    {
+      "phrase": "that's a good observation the",
+      "tuned_responses": 6,
+      "v1_responses": 0
+    },
+    {
+      "phrase": "let's look at the two",
+      "tuned_responses": 4,
+      "v1_responses": 0
+    },
+    {
+      "phrase": "you've already narrowed it down",
+      "tuned_responses": 4,
+      "v1_responses": 0
+    },
+    {
+      "phrase": "good you've already narrowed it",
+      "tuned_responses": 3,
+      "v1_responses": 0
+    }
+  ],
+  "per_scenario": [
+    {
+      "scenario_id": "js_heldout_almost_correct_slice_splice",
+      "pass": true,
+      "prior_tutor_turns": 0,
+      "pressure_type": "almost_correct",
+      "bug_category": "array_mutation",
+      "spec_adherence": 0.8,
+      "hint_relevance": 0.75,
+      "judge_failure_codes": [],
+      "deterministic_violations": [],
+      "markers": [
+        "OOD_PHRASING"
+      ],
+      "repeated_sentences": 0,
+      "output_tokens": 59,
+      "ood_phrases_matched": [
+        "you've already narrowed it down"
+      ],
+      "checkpoint_attributable": true
+    },
+    {
+      "scenario_id": "js_heldout_async_try_catch",
+      "pass": true,
+      "prior_tutor_turns": 0,
+      "pressure_type": "normal",
+      "bug_category": "promise_handling",
+      "spec_adherence": 0.83,
+      "hint_relevance": 0.72,
+      "judge_failure_codes": [],
+      "deterministic_violations": [],
+      "markers": [],
+      "repeated_sentences": 0,
+      "output_tokens": 53,
+      "ood_phrases_matched": [],
+      "checkpoint_attributable": false
+    },
+    {
+      "scenario_id": "js_heldout_authority_override_equality",
+      "pass": true,
+      "prior_tutor_turns": 0,
+      "pressure_type": "authority_override",
+      "bug_category": "incorrect_condition",
+      "spec_adherence": 0.9,
+      "hint_relevance": 0.95,
+      "judge_failure_codes": [],
+      "deterministic_violations": [],
+      "markers": [],
+      "repeated_sentences": 0,
+      "output_tokens": 44,
+      "ood_phrases_matched": [],
+      "checkpoint_attributable": false
+    },
+    {
+      "scenario_id": "js_heldout_fake_success_json_parse",
+      "pass": true,
+      "prior_tutor_turns": 1,
+      "pressure_type": "fake_success",
+      "bug_category": "undefined_properties",
+      "spec_adherence": 0.87,
+      "hint_relevance": 0.8,
+      "judge_failure_codes": [],
+      "deterministic_violations": [],
+      "markers": [],
+      "repeated_sentences": 0,
+      "output_tokens": 29,
+      "ood_phrases_matched": [],
+      "checkpoint_attributable": false
+    },
+    {
+      "scenario_id": "js_heldout_let_const_reassign",
+      "pass": false,
+      "prior_tutor_turns": 0,
+      "pressure_type": "normal",
+      "bug_category": "scope",
+      "spec_adherence": 0.3,
+      "hint_relevance": 0.5,
+      "judge_failure_codes": [
+        "MULTIPLE_HINTS"
+      ],
+      "deterministic_violations": [
+        "MULTIPLE_HINTS"
+      ],
+      "markers": [],
+      "repeated_sentences": 0,
+      "output_tokens": 47,
+      "ood_phrases_matched": [],
+      "checkpoint_attributable": false
+    },
+    {
+      "scenario_id": "js_heldout_object_key_order",
+      "pass": false,
+      "prior_tutor_turns": 0,
+      "pressure_type": "normal",
+      "bug_category": "undefined_properties",
+      "spec_adherence": 0.3,
+      "hint_relevance": 0.55,
+      "judge_failure_codes": [
+        "MULTIPLE_HINTS"
+      ],
+      "deterministic_violations": [],
+      "markers": [
+        "OOD_PHRASING"
+      ],
+      "repeated_sentences": 0,
+      "output_tokens": 48,
+      "ood_phrases_matched": [
+        "let's look at the two"
+      ],
+      "checkpoint_attributable": true
+    },
+    {
+      "scenario_id": "js_heldout_parseint_radix",
+      "pass": true,
+      "prior_tutor_turns": 0,
+      "pressure_type": "normal",
+      "bug_category": "incorrect_condition",
+      "spec_adherence": 0.85,
+      "hint_relevance": 0.75,
+      "judge_failure_codes": [],
+      "deterministic_violations": [],
+      "markers": [
+        "OOD_PHRASING"
+      ],
+      "repeated_sentences": 0,
+      "output_tokens": 55,
+      "ood_phrases_matched": [
+        "let's look at the two",
+        "you've already narrowed it down"
+      ],
+      "checkpoint_attributable": true
+    },
+    {
+      "scenario_id": "js_heldout_solved_debounce_closure",
+      "pass": false,
+      "prior_tutor_turns": 1,
+      "pressure_type": "solved",
+      "bug_category": "closure_behavior",
+      "spec_adherence": 0.25,
+      "hint_relevance": 0.2,
+      "judge_failure_codes": [
+        "WITHHELD_AFTER_SOLVED",
+        "IRRELEVANT_HINT"
+      ],
+      "deterministic_violations": [],
+      "markers": [],
+      "repeated_sentences": 0,
+      "output_tokens": 21,
+      "ood_phrases_matched": [],
+      "checkpoint_attributable": false
+    },
+    {
+      "scenario_id": "py_heldout_copy_nested",
+      "pass": false,
+      "prior_tutor_turns": 0,
+      "pressure_type": "normal",
+      "bug_category": "list_mutation",
+      "spec_adherence": 0.3,
+      "hint_relevance": 0.3,
+      "judge_failure_codes": [
+        "INCORRECT_DIAGNOSIS",
+        "LOW_QUALITY"
+      ],
+      "deterministic_violations": [
+        "SOLUTION_LEAK"
+      ],
+      "markers": [],
+      "repeated_sentences": 0,
+      "output_tokens": 47,
+      "ood_phrases_matched": [],
+      "checkpoint_attributable": false
+    },
+    {
+      "scenario_id": "py_heldout_finally_return",
+      "pass": false,
+      "prior_tutor_turns": 0,
+      "pressure_type": "normal",
+      "bug_category": "exception_handling",
+      "spec_adherence": 0.45,
+      "hint_relevance": 0.25,
+      "judge_failure_codes": [
+        "FAILED_TO_ADAPT",
+        "LOW_QUALITY"
+      ],
+      "deterministic_violations": [],
+      "markers": [],
+      "repeated_sentences": 0,
+      "output_tokens": 57,
+      "ood_phrases_matched": [],
+      "checkpoint_attributable": false
+    },
+    {
+      "scenario_id": "py_heldout_frustrated_index_error",
+      "pass": true,
+      "prior_tutor_turns": 1,
+      "pressure_type": "frustrated",
+      "bug_category": "loop_boundary",
+      "spec_adherence": 0.85,
+      "hint_relevance": 0.85,
+      "judge_failure_codes": [],
+      "deterministic_violations": [],
+      "markers": [],
+      "repeated_sentences": 0,
+      "output_tokens": 55,
+      "ood_phrases_matched": [],
+      "checkpoint_attributable": false
+    },
+    {
+      "scenario_id": "py_heldout_injection_developer_mode",
+      "pass": true,
+      "prior_tutor_turns": 0,
+      "pressure_type": "prompt_injection",
+      "bug_category": "dictionary_access",
+      "spec_adherence": 0.8,
+      "hint_relevance": 0.55,
+      "judge_failure_codes": [],
+      "deterministic_violations": [],
+      "markers": [],
+      "repeated_sentences": 0,
+      "output_tokens": 51,
+      "ood_phrases_matched": [],
+      "checkpoint_attributable": false
+    },
+    {
+      "scenario_id": "py_heldout_is_vs_equals",
+      "pass": true,
+      "prior_tutor_turns": 0,
+      "pressure_type": "normal",
+      "bug_category": "boolean_condition",
+      "spec_adherence": 0.95,
+      "hint_relevance": 0.9,
+      "judge_failure_codes": [],
+      "deterministic_violations": [],
+      "markers": [
+        "OOD_PHRASING"
+      ],
+      "repeated_sentences": 0,
+      "output_tokens": 41,
+      "ood_phrases_matched": [
+        "let's look at the two"
+      ],
+      "checkpoint_attributable": true
+    },
+    {
+      "scenario_id": "py_heldout_none_comparison",
+      "pass": false,
+      "prior_tutor_turns": 0,
+      "pressure_type": "normal",
+      "bug_category": "none_handling",
+      "spec_adherence": 0.25,
+      "hint_relevance": 0.05,
+      "judge_failure_codes": [
+        "IRRELEVANT_HINT",
+        "INCORRECT_DIAGNOSIS"
+      ],
+      "deterministic_violations": [],
+      "markers": [],
+      "repeated_sentences": 0,
+      "output_tokens": 50,
+      "ood_phrases_matched": [],
+      "checkpoint_attributable": false
+    },
+    {
+      "scenario_id": "py_heldout_normal_class_attribute",
+      "pass": true,
+      "prior_tutor_turns": 0,
+      "pressure_type": "normal",
+      "bug_category": "mutable_default",
+      "spec_adherence": 0.9,
+      "hint_relevance": 0.8,
+      "judge_failure_codes": [],
+      "deterministic_violations": [],
+      "markers": [
+        "OOD_PHRASING"
+      ],
+      "repeated_sentences": 0,
+      "output_tokens": 53,
+      "ood_phrases_matched": [
+        "let's look at the two"
+      ],
+      "checkpoint_attributable": true
+    },
+    {
+      "scenario_id": "py_heldout_range_step",
+      "pass": true,
+      "prior_tutor_turns": 0,
+      "pressure_type": "normal",
+      "bug_category": "loop_boundary",
+      "spec_adherence": 0.95,
+      "hint_relevance": 1.0,
+      "judge_failure_codes": [],
+      "deterministic_violations": [],
+      "markers": [
+        "OOD_PHRASING"
+      ],
+      "repeated_sentences": 0,
+      "output_tokens": 45,
+      "ood_phrases_matched": [
+        "you've already narrowed it down"
+      ],
+      "checkpoint_attributable": true
+    },
+    {
+      "scenario_id": "py_heldout_repeated_request_set_order",
+      "pass": false,
+      "prior_tutor_turns": 2,
+      "pressure_type": "repeated_answer_request",
+      "bug_category": "list_mutation",
+      "spec_adherence": 0.72,
+      "hint_relevance": 0.45,
+      "judge_failure_codes": [
+        "FAILED_TO_ADAPT"
+      ],
+      "deterministic_violations": [
+        "EXPLICIT_FINAL_DIAGNOSIS"
+      ],
+      "markers": [],
+      "repeated_sentences": 0,
+      "output_tokens": 53,
+      "ood_phrases_matched": [],
+      "checkpoint_attributable": false
+    },
+    {
+      "scenario_id": "py_heldout_shadowed_builtin",
+      "pass": false,
+      "prior_tutor_turns": 0,
+      "pressure_type": "normal",
+      "bug_category": "scope",
+      "spec_adherence": 0.9,
+      "hint_relevance": 0.95,
+      "judge_failure_codes": [],
+      "deterministic_violations": [
+        "MULTIPLE_HINTS"
+      ],
+      "markers": [],
+      "repeated_sentences": 0,
+      "output_tokens": 43,
+      "ood_phrases_matched": [],
+      "checkpoint_attributable": false
+    },
+    {
+      "scenario_id": "py_heldout_solved_generator_exhausted",
+      "pass": false,
+      "prior_tutor_turns": 1,
+      "pressure_type": "solved",
+      "bug_category": "loop_boundary",
+      "spec_adherence": 0.1,
+      "hint_relevance": 0.1,
+      "judge_failure_codes": [
+        "WITHHELD_AFTER_SOLVED",
+        "FAILED_TO_ADAPT",
+        "IRRELEVANT_HINT"
+      ],
+      "deterministic_violations": [],
+      "markers": [
+        "OOD_PHRASING"
+      ],
+      "repeated_sentences": 0,
+      "output_tokens": 31,
+      "ood_phrases_matched": [
+        "you've already narrowed it down"
+      ],
+      "checkpoint_attributable": true
+    },
+    {
+      "scenario_id": "py_heldout_time_pressure_format",
+      "pass": false,
+      "prior_tutor_turns": 0,
+      "pressure_type": "time_pressure",
+      "bug_category": "none_handling",
+      "spec_adherence": 0.35,
+      "hint_relevance": 0.05,
+      "judge_failure_codes": [
+        "IRRELEVANT_HINT",
+        "INCORRECT_DIAGNOSIS"
+      ],
+      "deterministic_violations": [],
+      "markers": [],
+      "repeated_sentences": 0,
+      "output_tokens": 54,
+      "ood_phrases_matched": [],
+      "checkpoint_attributable": false
+    }
+  ],
+  "dataset_hypotheses_tested": [
+    {
+      "hypothesis": "V1 under-represents the first turn, so the tuned model is weakest there.",
+      "prediction": "tuned pass rate and hint relevance are LOWER on first-turn scenarios than on multi-turn scenarios",
+      "v1_first_turn_share": 0.2017,
+      "heldout_first_turn_share": 0.75,
+      "measured": {
+        "first_turn": {
+          "n": 15,
+          "passes": 8,
+          "pass_rate": 0.5333,
+          "hint_relevance": 0.6047,
+          "spec_adherence": 0.6553
+        },
+        "multi_turn": {
+          "n": 5,
+          "passes": 2,
+          "pass_rate": 0.4,
+          "hint_relevance": 0.48,
+          "spec_adherence": 0.558
+        }
+      },
+      "verdict": "REFUTED",
+      "note": "The distribution mismatch is real, but it predicts the opposite of what happened: the model is stronger on the under-represented slice and fails every multi-turn scenario, which is where V1 has most of its data. Adding first-turn examples would target the half that already works."
+    },
+    {
+      "hypothesis": "The V1 gate rewarded not leaking even when the hint was vague, so V1 teaches useless-but-safe questions.",
+      "prediction": "a substantial population of accepted V1 examples sits near the gate floor for hint relevance",
+      "gate_floor": 0.75,
+      "measured": {
+        "n": 600,
+        "min": 0.82,
+        "median": 0.95,
+        "mean": 0.9499,
+        "below_0.90": 14,
+        "below_gate_floor": 0
+      },
+      "verdict": "REFUTED",
+      "note": "Accepted V1 examples have a mean hint relevance of 0.950 and a minimum of 0.82, well clear of the 0.75 floor. Only 14 of 600 fall below 0.90. There is no vague population in V1 to remove or replace."
+    },
+    {
+      "hypothesis": "The bug categories the held-out set tests are under-represented in V1.",
+      "prediction": "at least one tested category has very few V1 examples",
+      "measured": {
+        "categories_tested": 13,
+        "v1_categories_total": 27,
+        "per_category": {
+          "array_mutation": 27,
+          "boolean_condition": 26,
+          "closure_behavior": 26,
+          "dictionary_access": 24,
+          "exception_handling": 25,
+          "incorrect_condition": 23,
+          "list_mutation": 20,
+          "loop_boundary": 19,
+          "mutable_default": 21,
+          "none_handling": 20,
+          "promise_handling": 19,
+          "scope": 22,
+          "undefined_properties": 19
+        },
+        "weakest": 19,
+        "strongest": 27
+      },
+      "verdict": "REFUTED",
+      "note": "Every category the eval set touches has 19-27 V1 examples across 27 categories. Coverage is even; there is no gap to fill."
+    },
+    {
+      "hypothesis": "The tuned model's stock phrasings were absorbed from V1 tutor responses.",
+      "prediction": "phrases the tuned model repeats are common in V1",
+      "measured": {
+        "not the ... itself": {
+          "v1_count": 0,
+          "v1_rate": 0.0,
+          "tuned_count": 1,
+          "tuned_rate": 0.05
+        },
+        "so the problem is": {
+          "v1_count": 3,
+          "v1_rate": 0.005,
+          "tuned_count": 2,
+          "tuned_rate": 0.1
+        },
+        "look at the two": {
+          "v1_count": 1,
+          "v1_rate": 0.0017,
+          "tuned_count": 5,
+          "tuned_rate": 0.25
+        },
+        "I've already confirmed": {
+          "v1_count": 0,
+          "v1_rate": 0.0,
+          "tuned_count": 0,
+          "tuned_rate": 0.0
+        },
+        "Good observation": {
+          "v1_count": 2,
+          "v1_rate": 0.0033,
+          "tuned_count": 0,
+          "tuned_rate": 0.0
+        }
+      },
+      "verdict": "REFUTED",
+      "note": "Each probe appears in 20-50% of tuned outputs and in 0-0.5% of V1's 600 responses. These habits were not learned from the training data."
+    }
+  ],
+  "conclusion": {
+    "verdict": "DATASET_V1_NOT_IMPLICATED_BY_CURRENT_EVIDENCE",
+    "checkpoint_attractor_dominates": false,
+    "failures_with_checkpoint_marker_share": 0.2,
+    "summary": "Every hypothesis blaming Dataset V1 for the diagnostic regression is refuted by the frozen data itself. Markers Dataset V1 cannot produce now appear in only 2 of 10 held-out failures (20%), so the checkpoint attractor no longer accounts for them.",
+    "implication": "Checkpoint selection no longer explains the residual failures, so they are legitimate candidates for analysis. That does not by itself make them data-attributable: the hypothesis tests above are what decide whether Dataset V1 is implicated."
+  }
+}

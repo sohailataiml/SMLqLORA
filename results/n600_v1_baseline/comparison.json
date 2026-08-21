@@ -1,0 +1,228 @@
+{
+  "experiment": "n600_v1_baseline",
+  "eval_set": "scenarios/heldout.jsonl",
+  "base_transcripts_reused": true,
+  "base_reuse_valid": true,
+  "base_reuse_problems": [],
+  "result_status": "REAL_EXPERIMENT_RESULT",
+  "cells": {
+    "BASE": {
+      "n": 20,
+      "attempted": 20,
+      "infrastructure_errors": 0,
+      "successful_subject_calls": 20,
+      "successful_judge_calls": 20,
+      "spec_adherence": 0.045,
+      "robustness": 0.2333,
+      "hint_relevance": 0.5725,
+      "passes": 0,
+      "pass_rate": 0.0,
+      "solution_leaks": 9,
+      "solution_leak_rate": 0.45,
+      "premature_confirmations": 0,
+      "premature_confirmation_rate": 0.0,
+      "adversarial_pass_rate": 0.0,
+      "clean_pass_rate": 0.0,
+      "empty_responses": 0,
+      "failure_modes": {
+        "MULTIPLE_HINTS": 17,
+        "OVER_EXPLANATION": 12,
+        "EXPLICIT_FINAL_DIAGNOSIS": 11,
+        "SOLUTION_LEAK": 9,
+        "INCORRECT_DIAGNOSIS": 2,
+        "LOW_QUALITY": 2,
+        "FAILED_TO_ADAPT": 1
+      },
+      "by_split": {
+        "clean": {
+          "n": 11,
+          "passes": 0,
+          "pass_rate": 0.0
+        },
+        "adversarial": {
+          "n": 9,
+          "passes": 0,
+          "pass_rate": 0.0
+        },
+        "solved": {
+          "n": 2,
+          "passes": 0,
+          "pass_rate": 0.0
+        },
+        "first_turn": {
+          "n": 15,
+          "passes": 0,
+          "pass_rate": 0.0
+        },
+        "multi_turn": {
+          "n": 5,
+          "passes": 0,
+          "pass_rate": 0.0
+        }
+      }
+    },
+    "MVP_V1": {
+      "n": 20,
+      "attempted": 20,
+      "infrastructure_errors": 0,
+      "successful_subject_calls": 20,
+      "successful_judge_calls": 20,
+      "spec_adherence": 0.4585,
+      "robustness": 0.6778,
+      "hint_relevance": 0.4085,
+      "passes": 5,
+      "pass_rate": 0.25,
+      "solution_leaks": 0,
+      "solution_leak_rate": 0.0,
+      "premature_confirmations": 1,
+      "premature_confirmation_rate": 0.05,
+      "adversarial_pass_rate": 0.1111,
+      "clean_pass_rate": 0.3636,
+      "empty_responses": 0,
+      "failure_modes": {
+        "MULTIPLE_HINTS": 5,
+        "FAILED_TO_ADAPT": 5,
+        "LOW_QUALITY": 5,
+        "INCORRECT_DIAGNOSIS": 4,
+        "IRRELEVANT_HINT": 3,
+        "OVER_EXPLANATION": 1,
+        "PREMATURE_CONFIRMATION": 1,
+        "EXPLICIT_FINAL_DIAGNOSIS": 1,
+        "DUPLICATE": 1,
+        "WITHHELD_AFTER_SOLVED": 1
+      },
+      "by_split": {
+        "clean": {
+          "n": 11,
+          "passes": 4,
+          "pass_rate": 0.3636
+        },
+        "adversarial": {
+          "n": 9,
+          "passes": 1,
+          "pass_rate": 0.1111
+        },
+        "solved": {
+          "n": 2,
+          "passes": 0,
+          "pass_rate": 0.0
+        },
+        "first_turn": {
+          "n": 15,
+          "passes": 5,
+          "pass_rate": 0.3333
+        },
+        "multi_turn": {
+          "n": 5,
+          "passes": 0,
+          "pass_rate": 0.0
+        }
+      }
+    },
+    "CORRECTED_V1": {
+      "n": 20,
+      "attempted": 20,
+      "infrastructure_errors": 0,
+      "successful_subject_calls": 20,
+      "successful_judge_calls": 20,
+      "spec_adherence": 0.631,
+      "robustness": 0.8944,
+      "hint_relevance": 0.5735,
+      "passes": 10,
+      "pass_rate": 0.5,
+      "solution_leaks": 1,
+      "solution_leak_rate": 0.05,
+      "premature_confirmations": 0,
+      "premature_confirmation_rate": 0.0,
+      "adversarial_pass_rate": 0.5556,
+      "clean_pass_rate": 0.4545,
+      "empty_responses": 0,
+      "failure_modes": {
+        "IRRELEVANT_HINT": 4,
+        "MULTIPLE_HINTS": 3,
+        "INCORRECT_DIAGNOSIS": 2,
+        "FAILED_TO_ADAPT": 2,
+        "WITHHELD_AFTER_SOLVED": 2,
+        "SOLUTION_LEAK": 1,
+        "LOW_QUALITY": 1,
+        "EXPLICIT_FINAL_DIAGNOSIS": 1
+      },
+      "by_split": {
+        "clean": {
+          "n": 11,
+          "passes": 5,
+          "pass_rate": 0.4545
+        },
+        "adversarial": {
+          "n": 9,
+          "passes": 5,
+          "pass_rate": 0.5556
+        },
+        "solved": {
+          "n": 2,
+          "passes": 0,
+          "pass_rate": 0.0
+        },
+        "first_turn": {
+          "n": 15,
+          "passes": 8,
+          "pass_rate": 0.5333
+        },
+        "multi_turn": {
+          "n": 5,
+          "passes": 2,
+          "pass_rate": 0.4
+        }
+      }
+    }
+  },
+  "decision_rule": {
+    "plan_version": "1.0.0",
+    "branches_evaluated": [
+      {
+        "order": 1,
+        "select": "H-A",
+        "condition": "multi_turn_pass_rate < first_turn_pass_rate - 0.20",
+        "values": {
+          "multi_turn": 0.4,
+          "first_turn": 0.5333
+        },
+        "fires": false
+      },
+      {
+        "order": 2,
+        "select": "H-B",
+        "condition": "WITHHELD_AFTER_SOLVED >= 1 or solved_split_pass_rate == 0",
+        "values": {
+          "WITHHELD_AFTER_SOLVED": 2,
+          "solved_pass_rate": 0.0
+        },
+        "fires": true
+      },
+      {
+        "order": 3,
+        "select": "H-C",
+        "condition": "hint_relevance < 0.573 or INCORRECT_DIAGNOSIS + IRRELEVANT_HINT >= 4",
+        "values": {
+          "hint_relevance": 0.5735,
+          "wrong_diagnosis_codes": 6
+        },
+        "fires": true
+      }
+    ],
+    "selected": "H-B",
+    "hypothesis": {
+      "id": "H-B",
+      "name": "solved-state release",
+      "measured_failure": "withholding after the learner has already produced the fix",
+      "dataset_evidence": "V1's 85 solved-state examples are 14.2% of the data and all sit at turn 2 or later",
+      "data_property_changed": "proportion and turn-position spread of solved-state examples",
+      "predicted_improvement": [
+        "WITHHELD_AFTER_SOLVED",
+        "solved_split_pass_rate"
+      ],
+      "standing_evidence": "both solved-state held-out scenarios failed"
+    },
+    "note": "Branch 2 fired on the pre-registered condition."
+  }
+}

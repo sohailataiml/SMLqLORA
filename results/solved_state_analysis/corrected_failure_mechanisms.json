@@ -1,0 +1,127 @@
+{
+  "confirmation_behaviour": {
+    "outputs": 20,
+    "confirms": 0,
+    "asks_question": 17,
+    "confirms_on_solved": 0
+  },
+  "hypotheses": [
+    {
+      "id": "H1",
+      "name": "coverage gap",
+      "claim": "V1 simply lacks enough solved examples.",
+      "measurement": {
+        "solved_examples": 85,
+        "share_of_corpus": 0.1417,
+        "solved_total": 85,
+        "solved_in_training_split": 75,
+        "solved_in_validation_split": 10
+      },
+      "verdict": "REFUTED",
+      "note": "85 solved examples, 75 of them in the training split the corrected adapter actually saw."
+    },
+    {
+      "id": "H2",
+      "name": "turn-depth gap",
+      "claim": "V1 lacks solved examples at the held-out conversational depth.",
+      "measurement": {
+        "heldout_prior_turns": [
+          2
+        ],
+        "v1_solved_at_those_depths": {
+          "2": 46
+        },
+        "v1_prior_turn_distribution": {
+          "2": 46,
+          "4": 26,
+          "6": 13
+        }
+      },
+      "verdict": "REFUTED",
+      "note": "Both held-out solved scenarios sit at [2] prior messages, the modal depth in V1 with 46 examples."
+    },
+    {
+      "id": "H3",
+      "name": "recognition-difficulty gap",
+      "claim": "V1 solved examples mostly carry explicit success language while the held-out cases require inference.",
+      "measurement": {
+        "v1_mean_core_signals": 1.871,
+        "heldout_core_signals": [
+          3,
+          3
+        ],
+        "heldout_categories": [
+          "diagnosis_change_and_success",
+          "diagnosis_change_and_success"
+        ],
+        "v1_examples_in_same_category": 19,
+        "v1_core_signal_distribution": {
+          "2": 41,
+          "1": 20,
+          "3": 19,
+          "0": 5
+        }
+      },
+      "verdict": "REFUTED",
+      "note": "Both held-out cases carry all 3 core signals, above the V1 solved mean of 1.871; 19 V1 examples share their exact category. The held-out signals are stronger, not weaker."
+    },
+    {
+      "id": "H4",
+      "name": "bug-category gap",
+      "claim": "The held-out solved bug categories are absent among solved V1 examples.",
+      "measurement": {
+        "heldout_categories": {
+          "loop_boundary": 3,
+          "closure_behavior": 4
+        },
+        "distinct_categories_in_v1_solved": 27
+      },
+      "verdict": "REFUTED",
+      "note": "Both categories are present ({'loop_boundary': 3, 'closure_behavior': 4}); all 27 bug categories appear among the 85. Per-category depth is thin, which this test cannot rule out on its own."
+    },
+    {
+      "id": "H5",
+      "name": "release-policy gap",
+      "claim": "V1 tutor responses do not consistently model confirmation.",
+      "measurement": {
+        "confirms": 82,
+        "of": 85,
+        "confirm_rate": 0.9647,
+        "confirms_without_asking_another_question": 79,
+        "explains": 57
+      },
+      "verdict": "REFUTED",
+      "note": "82/85 solved targets confirm and 79/85 confirm without asking a further question. The policy is modelled consistently."
+    },
+    {
+      "id": "H6",
+      "name": "capability / transfer limit",
+      "claim": "V1 contains analogous demonstrations but the 1.7B model does not generalise the recognition rule.",
+      "measurement": {
+        "corrected_outputs": 20,
+        "corrected_confirmations": 0,
+        "corrected_questions": 17,
+        "v1_solved_confirm_rate": 0.9647,
+        "nearest_neighbour_in_training_split": [
+          true,
+          true
+        ]
+      },
+      "verdict": "SUPPORTED",
+      "note": "The corrected model confirms in 0 of 20 held-out outputs and asks a question in 17. Its solved-state training targets confirm 82/85. The behaviour was demonstrated and not acquired."
+    },
+    {
+      "id": "H7",
+      "name": "evaluation / label issue",
+      "claim": "The solved labels or judge rubric measure something other than release.",
+      "measurement": {
+        "heldout_solved_labelled_correctly": true,
+        "judge_cited_the_learner_fix": true,
+        "fake_success_control_passed": true,
+        "premature_confirmation_rate": 0.0
+      },
+      "verdict": "REFUTED",
+      "note": "Both scenarios genuinely contain the learner's correct fix and the judge reasoning quotes it. The rubric is sound. Separately, WITHHELD_AFTER_SOLVED conflates recognition with release -- a precision limit in the label, not a labelling error."
+    }
+  ]
+}
