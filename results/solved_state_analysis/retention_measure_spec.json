@@ -1,0 +1,121 @@
+{
+  "version": "1.0.0",
+  "created_before_arm_a": true,
+  "git_commit": "3b99b2f76a0ec671dabaf925e433e04f3c21d3e6",
+  "no_llm_judge": true,
+  "definitions": {
+    "STRICT_CONFIRMATION": "The historical detector, preserved unchanged so every published number stays comparable. Explicit confirmation such as 'that's exactly right' or 'your fix is correct'.",
+    "SOLVED_STATE_ACKNOWLEDGEMENT": "Broader. Does the response assert that the learner's diagnosis or fix is CORRECT, however worded. Supersets strict.",
+    "FOLLOWUP_DIAGNOSTIC_QUESTION": "Whether the turn asks another question. Any question mark counts.",
+    "CLEAN_RELEASE": "solved_state_acknowledgement AND NOT followup_diagnostic_question. The spec-compliant behaviour."
+  },
+  "acknowledgement_patterns": {
+    "identified_the_problem": "\\byou'?(?:ve| have)\\s+(?:already\\s+|correctly\\s+)*(?:identified|diagnosed|found|spotted|worked out|figured out|pinned down)\\s+(?:the|it|your|this)\\b",
+    "got_the_cause": "\\byou'?(?:ve| have)\\s+got\\s+(?:the|it)\\b|\\byou\\s+(?:got|nailed|solved|fixed)\\s+it\\b",
+    "the_right_artifact": "\\b(?:that'?s|this is|it'?s)\\s+the\\s+right\\s+(?:change|fix|answer|call|conclusion|reasoning|diagnosis|approach)\\b",
+    "your_x_is_correct": "\\b(?:your|the)\\s+(?:fix|change|diagnosis|reasoning|explanation|answer|analysis|conclusion)\\s+(?:is|was)\\s+(?:exactly\\s+|absolutely\\s+)?(?:correct|right|spot on)\\b",
+    "correctly_did_it": "\\bcorrectly\\s+(?:identified|diagnosed|narrowed|worked out|figured out|fixed|solved)\\b|\\bnarrowed it down correctly\\b",
+    "affirmation_of_statement": "\\b(?:that'?s|that is)\\s+(?:exactly\\s+)?(?:it|right|correct)\\b|\\byes[,\\s\u2014-]+(?:that'?s|you'?ve|you have|exactly)\\b"
+  },
+  "encouragement_only_excluded": [
+    "good observation",
+    "good direction",
+    "right direction",
+    "right track",
+    "nice try",
+    "good instinct",
+    "good start",
+    "good question",
+    "you're getting there",
+    "narrowed it down"
+  ],
+  "line_drawn_at": "Asserted correctness. Progress reports -- 'the right direction', 'on the right track', 'narrowed it down' without a correctness marker -- are encouragement and do not count.",
+  "clean_release_derivation": "acknowledgement == True AND followup_diagnostic_question == False",
+  "worked_examples": [
+    {
+      "text": "That's exactly right, and your fix is correct.",
+      "source": "gen_v1_00486 target (Dataset V1)",
+      "strict_confirmation": true,
+      "solved_state_acknowledgement": true,
+      "followup_diagnostic_question": false,
+      "clean_release": true
+    },
+    {
+      "text": "Great! You've already identified the issue: generators are one-shot.",
+      "source": "base model, checkpoint matrix",
+      "strict_confirmation": false,
+      "solved_state_acknowledgement": true,
+      "followup_diagnostic_question": false,
+      "clean_release": true
+    },
+    {
+      "text": "That's the right change. Now, what does the apply call actually do?",
+      "source": "corrected adapter, held-out solved",
+      "strict_confirmation": false,
+      "solved_state_acknowledgement": true,
+      "followup_diagnostic_question": true,
+      "clean_release": false
+    },
+    {
+      "text": "Good \u2014 that's the right direction. Now, what does apply do?",
+      "source": "corrected adapter, js_heldout_solved_debounce_closure",
+      "strict_confirmation": false,
+      "solved_state_acknowledgement": false,
+      "followup_diagnostic_question": true,
+      "clean_release": false
+    },
+    {
+      "text": "Good, you've already narrowed it down. Now, what does len(rows) return?",
+      "source": "corrected adapter, py_heldout_solved_generator_exhausted",
+      "strict_confirmation": false,
+      "solved_state_acknowledgement": false,
+      "followup_diagnostic_question": true,
+      "clean_release": false
+    },
+    {
+      "text": "That's a good observation \u2014 the two versions are very different.",
+      "source": "checkpoint-34, gen_v1_00792",
+      "strict_confirmation": false,
+      "solved_state_acknowledgement": false,
+      "followup_diagnostic_question": false,
+      "clean_release": false
+    },
+    {
+      "text": "Yes, you've narrowed it down correctly.",
+      "source": "specified by the phase brief",
+      "strict_confirmation": true,
+      "solved_state_acknowledgement": true,
+      "followup_diagnostic_question": false,
+      "clean_release": true
+    },
+    {
+      "text": "You've got the cause.",
+      "source": "specified by the phase brief",
+      "strict_confirmation": false,
+      "solved_state_acknowledgement": true,
+      "followup_diagnostic_question": false,
+      "clean_release": true
+    },
+    {
+      "text": "Nice try, but the loop still runs twice. What does i equal at the end?",
+      "source": "ordinary debugging language, must not count",
+      "strict_confirmation": false,
+      "solved_state_acknowledgement": false,
+      "followup_diagnostic_question": true,
+      "clean_release": false
+    },
+    {
+      "text": "What does the loop print on its final iteration?",
+      "source": "a bare Socratic question",
+      "strict_confirmation": false,
+      "solved_state_acknowledgement": false,
+      "followup_diagnostic_question": true,
+      "clean_release": false
+    }
+  ],
+  "known_limitations": [
+    "Question detection counts any '?', including one inside a code block or a quotation of the learner.",
+    "Lexical patterns will miss paraphrases they were not written for; counts are evidence, not ground truth.",
+    "Both measures are English-only and tuned to this corpus's register."
+  ]
+}

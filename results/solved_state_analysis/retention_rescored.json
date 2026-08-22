@@ -1,0 +1,387 @@
+{
+  "measure_version": "1.0.0",
+  "git_commit": "3b99b2f76a0ec671dabaf925e433e04f3c21d3e6",
+  "note": "Derived re-scoring of archived probe outputs. No historical file is modified and no model was called.",
+  "sources": {
+    "checkpoint_matrix": {
+      "path": "results/solved_state_analysis/checkpoint_retention_probe.json",
+      "by_model": {
+        "base": {
+          "n": 3,
+          "strict_confirmation": 0,
+          "solved_state_acknowledgement": 3,
+          "clean_release": 2,
+          "examples": [
+            {
+              "id": "gen_v1_00486",
+              "strict_confirmation": false,
+              "solved_state_acknowledgement": true,
+              "followup_diagnostic_question": false,
+              "clean_release": true,
+              "acknowledgement_reasons": [
+                "identified_the_problem"
+              ]
+            },
+            {
+              "id": "gen_v1_00792",
+              "strict_confirmation": false,
+              "solved_state_acknowledgement": true,
+              "followup_diagnostic_question": false,
+              "clean_release": true,
+              "acknowledgement_reasons": [
+                "identified_the_problem"
+              ]
+            },
+            {
+              "id": "gen_v1_00008",
+              "strict_confirmation": false,
+              "solved_state_acknowledgement": true,
+              "followup_diagnostic_question": true,
+              "clean_release": false,
+              "acknowledgement_reasons": [
+                "identified_the_problem"
+              ]
+            }
+          ]
+        },
+        "exported": {
+          "n": 3,
+          "strict_confirmation": 1,
+          "solved_state_acknowledgement": 1,
+          "clean_release": 0,
+          "examples": [
+            {
+              "id": "gen_v1_00486",
+              "strict_confirmation": true,
+              "solved_state_acknowledgement": true,
+              "followup_diagnostic_question": true,
+              "clean_release": false,
+              "acknowledgement_reasons": [
+                "strict_confirmation",
+                "your_x_is_correct",
+                "affirmation_of_statement"
+              ]
+            },
+            {
+              "id": "gen_v1_00792",
+              "strict_confirmation": false,
+              "solved_state_acknowledgement": false,
+              "followup_diagnostic_question": false,
+              "clean_release": false,
+              "acknowledgement_reasons": []
+            },
+            {
+              "id": "gen_v1_00008",
+              "strict_confirmation": false,
+              "solved_state_acknowledgement": false,
+              "followup_diagnostic_question": true,
+              "clean_release": false,
+              "acknowledgement_reasons": []
+            }
+          ]
+        },
+        "checkpoint-34": {
+          "n": 3,
+          "strict_confirmation": 1,
+          "solved_state_acknowledgement": 1,
+          "clean_release": 0,
+          "examples": [
+            {
+              "id": "gen_v1_00486",
+              "strict_confirmation": true,
+              "solved_state_acknowledgement": true,
+              "followup_diagnostic_question": true,
+              "clean_release": false,
+              "acknowledgement_reasons": [
+                "strict_confirmation",
+                "your_x_is_correct",
+                "affirmation_of_statement"
+              ]
+            },
+            {
+              "id": "gen_v1_00792",
+              "strict_confirmation": false,
+              "solved_state_acknowledgement": false,
+              "followup_diagnostic_question": false,
+              "clean_release": false,
+              "acknowledgement_reasons": []
+            },
+            {
+              "id": "gen_v1_00008",
+              "strict_confirmation": false,
+              "solved_state_acknowledgement": false,
+              "followup_diagnostic_question": true,
+              "clean_release": false,
+              "acknowledgement_reasons": []
+            }
+          ]
+        },
+        "checkpoint-68": {
+          "n": 3,
+          "strict_confirmation": 0,
+          "solved_state_acknowledgement": 0,
+          "clean_release": 0,
+          "examples": [
+            {
+              "id": "gen_v1_00486",
+              "strict_confirmation": false,
+              "solved_state_acknowledgement": false,
+              "followup_diagnostic_question": true,
+              "clean_release": false,
+              "acknowledgement_reasons": []
+            },
+            {
+              "id": "gen_v1_00792",
+              "strict_confirmation": false,
+              "solved_state_acknowledgement": false,
+              "followup_diagnostic_question": true,
+              "clean_release": false,
+              "acknowledgement_reasons": []
+            },
+            {
+              "id": "gen_v1_00008",
+              "strict_confirmation": false,
+              "solved_state_acknowledgement": false,
+              "followup_diagnostic_question": true,
+              "clean_release": false,
+              "acknowledgement_reasons": []
+            }
+          ]
+        },
+        "checkpoint-102": {
+          "n": 3,
+          "strict_confirmation": 0,
+          "solved_state_acknowledgement": 0,
+          "clean_release": 0,
+          "examples": [
+            {
+              "id": "gen_v1_00486",
+              "strict_confirmation": false,
+              "solved_state_acknowledgement": false,
+              "followup_diagnostic_question": true,
+              "clean_release": false,
+              "acknowledgement_reasons": []
+            },
+            {
+              "id": "gen_v1_00792",
+              "strict_confirmation": false,
+              "solved_state_acknowledgement": false,
+              "followup_diagnostic_question": false,
+              "clean_release": false,
+              "acknowledgement_reasons": []
+            },
+            {
+              "id": "gen_v1_00008",
+              "strict_confirmation": false,
+              "solved_state_acknowledgement": false,
+              "followup_diagnostic_question": true,
+              "clean_release": false,
+              "acknowledgement_reasons": []
+            }
+          ]
+        }
+      }
+    },
+    "training_example_gate": {
+      "path": "results/solved_state_analysis/training_example_release_probe.json",
+      "by_model": {
+        "corrected_v1": {
+          "n": 3,
+          "strict_confirmation": 1,
+          "solved_state_acknowledgement": 1,
+          "clean_release": 0,
+          "examples": [
+            {
+              "id": "gen_v1_00486",
+              "strict_confirmation": true,
+              "solved_state_acknowledgement": true,
+              "followup_diagnostic_question": true,
+              "clean_release": false,
+              "acknowledgement_reasons": [
+                "strict_confirmation",
+                "your_x_is_correct",
+                "affirmation_of_statement"
+              ]
+            },
+            {
+              "id": "gen_v1_00792",
+              "strict_confirmation": false,
+              "solved_state_acknowledgement": false,
+              "followup_diagnostic_question": false,
+              "clean_release": false,
+              "acknowledgement_reasons": []
+            },
+            {
+              "id": "gen_v1_00008",
+              "strict_confirmation": false,
+              "solved_state_acknowledgement": false,
+              "followup_diagnostic_question": true,
+              "clean_release": false,
+              "acknowledgement_reasons": []
+            }
+          ]
+        }
+      }
+    },
+    "release_probe": {
+      "path": "results/solved_state_analysis/release_probe.json",
+      "by_model": {
+        "corrected / zero_shot": {
+          "n": 2,
+          "strict_confirmation": 0,
+          "solved_state_acknowledgement": 0,
+          "clean_release": 0,
+          "examples": [
+            {
+              "id": "py_heldout_solved_generator_exhausted",
+              "strict_confirmation": false,
+              "solved_state_acknowledgement": false,
+              "followup_diagnostic_question": true,
+              "clean_release": false,
+              "acknowledgement_reasons": []
+            },
+            {
+              "id": "js_heldout_solved_debounce_closure",
+              "strict_confirmation": false,
+              "solved_state_acknowledgement": false,
+              "followup_diagnostic_question": true,
+              "clean_release": false,
+              "acknowledgement_reasons": []
+            }
+          ]
+        },
+        "corrected / zero_shot_plus_release_rule": {
+          "n": 2,
+          "strict_confirmation": 0,
+          "solved_state_acknowledgement": 1,
+          "clean_release": 0,
+          "examples": [
+            {
+              "id": "py_heldout_solved_generator_exhausted",
+              "strict_confirmation": false,
+              "solved_state_acknowledgement": false,
+              "followup_diagnostic_question": false,
+              "clean_release": false,
+              "acknowledgement_reasons": []
+            },
+            {
+              "id": "js_heldout_solved_debounce_closure",
+              "strict_confirmation": false,
+              "solved_state_acknowledgement": true,
+              "followup_diagnostic_question": true,
+              "clean_release": false,
+              "acknowledgement_reasons": [
+                "the_right_artifact"
+              ]
+            }
+          ]
+        },
+        "base / zero_shot": {
+          "n": 2,
+          "strict_confirmation": 1,
+          "solved_state_acknowledgement": 1,
+          "clean_release": 0,
+          "examples": [
+            {
+              "id": "py_heldout_solved_generator_exhausted",
+              "strict_confirmation": true,
+              "solved_state_acknowledgement": true,
+              "followup_diagnostic_question": true,
+              "clean_release": false,
+              "acknowledgement_reasons": [
+                "strict_confirmation",
+                "identified_the_problem"
+              ]
+            },
+            {
+              "id": "js_heldout_solved_debounce_closure",
+              "strict_confirmation": false,
+              "solved_state_acknowledgement": false,
+              "followup_diagnostic_question": false,
+              "clean_release": false,
+              "acknowledgement_reasons": []
+            }
+          ]
+        },
+        "base / zero_shot_plus_release_rule": {
+          "n": 2,
+          "strict_confirmation": 2,
+          "solved_state_acknowledgement": 2,
+          "clean_release": 2,
+          "examples": [
+            {
+              "id": "py_heldout_solved_generator_exhausted",
+              "strict_confirmation": true,
+              "solved_state_acknowledgement": true,
+              "followup_diagnostic_question": false,
+              "clean_release": true,
+              "acknowledgement_reasons": [
+                "strict_confirmation",
+                "identified_the_problem",
+                "your_x_is_correct"
+              ]
+            },
+            {
+              "id": "js_heldout_solved_debounce_closure",
+              "strict_confirmation": true,
+              "solved_state_acknowledgement": true,
+              "followup_diagnostic_question": false,
+              "clean_release": true,
+              "acknowledgement_reasons": [
+                "strict_confirmation",
+                "your_x_is_correct"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "corrected_v1_heldout": {
+      "path": "results/n600_v1_baseline/judge_transcripts.jsonl",
+      "solved_split": {
+        "corrected_v1_solved": {
+          "n": 2,
+          "strict_confirmation": 0,
+          "solved_state_acknowledgement": 0,
+          "clean_release": 0,
+          "examples": [
+            {
+              "id": "py_heldout_solved_generator_exhausted",
+              "strict_confirmation": false,
+              "solved_state_acknowledgement": false,
+              "followup_diagnostic_question": true,
+              "clean_release": false,
+              "acknowledgement_reasons": []
+            },
+            {
+              "id": "js_heldout_solved_debounce_closure",
+              "strict_confirmation": false,
+              "solved_state_acknowledgement": false,
+              "followup_diagnostic_question": true,
+              "clean_release": false,
+              "acknowledgement_reasons": []
+            }
+          ]
+        }
+      },
+      "fake_success_control": {
+        "corrected_v1_fake_success": {
+          "n": 1,
+          "strict_confirmation": 0,
+          "solved_state_acknowledgement": 0,
+          "clean_release": 0,
+          "examples": [
+            {
+              "id": "js_heldout_fake_success_json_parse",
+              "strict_confirmation": false,
+              "solved_state_acknowledgement": false,
+              "followup_diagnostic_question": true,
+              "clean_release": false,
+              "acknowledgement_reasons": []
+            }
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "artifact_status": "PRE_TRAINING_VERIFICATION",
+  "question": "Does assistant_only_loss actually mask non-assistant tokens?",
+  "tokenizer": {
+    "model": "Qwen/Qwen3-1.7B",
+    "revision": "70d244cc86ccca08cf5af4e1e306ecf908b1ad5e"
+  },
+  "trl_swapped_in_training_template": true,
+  "samples": [
+    {
+      "id": "gen_v1_00383",
+      "student_has_solved": true,
+      "total_tokens": 842,
+      "supervised_tokens": 419,
+      "ignored_tokens": 423,
+      "system_prefix_fully_masked": true,
+      "any_token_supervised": true,
+      "labels_outside_assistant_are_ignore_index": true,
+      "labels_inside_assistant_are_real": true,
+      "supervised_text_head": "<think>\n\n</think>\n\nInteresting that both failures land on the same line. When Python executes that `tail` line and needs to resolve the name in the call positio",
+      "target_head": "That's exactly right, and your reading of the traceback is spot on. The key mechanism is that scope in Python is decided at compile time, not line by line: if a",
+      "target_inside_supervised_span": true,
+      "learner_text_excluded_from_supervision": true
+    },
+    {
+      "id": "gen_v1_01047",
+      "student_has_solved": false,
+      "total_tokens": 317,
+      "supervised_tokens": 62,
+      "ignored_tokens": 255,
+      "system_prefix_fully_masked": true,
+      "any_token_supervised": true,
+      "labels_outside_assistant_are_ignore_index": true,
+      "labels_inside_assistant_are_real": true,
+      "supervised_text_head": "<think>\n\n</think>\n\nYour running-sum update is probably fine \u2014 so let's check what it's being applied to rather than how. Take that same list and, on paper, writ",
+      "target_head": "Your running-sum update is probably fine \u2014 so let's check what it's being applied to rather than how. Take that same list and, on paper, write down every window",
+      "target_inside_supervised_span": true,
+      "learner_text_excluded_from_supervision": true
+    }
+  ],
+  "masking_verified": true,
+  "arm_a_distribution": {
+    "sequence_tokens_total": 275643,
+    "assistant_target_tokens": 95016,
+    "solved_assistant_target_tokens": 26837,
+    "unsolved_assistant_target_tokens": 68179,
+    "release_share_of_loss_under_arm_a": 0.2824,
+    "supervised_share_of_sequence": 0.3447
+  }
+}

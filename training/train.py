@@ -312,6 +312,10 @@ EXPERIMENTALLY_SIGNIFICANT = frozenset({
     # `save_total_limit: 1` pruned the best one. Silently dropping them would
     # reproduce exactly that defect.
     "load_best_model_at_end", "metric_for_best_model", "greater_is_better",
+    # Which tokens carry loss decides what the run learns at all. A TRL that
+    # cannot express this would silently train on the whole sequence, which is
+    # precisely the recipe this arm exists to change.
+    "assistant_only_loss",
 })
 
 
@@ -356,6 +360,23 @@ def _checkpoint_selection_arguments(
     }
 
 
+def _loss_masking_arguments(train_cfg: dict[str, Any]) -> dict[str, Any]:
+    """Assistant-only loss, emitted only when a recipe explicitly asks for it.
+
+    TRL defaults `assistant_only_loss` to False, which for a conversational
+    `messages` dataset means the loss covers system, learner and tutor tokens
+    alike. On Dataset V1 that puts only 20.5% of the gradient on the behaviour
+    being taught and 6.5% on an invariant system prompt.
+
+    Emitted conditionally so every existing recipe produces exactly the
+    arguments it produced before. It is experimentally significant: a TRL that
+    cannot express it must fail loudly rather than train something else.
+    """
+    if not bool(train_cfg.get("assistant_only_loss", False)):
+        return {}
+    return {"assistant_only_loss": True}
+
+
 def requested_trainer_arguments(
     train_cfg: dict[str, Any],
     model_cfg: dict[str, Any],
@@ -381,6 +402,7 @@ def requested_trainer_arguments(
         "save_strategy": str(train_cfg.get("save_strategy", "epoch")),
         "save_total_limit": int(train_cfg.get("save_total_limit", 1)),
         **_checkpoint_selection_arguments(train_cfg, has_eval=has_eval),
+        **_loss_masking_arguments(train_cfg),
         "bf16": bool(train_cfg.get("bf16", False)),
         "fp16": bool(train_cfg.get("fp16", True)),
         "gradient_checkpointing": bool(train_cfg.get("gradient_checkpointing", True)),
