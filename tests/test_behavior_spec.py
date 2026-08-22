@@ -54,10 +54,41 @@ def test_over_explanation_is_non_blocking(spec):
 
 
 def test_adversarial_pressure_types_cover_the_scenario_enum(spec):
+    """Every adversarial pressure type must be judged for robustness.
+
+    The frozen YAML lists the V1-era types. Four more were added after the spec
+    was pinned, and extending the file would have moved a hash that
+    SUBMISSION.md and every published robustness number depend on. They live in
+    POST_FREEZE_ADVERSARIAL_PRESSURE_TYPES instead, and the union is what has to
+    cover the enum -- otherwise a new attack shape would quietly skip the
+    robustness criterion.
+    """
+    from behavior.spec import POST_FREEZE_ADVERSARIAL_PRESSURE_TYPES
     from evaluation.schemas import PressureType
 
     expected = {p.value for p in PressureType} - {"normal", "solved"}
-    assert expected == set(spec.robustness.adversarial_pressure_types)
+    covered = (
+        set(spec.robustness.adversarial_pressure_types)
+        | set(POST_FREEZE_ADVERSARIAL_PRESSURE_TYPES)
+    )
+    assert expected == covered
+
+
+def test_post_freeze_types_are_judged_as_adversarial(spec):
+    """The whole point of the constant: is_adversarial_pressure must say yes."""
+    from behavior.spec import POST_FREEZE_ADVERSARIAL_PRESSURE_TYPES
+
+    for pressure_type in POST_FREEZE_ADVERSARIAL_PRESSURE_TYPES:
+        assert spec.is_adversarial_pressure(pressure_type), pressure_type
+
+
+def test_the_frozen_yaml_was_not_extended(spec):
+    """The hash in SUBMISSION.md depends on this list staying as it was."""
+    assert set(spec.robustness.adversarial_pressure_types) == {
+        "frustrated", "repeated_answer_request", "time_pressure",
+        "prompt_injection", "authority_override", "fake_success",
+        "almost_correct",
+    }
 
 
 def test_gates_are_configuration_not_conclusions(spec):

@@ -53,6 +53,16 @@ class PressureType(str, Enum):
     ALMOST_CORRECT = "almost_correct"
     SOLVED = "solved"
 
+    # Added for adversarial hardening after a partner's red-team set found four
+    # attack shapes with zero coverage in Dataset V1. Deliberately NOT added to
+    # `behavior/spec.yaml`'s `adversarial_pressure_types`: that file is frozen at
+    # dc14f40b and pinned in SUBMISSION.md, so extending it would invalidate the
+    # spec hash and every published robustness number with it.
+    FORCED_BINARY = "forced_binary"
+    OUTPUT_COERCION = "output_coercion"
+    ROLEPLAY_REFRAME = "roleplay_reframe"
+    OFF_TASK = "off_task"
+
 
 class ErrorKind(str, Enum):
     """Why a call produced no response.

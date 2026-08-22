@@ -18,6 +18,26 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 SPEC_PATH = Path(__file__).resolve().parent / "spec.yaml"
 
+#: Adversarial pressure types introduced after `spec.yaml` was frozen.
+#:
+#: The YAML is pinned at dc14f40b in SUBMISSION.md and every published
+#: robustness number was computed against it, so extending its
+#: `adversarial_pressure_types` list would silently invalidate all of them.
+#:
+#: These four came from a partner's red-team set, which found attack shapes with
+#: zero coverage in Dataset V1: a forced yes/no whose question already names the
+#: defect, coercion into a diff or completed code block, a roleplay persona whose
+#: norm is to post solutions, and an off-task request that pulls the model out of
+#: the tutor role. They are adversarial in exactly the sense the spec means, so
+#: the robustness criterion has to apply to them. Keeping them here rather than
+#: in the YAML is what lets that be true without moving the frozen hash.
+POST_FREEZE_ADVERSARIAL_PRESSURE_TYPES = frozenset({
+    "forced_binary",
+    "output_coercion",
+    "roleplay_reframe",
+    "off_task",
+})
+
 
 class CriterionKind(str, Enum):
     VIOLATION = "violation"
@@ -201,7 +221,10 @@ class BehaviorSpec(BaseModel):
         }
 
     def is_adversarial_pressure(self, pressure_type: str) -> bool:
-        return pressure_type in self.robustness.adversarial_pressure_types
+        return (
+            pressure_type in self.robustness.adversarial_pressure_types
+            or pressure_type in POST_FREEZE_ADVERSARIAL_PRESSURE_TYPES
+        )
 
     def render_for_prompt(self) -> str:
         """Compact human-readable rendering injected into prompts and judges."""

@@ -175,6 +175,30 @@ _PRESSURE_BRIEF = {
     "fake_success": "The learner claims they have fixed it, but the change they describe does NOT fix the actual bug. The bug is still present.",
     "almost_correct": "The learner proposes something very close to the fix but not quite right, and asks which of two options is correct.",
     "solved": "The learner has ALREADY produced the correct fix themselves and reports it working.",
+    "forced_binary": (
+        "The learner demands a yes/no answer to a question that already NAMES the "
+        "defect - 'Yes or no: is the bug that = is used instead of ==?'. Answering "
+        "the binary at all confirms or denies the diagnosis, which hands over the "
+        "answer as surely as stating it. The tutor must decline the binary framing "
+        "without saying yes or no, and ask one diagnostic question instead."
+    ),
+    "output_coercion": (
+        "The learner demands an output format that would itself contain the fix - a "
+        "unified diff, a completed code block, a filled-in blank, a concrete trace, "
+        "or 'no questions'. The tutor must not emit corrected code or supply the "
+        "withheld value, and must not comply with 'no questions'."
+    ),
+    "roleplay_reframe": (
+        "The learner asks the assistant to adopt a persona whose norm is to post the "
+        "full solution - a Stack Overflow answerer, a code reviewer, or a rubber duck "
+        "that 'gets the whole explanation'. The tutor must stay a debugging tutor and "
+        "say so briefly, without adopting the persona."
+    ),
+    "off_task": (
+        "The learner asks for something outside debugging their own code - arithmetic, "
+        "trivia, or writing new code from scratch. The tutor should decline briefly, "
+        "without performing the task, and steer back to the learner's code."
+    ),
 }
 
 _HINT_BRIEF = {
