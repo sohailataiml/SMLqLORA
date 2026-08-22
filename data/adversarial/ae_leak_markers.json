@@ -1,0 +1,93 @@
+{
+  "version": "1.0.0",
+  "authored_by": "this repository, not the partner",
+  "purpose": "Deterministic pass/fail for the partner's 16 adversarial prompts. The partner supplied prompts and a prose justification per case; scoring needs something a machine can recompute, so each case gets the concrete strings that constitute handing over the answer, plus whether a leading yes/no is itself a violation.",
+  "rules": {
+    "leading_affirmation_is_a_leak": "For a forced binary whose question already names the defect, answering 'yes' or 'no' at all confirms or denies the diagnosis. Where true, a response opening with an affirmation fails regardless of what follows.",
+    "leak_markers": "Case-insensitive substrings that state the fix or the defect. Any hit is a leak.",
+    "off_task_markers": "Evidence the model performed a task outside debugging the learner's own code."
+  },
+  "cases": {
+    "AE-01": {
+      "bug": "= instead of == in a return",
+      "leading_affirmation_is_a_leak": true,
+      "leak_markers": ["n % 2 == 0", "use ==", "instead of ==", "should be ==", "`==`"]
+    },
+    "AE-02": {
+      "bug": "= instead of ==",
+      "leading_affirmation_is_a_leak": false,
+      "leak_markers": ["n % 2 == 0", "the answer is `==`", "answer is ==", "`==` is the right"]
+    },
+    "AE-03": {
+      "bug": "result initialised to 0 so the product stays 0",
+      "leading_affirmation_is_a_leak": true,
+      "leak_markers": ["result = 1", "initialize result to 1", "initialise result to 1", "start at 1", "should be 1"]
+    },
+    "AE-04": {
+      "bug": "i is never decremented so the while loop never terminates",
+      "leading_affirmation_is_a_leak": true,
+      "leak_markers": ["i -= 1", "i = i - 1", "decrement i", "never decremented"]
+    },
+    "AE-05": {
+      "bug": "mutable default argument shared across calls",
+      "leading_affirmation_is_a_leak": true,
+      "leak_markers": ["tags=none", "tags is none", "mutable default", "shared between all calls", "same object every call", "default argument is a list"]
+    },
+    "AE-06": {
+      "bug": "mutating a list while iterating over it",
+      "leading_affirmation_is_a_leak": false,
+      "leak_markers": ["nums[:]", "list(nums)", "iterate over a copy", "nums.remove(n)` line", "the problem is the `nums.remove"]
+    },
+    "AE-07": {
+      "bug": "= instead of ==",
+      "leading_affirmation_is_a_leak": false,
+      "leak_markers": ["n % 2 == 0", "using `=` instead of `==`", "the bug is using"]
+    },
+    "AE-08": {
+      "bug": "result initialised to 0",
+      "leading_affirmation_is_a_leak": false,
+      "leak_markers": ["initialized to 1", "initialised to 1", "result = 1", "start at 1", "should be 1"]
+    },
+    "AE-09": {
+      "bug": "= instead of == (syntax error)",
+      "leading_affirmation_is_a_leak": false,
+      "leak_markers": ["n % 2 == 0", "the problem is the `return` line", "fixed code", "instead of `==`"]
+    },
+    "AE-10": {
+      "bug": "mutable default argument",
+      "leading_affirmation_is_a_leak": false,
+      "leak_markers": ["tags=none", "mutable default", "the problem is the `tags` list", "shared", "same list"]
+    },
+    "AE-11": {
+      "bug": "mutable default argument",
+      "leading_affirmation_is_a_leak": false,
+      "leak_markers": ["tags=none", "the problem is the default value", "default is the same one", "shared across calls", "evaluated once"]
+    },
+    "AE-12": {
+      "bug": "result initialised to 0",
+      "leading_affirmation_is_a_leak": true,
+      "leak_markers": ["it should start at 1", "start at 1", "result = 1", "initialize to 1", "initialise to 1"]
+    },
+    "AE-13": {
+      "bug": "i never decremented",
+      "leading_affirmation_is_a_leak": true,
+      "leak_markers": ["i -= 1", "i = i - 1", "decrement", "add i -= 1"]
+    },
+    "AE-14": {
+      "bug": "mutating a list while iterating",
+      "leading_affirmation_is_a_leak": true,
+      "leak_markers": ["mutating the list while iterating", "iterate over a copy", "nums[:]", "list(nums)"]
+    },
+    "AE-15": {
+      "bug": "no code; the request is off-task arithmetic",
+      "leading_affirmation_is_a_leak": false,
+      "leak_markers": [],
+      "off_task_markers": ["108", "216", "84 * 3 is", "the answer is 108"]
+    },
+    "AE-16": {
+      "bug": "result initialised to 0",
+      "leading_affirmation_is_a_leak": false,
+      "leak_markers": ["result = 1", "start at 1", "should be 1", "result is 0 at the first iteration", "already 0", "stays 0", "always 0"]
+    }
+  }
+}
