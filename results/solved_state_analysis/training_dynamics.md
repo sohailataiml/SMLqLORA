@@ -155,10 +155,13 @@ scenarios also fail under the plain prompt.
 
 ---
 
-## Steps 4 & 5 — checkpoint and base matrix (NOT YET RUN)
+## Steps 4 & 5 — checkpoint and base matrix (design)
 
-`scripts/probe_checkpoint_retention.py` is written and tested, but requires a
-GPU. **It has not been executed and no result is reported here.**
+**This section describes the probe as designed, before it ran. The result
+is at the end of this document, together with a measurement caveat that
+qualifies the `BASE_LACKS_IT` verdict.**
+
+`scripts/probe_checkpoint_retention.py` requires a GPU.
 
 It runs the same three training examples, prompts, generation parameters and
 detector across:
@@ -302,3 +305,100 @@ the retention gate shows it does not currently hold the *simpler* behaviour from
 examples it saw directly. If Arm A restores retention, that premise is repaired
 and V2 becomes designable. If it does not, V2 would be built on the same broken
 premise.
+
+---
+
+## Steps 4 & 5 — RUN. The matrix, and a measurement caveat that matters
+
+`checkpoint_retention_probe.json`. 15 generations, 0 errors, no judge calls.
+
+Two built-in consistency checks passed: `exported` and `checkpoint-34` agree
+exactly (proven byte-equivalent weights), and `checkpoint-34` reproduces the
+retention gate's 1/3 on the same example.
+
+### Pre-registered measure (explicit confirmation phrasing)
+
+```
+base             0/3
+checkpoint-34    1/3   <- epoch 1, exported
+exported         1/3
+checkpoint-68    0/3   <- epoch 2
+checkpoint-102   0/3   <- epoch 3
+
+SHAPE: BASE_LACKS_IT
+```
+
+### The caveat
+
+`BASE_LACKS_IT` is **not robust to the detector**, and the raw text shows why.
+All three base responses open with *"Great! You've already identified the
+issue"* — an acknowledgement the shared `CONFIRMATION_PATTERN` does not match,
+because it looks for *"that's exactly right"*, *"correct"*, *"spot on"* and
+similar.
+
+Scoring the same 15 responses under a looser, **post-hoc** measure —
+acknowledgement that the learner identified the problem — the base row inverts:
+
+| Model | strict (pre-registered) | loose (post-hoc) |
+|---|---|---|
+| base | **0/3** | **3/3** |
+| checkpoint-34 / exported | 1/3 | 1/3 |
+| checkpoint-68 | 0/3 | 0/3 |
+| checkpoint-102 | 0/3 | 0/3 |
+
+The loose measure was constructed after seeing the data and **does not overturn
+the pre-registered verdict**. It does establish that the verdict is
+measurement-dependent, so `BASE_LACKS_IT` must not be leaned on.
+
+### What survives both measures
+
+1. **Under the weak prompt, nothing produces spec-compliant release.** Not the
+   base, not any checkpoint. The base acknowledges and then lectures; on
+   `gen_v1_00008` it re-derives the fix and instructs the learner to make a
+   change they had already made.
+2. **Fine-tuning does not install durable release.** Whatever epoch 1 gains is
+   gone by epoch 2 on both measures.
+3. **The instructability gap is unaffected**, because it was measured on
+   held-out scenarios with plain wording: base 2/2 with an explicit release rule
+   (*"Your fix is correct. The code now works as expected."*) against the
+   adapter's 0/2.
+
+### Correction to §14
+
+§14 said *"the base model has the behaviour. Fine-tuning on that data removed
+it."* Whether that holds depends on what counts as the behaviour, and the
+report should have said so:
+
+- **explicit confirmation phrasing** (what the spec requires and what V1 targets
+  model): the base never had it — 0/3 here, and 1/2 held-out under the weak
+  prompt.
+- **acknowledging that the learner solved it**: the base had it fully, 3/3, and
+  fine-tuning destroyed it monotonically — 1, then 0, then 0.
+
+Both readings agree that no configuration tested produces reliable
+spec-compliant release under the weak prompt.
+
+### Consequence for the ablation
+
+**Arm B (one epoch) is largely pre-tested and should be dropped.** The exported
+adapter already *is* epoch 1, and it scores 1/3.
+
+**Arm C (lower LR) is weakly motivated.** The shape is gain-then-loss rather
+than erosion, so slowing updates has no clear predicted effect.
+
+**Arm A (assistant-only loss) is better justified than before.** Epoch 1
+demonstrably installed something the base lacked on the strict measure, so the
+behaviour is learnable from V1 — it simply does not survive. Gain-then-loss is
+what a swamped minority class looks like, and Arm A is precisely the change that
+raises release from 7.44% to 36.3% of the loss signal.
+
+**Revised proposal: run Arm A alone.** One T4 run rather than three. Arms B and
+C only if Arm A's result argues for them.
+
+### A defect this exposed in the instrumentation
+
+The confirmation detector is tuned to V1's house style and misses paraphrases.
+Every count in §§14–15 and here depends on it. Before any ablation is scored, a
+**secondary acknowledgement measure should be pre-registered** so that arms are
+judged on two measures fixed in advance rather than on one whose blind spot is
+now known. That is a change to the instruments, not to the thresholds in §8.

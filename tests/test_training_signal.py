@@ -160,3 +160,63 @@ def test_retention_matrix_ignores_rows_whose_target_does_not_confirm():
          "generated_confirms": True},
     ]}
     assert retention_matrix(report) == {"base": {"confirms": 1, "of": 1}}
+
+
+# --------------------------------------- the committed checkpoint matrix
+
+MATRIX = REPO_ROOT / "results/solved_state_analysis/checkpoint_retention_probe.json"
+
+matrix_only = pytest.mark.skipif(not MATRIX.exists(), reason="matrix not present")
+
+
+@pytest.fixture
+def matrix_report():
+    import json
+    return json.loads(MATRIX.read_text(encoding="utf-8"))
+
+
+@matrix_only
+def test_the_matrix_ran_every_model_on_every_example(matrix_report):
+    rows = [r for r in matrix_report["results"] if "example_id" in r]
+    assert len(rows) == 15  # 5 models x 3 examples
+    assert all(r["error"] is None for r in rows)
+
+
+@matrix_only
+def test_the_committed_matrix_counts(matrix_report):
+    assert matrix_report["retention_matrix"] == {
+        "base": {"confirms": 0, "of": 3},
+        "exported": {"confirms": 1, "of": 3},
+        "checkpoint-34": {"confirms": 1, "of": 3},
+        "checkpoint-68": {"confirms": 0, "of": 3},
+        "checkpoint-102": {"confirms": 0, "of": 3},
+    }
+
+
+@matrix_only
+def test_exported_and_checkpoint_34_agree(matrix_report):
+    """Byte-equivalent weights must score identically, or loading is broken."""
+    m = matrix_report["retention_matrix"]
+    assert m["exported"] == m["checkpoint-34"]
+
+
+@matrix_only
+def test_checkpoint_34_replicates_the_retention_gate(matrix_report):
+    assert matrix_report["retention_matrix"]["checkpoint-34"]["confirms"] == 1
+
+
+@matrix_only
+def test_the_base_row_is_a_detector_artifact_not_silence(matrix_report):
+    """Documents a known blind spot rather than letting it pass unnoticed.
+
+    The strict detector scores base 0/3, but all three base responses
+    acknowledge that the learner identified the problem. Any future change to
+    the confirmation patterns should have to confront this.
+    """
+    import re
+    ack = re.compile(r"you'?ve (?:already )?identified", re.I)
+    base = [r for r in matrix_report["results"]
+            if r.get("model_label") == "base" and "example_id" in r]
+    assert len(base) == 3
+    assert all(not r["generated_confirms"] for r in base)
+    assert all(ack.search(r["generated_response"]) for r in base)

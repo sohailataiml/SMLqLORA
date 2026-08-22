@@ -1,0 +1,206 @@
+{
+  "artifact_status": "DIAGNOSTIC_PROBE_NOT_AN_EXPERIMENT",
+  "note": "No judge calls. Inputs replayed verbatim from the trainer's own train.jsonl. Not comparable with N600_V1_BASELINE.",
+  "question": "Was solved-state confirmation ever present, and when was it lost?",
+  "run_dir": "/content/SMLqLORA/outputs/socratic-v1-n600-bestckpt",
+  "selected_examples": [
+    "gen_v1_00486",
+    "gen_v1_00792",
+    "gen_v1_00008"
+  ],
+  "generation_params": {
+    "max_tokens": 800,
+    "temperature": 0.0,
+    "seed": 1234
+  },
+  "results": [
+    {
+      "model_label": "base",
+      "model": "hf:Qwen/Qwen3-1.7B",
+      "example_id": "gen_v1_00486",
+      "bug_category": "closure_behavior",
+      "target_confirms": true,
+      "generated_response": "Great! You've already identified the core issue: the `timerId` is declared inside the returned function, so each call to `logSearch` gets its own fresh `timerId`. This means that when you call `clearTimeout(timerId)` in the first call, it clears the timer for that specific call, but the previous timer (from the first call) is no longer accessible because it was assigned to a different variable.\n\n### What's happening:\n- The first call to `logSearch(\"a\")` sets a timer.\n- The second call to `logSearch(\"ab\")` sets a new timer.\n- The third call to `logSearch(\"abc\")` sets another timer.\n- But since each call has its own `timerId`, the `clearTimeout` in the first call doesn't affect the others.\n\n### Solution:\nYou're already on the right track by moving the `timerId` declaration into the `makeDebounced` function so that it's shared across all calls. That way, all calls share the same timer ID, and the `clearTimeout` in one call will affect all others.\n\n### Final Working Code:\n```javascript\nfunction makeDebounced(fn, delay) {\n  let timerId;\n  return function (...args) {\n    clearTimeout(timerId);\n    timerId = setTimeout(() => {\n      fn.apply(this, args);\n    }, delay);\n  };\n}\n\nconst logSearch = makeDebounced((q) => console.log(\"searching:\", q), 300);\nlogSearch(\"a\"); // \"searching: a\" after 300ms\nlogSearch(\"ab\"); // \"searching: ab\" after 300ms\nlogSearch(\"abc\"); // \"searching: abc\" after 300ms\n```\n\n### Summary:\n- The issue was that each call to `logSearch` had its own `timerId`, so `clearTimeout` in one call didn't affect others.\n- By moving `timerId` into `makeDebounced`, all calls share the same timer, and `clearTimeout` in one call will clear all others.\n\nKeep up the great work! \ud83d\ude80",
+      "generated_confirms": false,
+      "generated_asks_question": false,
+      "error": null
+    },
+    {
+      "model_label": "base",
+      "model": "hf:Qwen/Qwen3-1.7B",
+      "example_id": "gen_v1_00792",
+      "bug_category": "generator_exhaustion",
+      "target_confirms": true,
+      "generated_response": "Great! You've already identified the issue: the difference between using parentheses and square brackets in the generator expression.\n\nLet's break down what's happening in your code:\n\n### Problem:\n```python\nscores = (int(line) for line in open(\"scores.txt\"))\n```\n\n- The **parentheses** `( ` create a **generator expression**, which is **iterable** \u2014 it doesn't store all the values in memory at once.\n- The **square brackets** `[ ` create a **list**, which **stores all the values** in memory.\n\n### What's happening:\n- When you do `sum(1 for _ in scores)`, you're iterating over the **generator** and counting how many items it has.\n- But **generators don't store the items** \u2014 they are **processed on the fly**.\n- So, if the generator is empty (i.e., no lines in the file), `sum(1 for _ in scores)` will return `0`.\n\n### Why your code failed:\n- You had:\n  ```python\n  count = sum(1 for _ in scores)\n  ```\n- But `scores` was a **generator**, not a list \u2014 so `sum(1 for _ in scores)` returned `0` (because the generator was empty), even though there were 12 lines in the file.\n\n### Why the parentheses version works:\n- When you use:\n  ```python\n  scores = (int(line) for line in open(\"scores.txt\"))\n  ```\n  - The generator is **processed once**, and the values are **stored in memory**.\n  - So `sum(1 for _ in scores)` will count all the values, and `total` will be computed correctly.\n\n### Summary:\n- **Parentheses** (`()`): Generator \u2014 processed once, values stored in memory.\n- **Square brackets** (`[]`): List \u2014 stores all values in memory.\n\n### Final Fix:\nYou already fixed the issue by changing the first line from:\n```python\nscores = (int(line) for line in open(\"scores.txt\"))\n```\nto:\n```python\nscores = [int(line) for line in open(\"scores.txt\")]\n```\n\nThis ensures that all values are stored in a list, and `sum(1 for _ in scores)` will correctly count them.\n\nLet me know if you'd like to optimize this further or understand why generators are useful!",
+      "generated_confirms": false,
+      "generated_asks_question": false,
+      "error": null
+    },
+    {
+      "model_label": "base",
+      "model": "hf:Qwen/Qwen3-1.7B",
+      "example_id": "gen_v1_00008",
+      "bug_category": "incorrect_condition",
+      "target_confirms": true,
+      "generated_response": "Great! You've identified the issue: the condition in the `if` statement is using `||` (OR), which means the request is flagged if **either** of the two conditions is true. But **overlap** requires **both** conditions to be true for there to be a conflict.\n\n### What's wrong?\nThe condition is:\n```javascript\nif (request.start < b.end || request.end > b.start)\n```\nThis means the request **conflicts** with a booking **if** either:\n- The request starts before the booking ends, or\n- The request ends after the booking starts.\n\nBut **overlap** requires both to be true. For example:\n- If the request is from 9\u201310 and the booking is from 14\u201315: **no overlap**, so no conflict.\n- If the request is from 14\u201315 and the booking is from 9\u201310: **overlap**, so conflict.\n\nSo the condition should be:\n```javascript\nif (request.start < b.end && request.end > b.start)\n```\n\n### What's the fix?\nChange the `||` to `&&` in the condition.\n\n### Final Working Code:\n```javascript\nfunction findConflicts(bookings, request) {\n  const conflicts = [];\n  for (const b of bookings) {\n    if (b.room !== request.room) continue;\n    if (request.start < b.end && request.end > b.start) {\n      conflicts.push(b.id);\n    }\n  }\n  return conflicts;\n}\n```\n\n### Example:\n- `request: { room: 'R1', start: 14, end: 15 }`  \n  - `14 < 10` \u2192 false  \n  - `15 > 9` \u2192 true  \n  - Since `&&` is used, **only** if both are true, it's flagged.  \n  \u2192 **No conflict**.\n\n- `request: { room: 'R1', start: 9, end: 10 }`  \n  - `9 < 10` \u2192 true  \n  - `10 > 9` \u2192 true  \n  \u2192 **Conflict**.\n\nThis will now behave correctly. Let me know if you want to test it with more examples!",
+      "generated_confirms": false,
+      "generated_asks_question": true,
+      "error": null
+    },
+    {
+      "model_label": "exported",
+      "model": "peft:Qwen/Qwen3-1.7B+outputs/socratic-v1-n600-bestckpt",
+      "example_id": "gen_v1_00486",
+      "bug_category": "closure_behavior",
+      "target_confirms": true,
+      "generated_response": "That's exactly right \u2014 the problem is that the inner function is a new function per call, so the variable you declared inside it is a new variable per call, and the previous one is gone. The fix you found is the right one, and the two separate functions still don't interfere, so the fix is correct. The only thing left to check is whether the two calls actually run at the same time: is the 300ms delay the same for each call?",
+      "generated_confirms": true,
+      "generated_asks_question": true,
+      "error": null
+    },
+    {
+      "model_label": "exported",
+      "model": "peft:Qwen/Qwen3-1.7B+outputs/socratic-v1-n600-bestckpt",
+      "example_id": "gen_v1_00792",
+      "bug_category": "generator_exhaustion",
+      "target_confirms": true,
+      "generated_response": "That's a good observation \u2014 the two versions of the line you wrote are very different, and the difference is the one that's the problem. Let's look at the two versions side by side and see what the two different ways of building the list do to the same input.",
+      "generated_confirms": false,
+      "generated_asks_question": false,
+      "error": null
+    },
+    {
+      "model_label": "exported",
+      "model": "peft:Qwen/Qwen3-1.7B+outputs/socratic-v1-n600-bestckpt",
+      "example_id": "gen_v1_00008",
+      "bug_category": "incorrect_condition",
+      "target_confirms": true,
+      "generated_response": "That's a good observation \u2014 the two comparisons are different, and the `or` is the problem. But the fact that the 9:30\u201310:30 request still comes back with a conflict tells you that the `and` change is not the whole story. So now, take the two comparisons you just evaluated and write them as a single expression, and put it inside the `if` \u2014 what does that expression evaluate to for the 9:30\u201310:30 case?",
+      "generated_confirms": false,
+      "generated_asks_question": true,
+      "error": null
+    },
+    {
+      "model_label": "checkpoint-34",
+      "model": "peft:Qwen/Qwen3-1.7B+outputs/socratic-v1-n600-bestckpt/checkpoint-34",
+      "example_id": "gen_v1_00486",
+      "bug_category": "closure_behavior",
+      "target_confirms": true,
+      "generated_response": "That's exactly right \u2014 the problem is that the inner function is a new function per call, so the variable you declared inside it is a new variable per call, and the previous one is gone. The fix you found is the right one, and the two separate functions still don't interfere, so the fix is correct. The only thing left to check is whether the two calls actually run at the same time: is the 300ms delay the same for each call?",
+      "generated_confirms": true,
+      "generated_asks_question": true,
+      "error": null
+    },
+    {
+      "model_label": "checkpoint-34",
+      "model": "peft:Qwen/Qwen3-1.7B+outputs/socratic-v1-n600-bestckpt/checkpoint-34",
+      "example_id": "gen_v1_00792",
+      "bug_category": "generator_exhaustion",
+      "target_confirms": true,
+      "generated_response": "That's a good observation \u2014 the two versions of the line you wrote are very different, and the difference is the one that's the problem. Let's look at the two versions side by side and see what the two different ways of building the list do to the same input.",
+      "generated_confirms": false,
+      "generated_asks_question": false,
+      "error": null
+    },
+    {
+      "model_label": "checkpoint-34",
+      "model": "peft:Qwen/Qwen3-1.7B+outputs/socratic-v1-n600-bestckpt/checkpoint-34",
+      "example_id": "gen_v1_00008",
+      "bug_category": "incorrect_condition",
+      "target_confirms": true,
+      "generated_response": "That's a good observation \u2014 the two comparisons are different, and the `or` is the problem. But the fact that the 9:30\u201310:30 request still comes back with a conflict tells you that the `and` change is not the whole story. So now, take the two comparisons you just evaluated and write them as a single expression, and put it inside the `if` \u2014 what does that expression evaluate to for the 9:30\u201310:30 case?",
+      "generated_confirms": false,
+      "generated_asks_question": true,
+      "error": null
+    },
+    {
+      "model_label": "checkpoint-68",
+      "model": "peft:Qwen/Qwen3-1.7B+outputs/socratic-v1-n600-bestckpt/checkpoint-68",
+      "example_id": "gen_v1_00486",
+      "bug_category": "closure_behavior",
+      "target_confirms": true,
+      "generated_response": "Good, so the problem is not the function itself, but the way the inner function is built. I'm going to give you a hint instead of the answer, so you can check it yourself. What is the value of the `function` object you get back from `makeDebounced`, and what is the value of `function` in the inner function?",
+      "generated_confirms": false,
+      "generated_asks_question": true,
+      "error": null
+    },
+    {
+      "model_label": "checkpoint-68",
+      "model": "peft:Qwen/Qwen3-1.7B+outputs/socratic-v1-n600-bestckpt/checkpoint-68",
+      "example_id": "gen_v1_00792",
+      "bug_category": "generator_exhaustion",
+      "target_confirms": true,
+      "generated_response": "Good observation, so the two versions of `scores` are different. What is the difference between the two versions?",
+      "generated_confirms": false,
+      "generated_asks_question": true,
+      "error": null
+    },
+    {
+      "model_label": "checkpoint-68",
+      "model": "peft:Qwen/Qwen3-1.7B+outputs/socratic-v1-n600-bestckpt/checkpoint-68",
+      "example_id": "gen_v1_00008",
+      "bug_category": "incorrect_condition",
+      "target_confirms": true,
+      "generated_response": "Good, so the problem is the `or` and `and` the two comparisons are in. I'm going to help you find the problem by the same method you did the first one \u2014 the two comparisons are in the same line, so the order of the two comparisons is the key. What order do you think the two comparisons should be in order to get the right answer?",
+      "generated_confirms": false,
+      "generated_asks_question": true,
+      "error": null
+    },
+    {
+      "model_label": "checkpoint-102",
+      "model": "peft:Qwen/Qwen3-1.7B+outputs/socratic-v1-n600-bestckpt/checkpoint-102",
+      "example_id": "gen_v1_00486",
+      "bug_category": "closure_behavior",
+      "target_confirms": true,
+      "generated_response": "Good, so the problem is not the function itself, but the way the inner function is built. I've already confirmed that the two functions are separate, so the problem is not the function's own scope. What is the function's scope, and what does the function's body do in the case the inner function is built with the same scope?",
+      "generated_confirms": false,
+      "generated_asks_question": true,
+      "error": null
+    },
+    {
+      "model_label": "checkpoint-102",
+      "model": "peft:Qwen/Qwen3-1.7B+outputs/socratic-v1-n600-bestckpt/checkpoint-102",
+      "example_id": "gen_v1_00792",
+      "bug_category": "generator_exhaustion",
+      "target_confirms": true,
+      "generated_response": "Good observation, and the answer is the right answer, so I'll just tell you what the problem is, and then you can read the answer yourself. `scores = (int(line) for line in open(\"scores.txt\"))` is the right way to read the file, and the problem is that the `sum` function is not the right one to use. `sum` is the right function to use for the total, but `sum` is not the right function to use for count. `count` is the number of lines in the file, so the right way to count them is to read the file and count the lines, not to count the lines in the list. So the right way to count the lines is `count = len(scores)`, and the right way to count the scores is `count = sum(1 for line in scores)`. So the two lines you changed are the two lines that count the lines and the count of the scores, and the two lines you changed are the two lines that count the lines and the count of the scores. So the two lines you changed are the two lines that count the lines and the count of the scores, and the two lines you changed are the two lines that count the lines and the count of the scores. So the two lines you changed are the two lines that count the lines and the count of the scores, and the two lines you changed are the two lines that count the lines and the count of the scores. So the two lines you changed are the two lines that count the lines and the count of the scores, and the two lines you changed are the two lines that count the lines and the count of the scores. So the two lines you changed are the two lines that count the lines and the count of the scores, and the two lines you changed are the two lines that count the lines and the count of the scores. So the two lines you changed are the two lines that count the lines and the count of the scores, and the two lines you changed are the two lines that count the lines and the count of the scores. So the two lines you changed are the two lines that count the lines and the count of the scores, and the two lines you changed are the two lines that count the lines and the count of the scores. So the two lines you changed are the two lines that count the lines and the count of the scores, and the two lines you changed are the two lines that count the lines and the count of the scores. So the two lines you changed are the two lines that count the lines and the count of the scores, and the two lines you changed are the two lines that count the lines and the count of the scores. So the two lines you changed are the two lines that count the lines and the count of the scores, and the two lines you changed are the two lines that count the lines and the count of the scores. So the two lines you changed are the two lines that count the lines and the count of the scores, and the two lines you changed are the two lines that count the lines and the count of the scores. So the two lines you changed are the two lines that count the lines and the count of the scores, and the two lines you changed are the two lines that count the lines and the count of the scores. So the two lines you changed are the two lines that count the lines and the count of the scores, and the two lines you changed are the two lines that count the lines and the count of the scores. So the two lines you changed are the two lines that count the lines and the count of the scores, and the two lines you changed are the two lines that count the lines and the count of the scores. So the two lines you changed are the two lines that count the lines and the count of the scores, and the two lines you changed are the two lines that count the",
+      "generated_confirms": false,
+      "generated_asks_question": false,
+      "error": null
+    },
+    {
+      "model_label": "checkpoint-102",
+      "model": "peft:Qwen/Qwen3-1.7B+outputs/socratic-v1-n600-bestckpt/checkpoint-102",
+      "example_id": "gen_v1_00008",
+      "bug_category": "incorrect_condition",
+      "target_confirms": true,
+      "generated_response": "Good, so the two comparisons are the only ones that matter, and the two comparisons are the only ones that actually do something. So the problem is not the comparison itself, but the way the two comparisons are joined. What is the order of the two comparisons in the `if` line?",
+      "generated_confirms": false,
+      "generated_asks_question": true,
+      "error": null
+    }
+  ],
+  "retention_matrix": {
+    "base": {
+      "confirms": 0,
+      "of": 3
+    },
+    "exported": {
+      "confirms": 1,
+      "of": 3
+    },
+    "checkpoint-34": {
+      "confirms": 1,
+      "of": 3
+    },
+    "checkpoint-68": {
+      "confirms": 0,
+      "of": 3
+    },
+    "checkpoint-102": {
+      "confirms": 0,
+      "of": 3
+    }
+  },
+  "shape": "BASE_LACKS_IT - the untuned model does not confirm on these inputs either, so fine-tuning cannot have removed it here"
+}
